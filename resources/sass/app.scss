@@ -1,8 +1,25 @@
-// Fonts
-@import url('https://fonts.bunny.net/css?family=Nunito');
+// Import Montserrat from Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
 
-// Variables
+// Import Bootstrap with Montserrat as base font
+$font-family-base: 'Montserrat', sans-serif;
+$font-size-base: 0.875rem;
+
+@import 'bootstrap';
 @import 'variables';
 
-// Bootstrap
-@import 'bootstrap/scss/bootstrap';
+// Global font family override
+* {
+    font-family: 'Montserrat', sans-serif;
+}
+
+body {
+    background-color: #f7f8fc;
+    color: #111827;
+    font-family: 'Montserrat', sans-serif;
+}
+
+// Utility classes
+.text-sans {
+    font-family: 'Montserrat', sans-serif;
+}
