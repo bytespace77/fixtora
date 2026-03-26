@@ -1,678 +1,254 @@
 @extends('layouts.app')
+@section('title', 'Dashboard – Fixtora')
 
-@section('title', 'Dashboard - Fixtora')
+@section('styles')
+<style>
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--navy)}
+.page-header p{font-size:13px;color:var(--muted);margin-top:4px}
+.hdr-btns{display:flex;gap:8px}
+.btn-sm{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-family:inherit;transition:all .15s}
+.btn-sm:hover{background:var(--bg)}
+.btn-sm.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-sm.primary:hover{background:#1a42c4}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);display:flex;align-items:center;gap:16px}
+.stat-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stat-icon.blue{background:var(--blue-bg);color:var(--blue)}
+.stat-icon.green{background:#dcfce7;color:var(--green)}
+.stat-icon.navy{background:var(--navy);color:#fff}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--navy)}
+.stat-badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:4px;display:inline-block}
+.badge-up{background:#dcfce7;color:var(--green)}
+.badge-ok{background:var(--blue-bg);color:var(--blue)}
+.badge-warn{background:#fee2e2;color:var(--red)}
+
+/* GRID */
+.content-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;letter-spacing:-.2px;color:var(--navy)}
+.view-all{font-size:11.5px;font-weight:600;color:var(--blue);text-decoration:none}
+.view-all:hover{text-decoration:underline}
+
+/* CHART */
+.chart-wrap{position:relative;height:160px}
+
+/* QUEUE TABLE */
+.queue-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.queue-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;text-align:left;font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;background:var(--bg);border-bottom:1px solid var(--border)}
+td{padding:13px 16px;font-size:13px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff}
+
+/* PILLS */
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.pill-critical{background:#fee2e2;color:var(--red)}
+.pill-high{background:#fff7ed;color:var(--orange)}
+.pill-medium{background:var(--blue-bg);color:var(--blue)}
+.pill-low{background:#f0fdf4;color:var(--green)}
+.pill-open{background:#fff7ed;color:var(--orange)}
+.pill-resolved{background:#f0fdf4;color:var(--green)}
+.pill-review{background:var(--blue-bg);color:var(--blue)}
+
+/* UPDATES */
+.update-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.update-item:last-child{border-bottom:none}
+.upd-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.upd-dot.green{background:var(--green)}
+.upd-dot.red{background:var(--red)}
+.upd-dot.blue{background:var(--blue)}
+.upd-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.upd-desc{font-size:12px;color:var(--muted)}
+.upd-time{font-size:10.5px;font-weight:600;color:var(--muted-lt);margin-top:3px}
+
+.avatar-stack{display:flex}
+.av{width:26px;height:26px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;margin-left:-6px;flex-shrink:0}
+.av:first-child{margin-left:0}
+.av-blue{background:#2563eb}.av-purple{background:#7c3aed}.av-orange{background:var(--orange)}.av-teal{background:#0d9488}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state svg{margin-bottom:12px;opacity:.3}
+.empty-state p{font-size:13px;font-weight:600}
+</style>
+@endsection
 
 @section('content')
-<div class="dashboard-container">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div>
-            <h1>Operational Overview</h1>
-            <p class="subtitle">Welcome back, {{ Auth::user()->name ?? 'Alex' }}. Your concierge metrics are looking optimal today.</p>
-        </div>
-        <div class="header-actions">
-            <button class="btn-secondary">📊 Last 24 Hours</button>
-            <button class="btn-primary">📥 Export Report</button>
-        </div>
-    </div>
-
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-header">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <path d="M2 17h20"></path>
-                </svg>
-                <span class="stat-badge positive">+12% vs last week</span>
-            </div>
-            <div class="stat-content">
-                <div class="stat-label">ACTIVE TICKETS</div>
-                <div class="stat-value">1,248</div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-header">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                <span class="stat-label-badge">On Target</span>
-            </div>
-            <div class="stat-content">
-                <div class="stat-label">RESOLVED (24H)</div>
-                <div class="stat-value">842</div>
-            </div>
-        </div>
-
-        <div class="stat-card critical">
-            <div class="stat-header">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path>
-                </svg>
-            </div>
-            <div class="stat-content">
-                <div class="stat-label">SLA COMPLIANCE</div>
-                <div class="stat-value">99.4%</div>
-                <small>Critical Metric</small>
-            </div>
-        </div>
-    </div>
-
-    <!-- Content Grid -->
-    <div class="content-grid">
-        <!-- Ticket Inflow Chart -->
-        <div class="card">
-            <div class="card-header">
-                <h3>Ticket Inflow & Resolution</h3>
-                <div class="chart-toggles">
-                    <button class="toggle active" onclick="switchChart('inflow')">Inflow</button>
-                    <button class="toggle" onclick="switchChart('resolution')">Resolution</button>
-                </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="ticketChart"></canvas>
-            </div>
-        </div>
-
-        <!-- System Updates -->
-        <div class="card">
-            <div class="card-header">
-                <h3>System Updates</h3>
-                <a href="#" class="view-all">View All →</a>
-            </div>
-            <div class="updates-list">
-                <div class="update-item">
-                    <div class="update-icon success">✓</div>
-                    <div class="update-content">
-                        <h4>Infrastructure Optimized</h4>
-                        <p>Node clusters in US-East balanced...</p>
-                        <span class="time">2 MINS AGO</span>
-                    </div>
-                </div>
-                <div class="update-item">
-                    <div class="update-icon warning">⚠</div>
-                    <div class="update-content">
-                        <h4>Critical Ticket Spike</h4>
-                        <p>Inbound volume for Auth Service...</p>
-                        <span class="time critical">14 MINS AGO</span>
-                    </div>
-                </div>
-                <div class="update-item">
-                    <div class="update-icon info">ℹ</div>
-                    <div class="update-content">
-                        <h4>New Architect Joined</h4>
-                        <p>Sarah Jenkins is now assigned t...</p>
-                        <span class="time">1 HOUR AGO</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Priority Queue -->
-    <div class="card">
-        <div class="card-header">
-            <h3>Priority Concierge Queue</h3>
-            <span style="font-size: 13px; color: var(--text-secondary);">Active issues requiring immediate structural intervention.</span>
-        </div>
-        <div class="queue-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>TICKET ID</th>
-                        <th>TITLE</th>
-                        <th>DURATION</th>
-                        <th>PRIORITY</th>
-                        <th>STATUS</th>
-                        <th>ASSIGNEE</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong style="color: #dc2626;">#492</strong></td>
-                        <td>Database Sharding Failure - Primary Vault</td>
-                        <td>12m duration</td>
-                        <td><span class="badge-critical">Critical</span></td>
-                        <td><span class="status urgent">URGENT</span></td>
-                        <td>
-                            <div style="display: flex; gap: 4px;">
-                                <span class="avatar" style="background: #2563eb;">MP</span>
-                                <span class="avatar" style="background: #7c3aed;">SJ</span>
-                            </div>
-                        </td>
-                        <td style="color: var(--text-secondary); cursor: pointer;">⋯</td>
-                    </tr>
-                    <tr>
-                        <td><strong style="color: #2563eb;">#501</strong></td>
-                        <td>Global CSS Refactor - Component Library</td>
-                        <td>45m duration</td>
-                        <td><span class="badge-high">High</span></td>
-                        <td><span class="status review">IN REVIEW</span></td>
-                        <td>
-                            <div style="display: flex; gap: 4px;">
-                                <span class="avatar" style="background: #f97316;">ER</span>
-                            </div>
-                        </td>
-                        <td style="color: var(--text-secondary); cursor: pointer;">⋯</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
+<div class="page-header">
+  <div>
+    <h1>Operational Overview</h1>
+    <p>Welcome back, {{ Auth::user()->name }}. Here's your system status.</p>
+  </div>
+  <div class="hdr-btns">
+    <button class="btn-sm">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Last 24 Hours
+    </button>
+    <button class="btn-sm primary">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export Report
+    </button>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-icon blue">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+    </div>
+    <div>
+      <div class="stat-label">Active Tickets</div>
+      <div class="stat-val">{{ $stats['active'] }}</div>
+      @if($stats['total'] > 0)
+        <span class="stat-badge badge-up">{{ $stats['total'] }} total</span>
+      @endif
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div>
+      <div class="stat-label">Resolved</div>
+      <div class="stat-val">{{ $stats['resolved'] }}</div>
+      <span class="stat-badge badge-ok">On Target</span>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon navy">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div>
+      <div class="stat-label">Critical Open</div>
+      <div class="stat-val">{{ $stats['critical'] }}</div>
+      @if($stats['critical'] > 0)
+        <span class="stat-badge badge-warn">Needs Attention</span>
+      @else
+        <span class="stat-badge badge-ok">All Clear</span>
+      @endif
+    </div>
+  </div>
+</div>
+
+<!-- CHART + UPDATES -->
+<div class="content-grid">
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Ticket Inflow & Resolution</div>
+      <a href="{{ route('reports.index') }}" class="view-all">View Reports →</a>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="inflowChart"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">System Updates</div>
+      <a href="{{ route('notifications.index') }}" class="view-all">View All</a>
+    </div>
+    <div class="update-item">
+      <div class="upd-dot green"></div>
+      <div>
+        <div class="upd-title">Infrastructure Optimized</div>
+        <div class="upd-desc">Node clusters balanced successfully.</div>
+        <div class="upd-time">2 MINS AGO</div>
+      </div>
+    </div>
+    <div class="update-item">
+      <div class="upd-dot red"></div>
+      <div>
+        <div class="upd-title">Critical Ticket Spike</div>
+        <div class="upd-desc">Inbound volume for Auth Service up 30%.</div>
+        <div class="upd-time" style="color:var(--red)">14 MINS AGO</div>
+      </div>
+    </div>
+    <div class="update-item">
+      <div class="upd-dot blue"></div>
+      <div>
+        <div class="upd-title">New Architect Joined</div>
+        <div class="upd-desc">Sarah Jenkins assigned to Queue A.</div>
+        <div class="upd-time">1 HOUR AGO</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRIORITY QUEUE -->
+<div class="queue-card">
+  <div class="queue-hdr">
+    <div class="card-title">Priority Concierge Queue</div>
+    <a href="{{ route('tickets.index') }}" class="view-all">View All Tickets →</a>
+  </div>
+  @if($recentTickets->count() > 0)
+  <table>
+    <thead>
+      <tr>
+        <th>Ticket ID</th>
+        <th>Title</th>
+        <th>Priority</th>
+        <th>Impact</th>
+        <th>Status</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach($recentTickets as $ticket)
+      <tr>
+        <td><span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--muted)">#{{ $ticket->id }}</span></td>
+        <td style="font-weight:600;max-width:280px">{{ Str::limit($ticket->title, 50) }}</td>
+        <td><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></td>
+        <td><span class="pill pill-{{ $ticket->impact }}">{{ ucfirst($ticket->impact) }}</span></td>
+        <td>
+          @if($ticket->status === 'open')<span class="pill pill-open">Open</span>
+          @elseif($ticket->status === 'resolved')<span class="pill pill-resolved">Resolved</span>
+          @else<span class="pill pill-review">{{ ucfirst($ticket->status) }}</span>
+          @endif
+        </td>
+        <td style="color:var(--muted);font-size:12px">{{ $ticket->created_at->diffForHumans() }}</td>
+      </tr>
+      @endforeach
+    </tbody>
+  </table>
+  @else
+  <div class="empty-state">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <p>No tickets yet. <a href="{{ route('tickets.create') }}" style="color:var(--blue)">Create your first ticket →</a></p>
+  </div>
+  @endif
+</div>
+
 <script>
-    let chartInstance = null;
-    
-    function createChart(type = 'inflow') {
-        const ctx = document.getElementById('ticketChart').getContext('2d');
-        
-        const inflowData = {
-            labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-            datasets: [
-                {
-                    label: 'Inflow',
-                    data: [120, 150, 140, 180, 160, 140, 130],
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#2563eb'
-                },
-                {
-                    label: 'Average',
-                    data: [100, 100, 100, 100, 100, 100, 100],
-                    borderColor: 'rgba(37, 99, 235, 0.3)',
-                    backgroundColor: 'rgba(37, 99, 235, 0.05)',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0
-                }
-            ]
-        };
-        
-        const resolutionData = {
-            labels: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
-            datasets: [
-                {
-                    label: 'Resolution Rate',
-                    data: [95, 120, 110, 140, 130, 110, 105],
-                    borderColor: '#059669',
-                    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 6,
-                    pointBackgroundColor: '#059669'
-                }
-            ]
-        };
-        
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-        
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: type === 'inflow' ? inflowData : resolutionData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            font: { family: "'Montserrat', sans-serif", size: 13, weight: '500' },
-                            color: '#6b7280',
-                            usePointStyle: true,
-                            padding: 15,
-                            boxWidth: 6,
-                            boxHeight: 6
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        titleFont: { family: "'Montserrat', sans-serif" },
-                        bodyFont: { family: "'Montserrat', sans-serif" },
-                        padding: 12,
-                        borderRadius: 6,
-                        displayColors: true,
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 200,
-                        ticks: {
-                            font: { family: "'Montserrat', sans-serif", size: 12 },
-                            color: '#9ca3af',
-                            stepSize: 50
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)',
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: { family: "'Montserrat', sans-serif", size: 12, weight: '600' },
-                            color: '#9ca3af'
-                        },
-                        grid: {
-                            display: false,
-                            drawBorder: false
-                        }
-                    }
-                }
-            }
-        });
+const ctx = document.getElementById('inflowChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: ['MON','TUE','WED','THU','FRI','SAT','SUN'],
+    datasets: [{
+      label: 'Inflow',
+      data: [120,150,140,180,160,140,130],
+      borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',
+      borderWidth:2.5,fill:true,tension:.4,pointRadius:0,pointHoverRadius:5,pointBackgroundColor:'#2563eb'
+    },{
+      label: 'Resolved',
+      data: [95,120,110,140,130,110,105],
+      borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.06)',
+      borderWidth:2,fill:true,tension:.4,pointRadius:0,pointHoverRadius:5,pointBackgroundColor:'#16a34a'
+    }]
+  },
+  options: {
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{font:{family:"'Montserrat',sans-serif",size:11,weight:'600'},usePointStyle:true,boxWidth:6,padding:12}}},
+    scales:{
+      y:{beginAtZero:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:"'Montserrat',sans-serif",size:11},color:'#9ca3af'}},
+      x:{grid:{display:false},ticks:{font:{family:"'Montserrat',sans-serif",size:11,weight:'600'},color:'#9ca3af'}}
     }
-    
-    function switchChart(type) {
-        // Update active button
-        document.querySelectorAll('.toggle').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        
-        // Redraw chart
-        createChart(type);
-    }
-    
-    // Initialize chart on page load
-    document.addEventListener('DOMContentLoaded', () => {
-        createChart('inflow');
-    });
+  }
+});
 </script>
-
-<style scoped>
-    .dashboard-container {
-        padding: 32px 24px;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 32px;
-    }
-
-    .page-header h1 {
-        font-size: 28px;
-        font-weight: 700;
-        margin: 0 0 8px 0;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .subtitle {
-        color: var(--text-secondary);
-        margin: 0;
-        font-size: 14px;
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 12px;
-    }
-
-    .btn-primary, .btn-secondary {
-        padding: 10px 16px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all 0.2s;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .btn-primary {
-        background: var(--primary-light);
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background: #1d4ed8;
-    }
-
-    .btn-secondary {
-        background: var(--bg-light);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-    }
-
-    .btn-secondary:hover {
-        background: white;
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-        margin-bottom: 28px;
-    }
-
-    .stat-card {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        padding: 24px;
-        box-shadow: var(--shadow);
-    }
-
-    .stat-card.critical {
-        background: linear-gradient(135deg, #1a3a5c 0%, #1e3a8a 100%);
-        color: white;
-        border: none;
-    }
-
-    .stat-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-    }
-
-    .stat-header svg {
-        width: 24px;
-        height: 24px;
-        color: var(--primary-light);
-    }
-
-    .stat-card.critical .stat-header svg {
-        color: rgba(255, 255, 255, 0.7);
-    }
-
-    .stat-badge, .stat-label-badge {
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 8px;
-        border-radius: 4px;
-    }
-
-    .stat-badge.positive {
-        background: rgba(5, 150, 105, 0.1);
-        color: var(--success);
-    }
-
-    .stat-label-badge {
-        background: rgba(37, 99, 235, 0.1);
-        color: var(--primary-light);
-    }
-
-    .stat-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-    }
-
-    .stat-value {
-        font-size: 32px;
-        font-weight: 700;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .stat-card.critical .stat-label,
-    .stat-card.critical .stat-value {
-        color: white;
-    }
-
-    .stat-card.critical small {
-        display: block;
-        font-size: 12px;
-        color: rgba(255, 255, 255, 0.7);
-        margin-top: 8px;
-    }
-
-    /* Content Grid */
-    .content-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 20px;
-        margin-bottom: 24px;
-    }
-
-    @media (max-width: 1024px) {
-        .content-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* Card Styles */
-    .card {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        padding: 24px;
-        box-shadow: var(--shadow);
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .card-header h3 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .view-all {
-        color: var(--primary-light);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 14px;
-    }
-
-    .chart-toggles {
-        display: flex;
-        gap: 8px;
-        margin-left: auto;
-    }
-
-    .toggle {
-        padding: 6px 12px;
-        border: 1px solid var(--border-color);
-        background: white;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .toggle.active {
-        background: var(--primary-light);
-        color: white;
-        border-color: var(--primary-light);
-    }
-
-    .chart-container {
-        position: relative;
-        height: 250px;
-    }
-
-    /* Updates List */
-    .updates-list {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .update-item {
-        display: flex;
-        gap: 12px;
-    }
-
-    .update-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: var(--bg-light);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        color: var(--text-secondary);
-        font-weight: 600;
-        font-size: 16px;
-    }
-
-    .update-icon.success {
-        background: rgba(5, 150, 105, 0.1);
-        color: var(--success);
-    }
-
-    .update-icon.warning {
-        background: rgba(217, 119, 6, 0.1);
-        color: var(--warning);
-    }
-
-    .update-icon.info {
-        background: rgba(37, 99, 235, 0.1);
-        color: var(--primary-light);
-    }
-
-    .update-content h4 {
-        margin: 0 0 4px 0;
-        font-size: 14px;
-        font-weight: 600;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .update-content p {
-        margin: 0 0 6px 0;
-        font-size: 13px;
-        color: var(--text-secondary);
-    }
-
-    .time {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-secondary);
-    }
-
-    .time.critical {
-        color: var(--danger);
-    }
-
-    /* Table */
-    .queue-table {
-        overflow-x: auto;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    thead {
-        background: var(--bg-light);
-    }
-
-    th {
-        padding: 12px 16px;
-        text-align: left;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    td {
-        padding: 16px;
-        border-top: 1px solid var(--border-color);
-        font-size: 14px;
-    }
-
-    tr:hover {
-        background: var(--bg-light);
-    }
-
-    .badge-critical, .badge-high, .badge-medium {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .badge-critical {
-        background: rgba(220, 38, 38, 0.1);
-        color: var(--danger);
-    }
-
-    .badge-high {
-        background: rgba(217, 119, 6, 0.1);
-        color: var(--warning);
-    }
-
-    .badge-medium {
-        background: rgba(37, 99, 235, 0.1);
-        color: var(--primary-light);
-    }
-
-    .status {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .status.urgent {
-        background: rgba(220, 38, 38, 0.1);
-        color: var(--danger);
-    }
-
-    .status.review {
-        background: rgba(37, 99, 235, 0.1);
-        color: var(--primary-light);
-    }
-
-    .status.backlog {
-        background: rgba(107, 114, 128, 0.1);
-        color: var(--text-secondary);
-    }
-
-    .avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        color: white;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 11px;
-    }
-</style>
 @endsection

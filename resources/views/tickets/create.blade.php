@@ -1,447 +1,247 @@
 @extends('layouts.app')
+@section('title', 'New Ticket – Fixtora')
 
-@section('title', 'Create Ticket - Fixtora')
+@section('styles')
+<style>
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:8px}
+.breadcrumb a{color:var(--muted);text-decoration:none}.breadcrumb a:hover{color:var(--blue)}
+.sep{color:var(--border-dark)}
+.current{color:var(--text-sub)}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--navy)}
+
+.form-grid{display:grid;grid-template-columns:1fr 280px;gap:18px}
+.form-col{display:flex;flex-direction:column;gap:14px}
+
+/* CARD BOX */
+.card-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.card-box-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:16px;color:var(--navy)}
+.card-box-icon{width:28px;height:28px;background:var(--blue-bg);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--blue);flex-shrink:0}
+.card-box-icon.red{background:#fee2e2;color:var(--red)}
+
+/* FORM FIELDS */
+label.lbl{display:block;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.form-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:var(--text);background:var(--surface);transition:border-color .12s}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.08)}
+.form-input.is-invalid{border-color:var(--red)}
+.error-msg{font-size:11px;color:var(--red);margin-top:4px;font-weight:600}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-group{margin-bottom:12px}
+.field-group:last-child{margin-bottom:0}
+
+/* TEXTAREA EDITOR */
+.editor-wrap{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.editor-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.08)}
+.editor-toolbar{display:flex;gap:2px;padding:6px 8px;background:var(--bg);border-bottom:1px solid var(--border)}
+.tb-btn{padding:4px 8px;border:none;background:transparent;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;color:var(--text-sub);border-radius:4px;transition:background .1s}
+.tb-btn:hover{background:var(--border)}
+textarea.form-input{border:none;border-radius:0;min-height:120px;resize:vertical}
+textarea.form-input:focus{border:none;box-shadow:none}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border-dark);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .15s}
+.upload-zone:hover{border-color:var(--blue);background:var(--blue-bg)}
+.upload-icon{font-size:22px;margin-bottom:8px}
+.upload-title{font-size:13px;font-weight:600;color:var(--text-sub);margin-bottom:4px}
+.upload-sub{font-size:11px;color:var(--muted)}
+.upload-link{display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--blue)}
+
+/* IMPACT RADIO */
+.impact-option{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:6px;transition:all .12s}
+.impact-option:last-child{margin-bottom:0}
+.impact-option input[type=radio]{margin-top:2px;flex-shrink:0}
+.impact-option:has(input:checked){border-color:var(--blue);background:var(--blue-bg)}
+.impact-option.critical:has(input:checked){border-color:var(--red);background:#fee2e2}
+.impact-option.high:has(input:checked){border-color:var(--orange);background:var(--orange-bg)}
+.impact-label{font-size:12.5px;font-weight:700}
+.impact-desc{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ACTIONS */
+.btn-full{width:100%;padding:11px;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;text-decoration:none;margin-bottom:8px}
+.btn-submit{background:var(--blue);color:#fff;border:none}
+.btn-submit:hover{background:#1a42c4}
+.btn-outline-full{background:transparent;color:var(--text-sub);border:1px solid var(--border)}
+.btn-outline-full:hover{background:var(--bg)}
+.btn-cancel{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-cancel:hover{background:var(--bg)}
+
+/* SYSTEM HEALTH */
+.health-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.health-row:last-child{border-bottom:none}
+.health-name{font-size:12.5px;font-weight:600}
+.health-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.stable{background:#dcfce7;color:#15803d}
+.degraded{background:#fee2e2;color:var(--red)}
+</style>
+@endsection
 
 @section('content')
-<div class="ticket-container">
-    <!-- Page Header -->
-    <div class="page-header">
-        <div>
-            <h1>Create New Ticket</h1>
-            <p class="subtitle">Submit a new support ticket and we'll get back to you shortly.</p>
-        </div>
-    </div>
-
-    <div class="ticket-form-wrapper">
-        <!-- Left Column - Form -->
-        <div class="ticket-form-main">
-            <form method="POST" action="{{ route('tickets.store') }}" class="ticket-form">
-                @csrf
-
-                <!-- Issue Identity Card -->
-                <div class="form-card">
-                    <div class="form-card-header">
-                        <h3>Issue Identity</h3>
-                        <p>Tell us what you need help with</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="title">Ticket Title *</label>
-                        <input 
-                            type="text" 
-                            id="title" 
-                            name="title" 
-                            required
-                            placeholder="Brief summary of your issue"
-                            class="form-input"
-                        >
-                        @error('title')
-                            <div class="error">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="system">System/Component *</label>
-                            <select id="system" name="system" required class="form-input">
-                                <option value="">Select a system...</option>
-                                <option value="api">API Services</option>
-                                <option value="database">Database</option>
-                                <option value="auth">Authentication</option>
-                                <option value="ui">UI/Frontend</option>
-                                <option value="infrastructure">Infrastructure</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="priority">Priority *</label>
-                            <select id="priority" name="priority" required class="form-input">
-                                <option value="">Select priority...</option>
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                                <option value="critical">Critical</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description">Description *</label>
-                        <textarea 
-                            id="description" 
-                            name="description" 
-                            rows="6" 
-                            required
-                            placeholder="Provide detailed information about the issue..."
-                            class="form-input"
-                        ></textarea>
-                        @error('description')
-                            <div class="error">{{ $message }}</div>
-                        @enderror
-                    </div>
-                </div>
-
-                <!-- Attachments Card -->
-                <div class="form-card">
-                    <div class="form-card-header">
-                        <h3>Attachments</h3>
-                        <p>Add screenshots or files to help us understand better</p>
-                    </div>
-
-                    <div class="dropzone">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <p>Drag and drop files here or click to browse</p>
-                        <span>Max file size: 10MB</span>
-                    </div>
-                </div>
-
-                <!-- Form Actions -->
-                <div class="form-actions">
-                    <a href="{{ route('home') }}" class="btn-cancel">Cancel</a>
-                    <button type="submit" class="btn-submit">Create Ticket</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Right Column - Sidebar -->
-        <div class="ticket-sidebar">
-            <!-- Impact Assessment -->
-            <div class="sidebar-card">
-                <h4>Impact Assessment</h4>
-                <div class="radio-group">
-                    <label class="radio-item">
-                        <input type="radio" name="impact" value="low" checked>
-                        <span class="radio-label">
-                            <strong>Low</strong>
-                            <small>Affects single user</small>
-                        </span>
-                    </label>
-                    <label class="radio-item">
-                        <input type="radio" name="impact" value="medium">
-                        <span class="radio-label">
-                            <strong>Medium</strong>
-                            <small>Affects team/department</small>
-                        </span>
-                    </label>
-                    <label class="radio-item">
-                        <input type="radio" name="impact" value="high">
-                        <span class="radio-label">
-                            <strong>High</strong>
-                            <small>Affects entire system</small>
-                        </span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="sidebar-card">
-                <h4>Quick Actions</h4>
-                <button class="action-btn">📋 Use Template</button>
-                <button class="action-btn">👥 Add Watcher</button>
-                <button class="action-btn">🏷️ Add Labels</button>
-            </div>
-
-            <!-- Help -->
-            <div class="sidebar-card info">
-                <h4>💡 Tips</h4>
-                <ul>
-                    <li>Be as specific as possible</li>
-                    <li>Include error messages</li>
-                    <li>Attach screenshots</li>
-                    <li>Describe steps to reproduce</li>
-                </ul>
-            </div>
-        </div>
-    </div>
+<div class="page-header">
+  <div class="breadcrumb">
+    <a href="{{ route('home') }}">Dashboard</a>
+    <span class="sep">/</span>
+    <a href="{{ route('tickets.index') }}">Tickets</a>
+    <span class="sep">/</span>
+    <span class="current">New Ticket</span>
+  </div>
+  <h1>Create New Service Request</h1>
 </div>
 
-<style scoped>
-    .ticket-container {
-        padding: 32px 24px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
+<form action="{{ route('tickets.store') }}" method="POST">
+@csrf
+<div class="form-grid">
+  <!-- LEFT COLUMN -->
+  <div class="form-col">
 
-    .page-header {
-        margin-bottom: 32px;
-    }
+    <!-- Issue Identity -->
+    <div class="card-box">
+      <div class="card-box-title">
+        <div class="card-box-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        Issue Identity
+      </div>
 
-    .page-header h1 {
-        font-size: 28px;
-        font-weight: 700;
-        margin: 0 0 8px 0;
-    }
+      <div class="field-group">
+        <label class="lbl" for="title">Issue Title</label>
+        <input type="text" id="title" name="title" class="form-input {{ $errors->has('title') ? 'is-invalid' : '' }}" value="{{ old('title') }}" placeholder="e.g., Performance degradation in API v2"/>
+        @error('title')<div class="error-msg">{{ $message }}</div>@enderror
+      </div>
 
-    .subtitle {
-        color: var(--text-secondary);
-        margin: 0;
-        font-size: 14px;
-    }
+      <div class="field-row">
+        <div class="field-group">
+          <label class="lbl" for="system">Affected System</label>
+          <select id="system" name="system" class="form-input {{ $errors->has('system') ? 'is-invalid' : '' }}">
+            <option value="">Select System</option>
+            <option value="CRM Portal" {{ old('system') == 'CRM Portal' ? 'selected' : '' }}>CRM Portal</option>
+            <option value="Payment GW" {{ old('system') == 'Payment GW' ? 'selected' : '' }}>Payment GW</option>
+            <option value="API v2" {{ old('system') == 'API v2' ? 'selected' : '' }}>API v2</option>
+            <option value="Auth Service" {{ old('system') == 'Auth Service' ? 'selected' : '' }}>Auth Service</option>
+            <option value="Database" {{ old('system') == 'Database' ? 'selected' : '' }}>Database</option>
+            <option value="Network" {{ old('system') == 'Network' ? 'selected' : '' }}>Network</option>
+            <option value="Other" {{ old('system') == 'Other' ? 'selected' : '' }}>Other</option>
+          </select>
+          @error('system')<div class="error-msg">{{ $message }}</div>@enderror
+        </div>
+        <div class="field-group">
+          <label class="lbl" for="priority">Priority</label>
+          <select id="priority" name="priority" class="form-input {{ $errors->has('priority') ? 'is-invalid' : '' }}">
+            <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>Low</option>
+            <option value="medium" {{ old('priority', 'medium') == 'medium' ? 'selected' : '' }}>Medium</option>
+            <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>High</option>
+            <option value="critical" {{ old('priority') == 'critical' ? 'selected' : '' }}>Critical</option>
+          </select>
+          @error('priority')<div class="error-msg">{{ $message }}</div>@enderror
+        </div>
+      </div>
+    </div>
 
-    .ticket-form-wrapper {
-        display: grid;
-        grid-template-columns: 1fr 300px;
-        gap: 24px;
-    }
+    <!-- Functional Details -->
+    <div class="card-box">
+      <div class="card-box-title">
+        <div class="card-box-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/></svg>
+        </div>
+        Functional Details
+      </div>
+      <label class="lbl" for="description">Detailed Description</label>
+      <div class="editor-wrap {{ $errors->has('description') ? 'is-invalid' : '' }}" style="{{ $errors->has('description') ? 'border-color:var(--red)' : '' }}">
+        <div class="editor-toolbar">
+          <button type="button" class="tb-btn" style="font-weight:900">B</button>
+          <button type="button" class="tb-btn" style="font-style:italic">I</button>
+          <button type="button" class="tb-btn" style="font-family:monospace">&lt;/&gt;</button>
+        </div>
+        <textarea id="description" name="description" class="form-input" placeholder="Please describe the architectural or functional issue in detail…">{{ old('description') }}</textarea>
+      </div>
+      @error('description')<div class="error-msg">{{ $message }}</div>@enderror
+    </div>
 
-    @media (max-width: 1024px) {
-        .ticket-form-wrapper {
-            grid-template-columns: 1fr;
-        }
-    }
+    <!-- Evidentiary Support -->
+    <div class="card-box">
+      <div class="card-box-title">
+        <div class="card-box-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        Evidentiary Support
+      </div>
+      <div class="upload-zone">
+        <div class="upload-icon">📎</div>
+        <div class="upload-title">Drag and drop log files or screenshots here</div>
+        <div class="upload-sub">Maximum file size 25MB · JPG, PNG, LOG, JSON</div>
+        <span class="upload-link">OR BROWSE FILES</span>
+      </div>
+    </div>
 
-    /* Form Card */
-    .form-card {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: var(--shadow);
-    }
+  </div>
 
-    .form-card-header {
-        margin-bottom: 20px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--border-color);
-    }
+  <!-- RIGHT COLUMN -->
+  <div class="form-col">
 
-    .form-card-header h3 {
-        margin: 0 0 4px 0;
-        font-size: 16px;
-        font-weight: 600;
-    }
+    <!-- Impact Level -->
+    <div class="card-box">
+      <div class="card-box-title">
+        <div class="card-box-icon red">!</div>
+        Impact Level
+      </div>
 
-    .form-card-header p {
-        margin: 0;
-        font-size: 13px;
-        color: var(--text-secondary);
-    }
+      <label class="impact-option critical">
+        <input type="radio" name="impact" value="critical" {{ old('impact') == 'critical' ? 'checked' : '' }}/>
+        <div>
+          <div class="impact-label" style="color:var(--red)">Critical</div>
+          <div class="impact-desc">System-wide outage, blocking operations</div>
+        </div>
+      </label>
+      <label class="impact-option high">
+        <input type="radio" name="impact" value="high" {{ old('impact') == 'high' ? 'checked' : '' }}/>
+        <div>
+          <div class="impact-label" style="color:var(--orange)">High</div>
+          <div class="impact-desc">Significant impact, workarounds difficult</div>
+        </div>
+      </label>
+      <label class="impact-option">
+        <input type="radio" name="impact" value="medium" {{ old('impact', 'medium') == 'medium' ? 'checked' : '' }}/>
+        <div>
+          <div class="impact-label" style="color:var(--blue)">Medium</div>
+          <div class="impact-desc">Partial degradation, workarounds available</div>
+        </div>
+      </label>
+      <label class="impact-option">
+        <input type="radio" name="impact" value="low" {{ old('impact') == 'low' ? 'checked' : '' }}/>
+        <div>
+          <div class="impact-label" style="color:var(--muted)">Low</div>
+          <div class="impact-desc">Minor annoyance or cosmetic issue</div>
+        </div>
+      </label>
+      @error('impact')<div class="error-msg" style="margin-top:8px">{{ $message }}</div>@enderror
+    </div>
 
-    /* Form Groups */
-    .form-group {
-        margin-bottom: 16px;
-    }
+    <!-- Actions -->
+    <div class="card-box">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--navy)">Submission Actions</div>
+      <button type="submit" class="btn-full btn-submit">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Submit Ticket
+      </button>
+      <button type="button" class="btn-full btn-outline-full">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+        Save as Draft
+      </button>
+      <a href="{{ route('tickets.index') }}" class="btn-full btn-cancel" style="color:var(--muted)">Cancel &amp; Discard</a>
+    </div>
 
-    .form-group label {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: var(--text-primary);
-    }
+    <!-- System Health -->
+    <div class="card-box">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">System Health</div>
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite"></div>
+      </div>
+      <div class="health-row"><span class="health-name">CRM Portal</span><span class="health-badge stable">Stable</span></div>
+      <div class="health-row"><span class="health-name">Payment GW</span><span class="health-badge stable">Stable</span></div>
+      <div class="health-row"><span class="health-name">API v2</span><span class="health-badge degraded">Degraded</span></div>
+      <div class="health-row"><span class="health-name">Auth Service</span><span class="health-badge stable">Stable</span></div>
+    </div>
 
-    .form-input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        font-size: 14px;
-        font-family: 'Montserrat', sans-serif;
-        box-sizing: border-box;
-        transition: border-color 0.2s;
-    }
-
-    .form-input:focus {
-        outline: none;
-        border-color: var(--primary-light);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    textarea.form-input {
-        resize: vertical;
-        min-height: 120px;
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-    }
-
-    .error {
-        color: var(--danger);
-        font-size: 13px;
-        margin-top: 4px;
-    }
-
-    /* Dropzone */
-    .dropzone {
-        border: 2px dashed var(--border-color);
-        border-radius: 8px;
-        padding: 40px 20px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        background: var(--bg-light);
-    }
-
-    .dropzone:hover {
-        border-color: var(--primary-light);
-        background: rgba(37, 99, 235, 0.05);
-    }
-
-    .dropzone svg {
-        width: 40px;
-        height: 40px;
-        color: var(--primary-light);
-        margin-bottom: 12px;
-        stroke-width: 2;
-    }
-
-    .dropzone p {
-        margin: 0 0 4px 0;
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-
-    .dropzone span {
-        display: block;
-        font-size: 12px;
-        color: var(--text-secondary);
-    }
-
-    /* Form Actions */
-    .form-actions {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
-        margin-top: 24px;
-    }
-
-    .btn-cancel,
-    .btn-submit {
-        padding: 10px 24px;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 14px;
-        font-family: 'Montserrat', sans-serif;
-        transition: all 0.2s;
-    }
-
-    .btn-cancel {
-        background: var(--bg-light);
-        color: var(--text-primary);
-        border: 1px solid var(--border-color);
-    }
-
-    .btn-cancel:hover {
-        background: white;
-    }
-
-    .btn-submit {
-        background: var(--primary-light);
-        color: white;
-    }
-
-    .btn-submit:hover {
-        background: #1d4ed8;
-        transform: translateY(-2px);
-    }
-
-    /* Sidebar */
-    .ticket-sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .sidebar-card {
-        background: white;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius);
-        padding: 16px;
-        box-shadow: var(--shadow);
-    }
-
-    .sidebar-card.info {
-        background: var(--bg-light);
-        border: 1px solid rgba(37, 99, 235, 0.2);
-    }
-
-    .sidebar-card h4 {
-        margin: 0 0 12px 0;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    /* Radio Group */
-    .radio-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .radio-item {
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-
-    .radio-item:hover {
-        background: var(--bg-light);
-    }
-
-    .radio-item input[type="radio"] {
-        margin-right: 10px;
-        cursor: pointer;
-    }
-
-    .radio-label {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .radio-label strong {
-        font-size: 13px;
-    }
-
-    .radio-label small {
-        font-size: 11px;
-        color: var(--text-secondary);
-        margin-top: 2px;
-    }
-
-    /* Action Buttons */
-    .action-btn {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        background: white;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        margin-bottom: 8px;
-        transition: all 0.2s;
-        font-family: 'Montserrat', sans-serif;
-    }
-
-    .action-btn:hover {
-        background: var(--bg-light);
-        border-color: var(--primary-light);
-    }
-
-    /* Help List */
-    .sidebar-card.info ul {
-        margin: 0;
-        padding-left: 20px;
-        font-size: 13px;
-        color: var(--text-secondary);
-    }
-
-    .sidebar-card.info li {
-        margin-bottom: 6px;
-    }
-</style>
+  </div>
+</div>
+</form>
 @endsection
