@@ -6,7 +6,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TaskController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Auth::routes();
