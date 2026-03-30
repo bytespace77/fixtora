@@ -11,7 +11,7 @@ class Task extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',       // ✅ Step 14: multi-tenancy
+        'company_id',
         'user_id',
         'assigned_to',
         'ticket_id',
@@ -28,17 +28,24 @@ class Task extends Model
         'progress' => 'integer',
     ];
 
-    // ✅ Step 14: Auto-filter ALL task queries by current user's company
+    // Auto-filter by company — superadmin sees ALL
     protected static function booted(): void
     {
         static::addGlobalScope('company', function ($query) {
-            if (Auth::check() && Auth::user()->company_id) {
-                $query->where('company_id', Auth::user()->company_id);
+            if (Auth::check()) {
+                $user = Auth::user();
+                // ✅ Superadmin bypasses company filter and sees all records
+                if ($user->email === 'superadmin@gmail.com') {
+                    return;
+                }
+                if ($user->company_id) {
+                    $query->where('company_id', $user->company_id);
+                }
             }
         });
     }
 
-    // ✅ Step 14: Auto-set company_id when creating a task
+    // Auto-set company_id when creating a task
     protected static function boot()
     {
         parent::boot();
