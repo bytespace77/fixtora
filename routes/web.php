@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\SlaController;
+use App\Http\Controllers\ProfileController; // ✅ Step 17
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -28,7 +29,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
-    // POST fallback for AJAX fetch() calls that send _method in JSON body
     Route::post('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update.post');
 
     // Reports
@@ -49,10 +49,9 @@ Route::middleware(['auth'])->group(function () {
         return view('help.index');
     })->name('help.index');
 
-    // Profile
-    Route::get('/profile', function () {
-        return view('profile.show');
-    })->name('profile.show');
+    // ✅ Step 17: Profile — wired to real controller
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     // Notifications
     Route::get('/notifications', function () {

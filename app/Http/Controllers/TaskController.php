@@ -21,7 +21,11 @@ class TaskController extends Controller
         $todo  = Task::with(['assignee', 'ticket'])->todo()->latest()->get();
         $doing = Task::with(['assignee', 'ticket'])->doing()->latest()->get();
         $done  = Task::with(['assignee', 'ticket'])->done()->latest()->get();
-        $users = User::orderBy('name')->get();
+
+        // ✅ Step 14: Only show users from the same company in the assignee dropdown
+        $users = User::where('company_id', auth()->user()->company_id)
+                     ->orderBy('name')
+                     ->get();
 
         // Workload velocity: tasks completed per day this week (Mon–Sun)
         $velocity = [];
@@ -34,12 +38,12 @@ class TaskController extends Controller
         }
 
         // SLA success rate: done tasks with due_date not overdue vs total with due_date
-        $withDue     = Task::whereNotNull('due_date')->count();
-        $onTime      = Task::whereNotNull('due_date')
-                           ->where('status', 'done')
-                           ->whereColumn('updated_at', '<=', 'due_date')
-                           ->count();
-        $slaRate     = $withDue > 0 ? round(($onTime / $withDue) * 100) : 0;
+        $withDue = Task::whereNotNull('due_date')->count();
+        $onTime  = Task::whereNotNull('due_date')
+                       ->where('status', 'done')
+                       ->whereColumn('updated_at', '<=', 'due_date')
+                       ->count();
+        $slaRate = $withDue > 0 ? round(($onTime / $withDue) * 100) : 0;
 
         // Upcoming deadlines (next 7 days, not done)
         $deadlines = Task::whereNotNull('due_date')
@@ -71,6 +75,7 @@ class TaskController extends Controller
         ]);
 
         $validated['user_id'] = auth()->id();
+        // ✅ Step 14: company_id is auto-set by the Task model's boot() method
 
         $task = Task::create($validated);
 
