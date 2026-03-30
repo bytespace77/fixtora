@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\SlaController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -32,9 +33,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update.post');
 
     // Reports
-    Route::get('/reports', function () {
-        return view('reports.index');
-    })->name('reports.index');
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
     // SLA Monitor
     Route::get('/sla-monitor', [SlaController::class, 'index'])->name('sla-monitor.index');
