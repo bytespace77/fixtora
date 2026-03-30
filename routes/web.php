@@ -6,6 +6,9 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\SlaController;
 use App\Http\Controllers\ProfileController; // ✅ Step 17
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SchedulingController;
+use App\Http\Controllers\IntegrationRequestController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -33,9 +36,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update.post');
 
     // Reports
-    Route::get('/reports', function () {
-        return view('reports.index');
-    })->name('reports.index');
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
     // SLA Monitor
     Route::get('/sla-monitor', [SlaController::class, 'index'])->name('sla-monitor.index');
@@ -58,4 +59,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/notifications', function () {
         return view('notificatons.index');
     })->name('notifications.index');
+
+    // Scheduling (calendar + upcoming tasks by due date)
+    Route::get('/scheduling', [SchedulingController::class, 'index'])->name('scheduling.index');
+
+    // Integrations
+    Route::get('/integrations/custom-request', [IntegrationRequestController::class, 'create'])
+        ->name('integrations.custom-request.create');
+    Route::post('/integrations/custom-request', [IntegrationRequestController::class, 'store'])
+        ->name('integrations.custom-request.store');
 });
