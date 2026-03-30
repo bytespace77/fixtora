@@ -5,12 +5,9 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\SlaController;
-<<<<<<< Updated upstream
 use App\Http\Controllers\ReportController;
-=======
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\IntegrationRequestController;
->>>>>>> Stashed changes
 
 Route::get('/', function () {
     return redirect()->route('login');
