@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .page-wrapper {
             display: flex;
             justify-content: center;
-            align-items: center;   
+            align-items: center;
             width: 100%;
             min-height: 100vh;
             position: relative;
@@ -351,11 +351,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 14px;
             font-size: 12.5px;
             color: var(--muted);
-            white-space: nowrap; 
+            white-space: nowrap;
             text-align: center;
-            background: var(--bg-card); 
+            background: var(--bg-card);
             padding: 12px 20px;
-            border-radius: 12px; 
+            border-radius: 12px;
         }
 
         .footer a {
