@@ -163,6 +163,32 @@
                 </tr>
             </thead>
             <tbody>
+                @forelse($agents as $a)
+                <tr>
+                    <td>
+                        <div class="agent-cell">
+                            <div class="agent-avatar" style="background:{{ $a['color'] ?? 'var(--blue)' }}">{{ $a['initials'] ?? 'Ag' }}</div>
+                            <div>
+                                <div class="agent-name">{{ $a['name'] }}</div>
+                                <div class="agent-role">{{ $a['role'] }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-weight:700">{{ $a['resolved'] }}</td>
+                    <td>{{ $a['avg_response'] }}</td>
+                    <td>
+                        <div class="load-wrap"><div class="load-fill" style="width:{{ $a['load'] }}%"></div></div>
+                    </td>
+                    <td><span class="csat">{{ $a['csat'] }}</span></td>
+                    <td>
+                        @if (($a['status'] ?? '') === 'online')
+                            <span class="status-badge online">● ONLINE</span>
+                        @else
+                            <span class="status-badge away">● AWAY</span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
                 <tr>
                     <td colspan="6">
                         <div class="empty-msg">
@@ -170,6 +196,7 @@
                         </div>
                     </td>
                 </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

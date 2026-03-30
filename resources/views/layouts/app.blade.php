@@ -682,5 +682,6 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+@yield('scripts')
 </body>
 </html>
