@@ -5,7 +5,12 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\SlaController;
+<<<<<<< Updated upstream
 use App\Http\Controllers\ReportController;
+=======
+use App\Http\Controllers\SchedulingController;
+use App\Http\Controllers\IntegrationRequestController;
+>>>>>>> Stashed changes
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -57,4 +62,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/notifications', function () {
         return view('notificatons.index');
     })->name('notifications.index');
+
+    // Scheduling (calendar + upcoming tasks by due date)
+    Route::get('/scheduling', [SchedulingController::class, 'index'])->name('scheduling.index');
+
+    // Integrations
+    Route::get('/integrations/custom-request', [IntegrationRequestController::class, 'create'])
+        ->name('integrations.custom-request.create');
+    Route::post('/integrations/custom-request', [IntegrationRequestController::class, 'store'])
+        ->name('integrations.custom-request.store');
 });

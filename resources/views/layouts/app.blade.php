@@ -75,20 +75,20 @@ html, body {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    z-index: 200;
+    overflow: hidden;
+    z-index: 300;
     flex-shrink: 0;
     border-right: 1px solid rgba(255,255,255,0.05);
 }
 
-/* scrollbar */
-.sidebar::-webkit-scrollbar { width: 4px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+/* scrollbar (nav scrolls, not whole sidebar — avoids last links sitting under sb-bottom) */
+.sb-nav::-webkit-scrollbar { width: 4px; }
+.sb-nav::-webkit-scrollbar-track { background: transparent; }
+.sb-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
 /* brand */
 .sb-brand {
+    flex-shrink: 0;
     padding: 20px 16px 18px;
     border-bottom: 1px solid rgba(255,255,255,0.07);
     display: flex;
@@ -124,7 +124,13 @@ html, body {
     padding: 16px 16px 6px;
 }
 
-.sb-nav { flex: 1; padding: 8px 10px; }
+.sb-nav {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 8px 10px;
+}
 
 .nav-item {
     display: flex; align-items: center; gap: 9px;
@@ -165,6 +171,7 @@ html, body {
 
 /* bottom */
 .sb-bottom {
+    flex-shrink: 0;
     padding: 10px;
     border-top: 1px solid rgba(255,255,255,0.07);
 }
@@ -516,7 +523,7 @@ html, body {
         Notifications
       </a>
 
-      <a href="#" class="nav-item">
+      <a href="{{ url('/scheduling') }}" class="nav-item {{ request()->routeIs('scheduling.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
           <line x1="16" y1="2" x2="16" y2="6"/>
@@ -536,7 +543,7 @@ html, body {
       </a>
 
       <div class="sb-util-links">
-        <a href="#" class="sb-util-link">
+        <a href="{{ route('settings.index') }}" class="sb-util-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
@@ -593,7 +600,7 @@ html, body {
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-            <span class="noti-badge hidden" id="notiBadge">0</span>
+            <span class="noti-badge {{ ($newNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}" id="notiBadge">{{ $newNotificationsCount ?? 0 }}</span>
           </button>
 
           <!-- Dropdown -->
@@ -601,14 +608,33 @@ html, body {
             <div class="noti-dd-head">
               <div class="noti-dd-title">Notifications</div>
             </div>
-
-            <div class="noti-empty">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-              <p>No notifications yet</p>
-            </div>
+            @if(($topNotifications ?? collect())->count() > 0)
+              <div class="noti-list">
+                @foreach($topNotifications as $notification)
+                  <a href="{{ $notification['url'] ?? route('notifications.index') }}" class="noti-item {{ !empty($notification['is_new']) ? 'unread' : '' }}">
+                    <div class="noti-icon {{ $notification['type'] ?? 'blue' }}">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 2v3m0 14v3M4.93 4.93l2.12 2.12m9.9 9.9l2.12 2.12M2 12h3m14 0h3M4.93 19.07l2.12-2.12m9.9-9.9l2.12-2.12"></path>
+                      </svg>
+                    </div>
+                    <div class="noti-text">
+                      <div class="noti-title">{{ $notification['title'] ?? 'Notification' }}</div>
+                      <div class="noti-desc">{{ $notification['description'] ?? '' }}</div>
+                      <div class="noti-time">{{ $notification['time_human'] ?? 'just now' }}</div>
+                    </div>
+                  </a>
+                @endforeach
+              </div>
+            @else
+              <div class="noti-empty">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <p>No notifications yet</p>
+              </div>
+            @endif
 
             <div class="noti-dd-footer">
               <a href="{{ route('notifications.index') }}">View all notifications →</a>
@@ -617,7 +643,7 @@ html, body {
         </div>
 
         <button class="icon-btn" style="font-size:11px;font-weight:700;letter-spacing:0.3px;width:auto;padding:0 12px;">
-          (0)
+          ({{ $newNotificationsCount ?? 0 }})
         </button>
       </div>
     </header>
