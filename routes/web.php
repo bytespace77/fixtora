@@ -14,8 +14,9 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::middleware(['auth'])->group(function () {
-    // Dashboard
+    // Dashboard (+ export ?export=pdf|excel, + search ?q=..., + range ?range=24h|7d|30d|90d)
     Route::get('/home', [HomeController::class, 'index'])->name('home');
+    Route::get('/home/export', [HomeController::class, 'index'])->name('home.export');
 
     // Tickets
     Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
