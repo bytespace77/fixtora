@@ -86,6 +86,11 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
+        // Handle AJAX _method:DELETE spoofing via POST route
+        if ($request->input('_method') === 'DELETE') {
+            return $this->destroy($task);
+        }
+
         $validated = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',

@@ -4,9 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\SlaController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Auth::routes();
@@ -22,11 +23,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
     Route::patch('/tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
 
-    // Tasks (full resource: index, store, update, destroy)
+    // Tasks — include POST fallback for AJAX _method spoofing
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+    // POST fallback for AJAX fetch() calls that send _method in JSON body
+    Route::post('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update.post');
 
     // Reports
     Route::get('/reports', function () {
@@ -34,9 +37,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('reports.index');
 
     // SLA Monitor
-    Route::get('/sla-monitor', function () {
-        return view('sla-monitor.index');
-    })->name('sla-monitor.index');
+    Route::get('/sla-monitor', [SlaController::class, 'index'])->name('sla-monitor.index');
 
     // Settings
     Route::get('/settings', function () {
