@@ -36,8 +36,8 @@
 .tab-count{font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;background:rgba(255,255,255,.2)}
 .filter-tab:not(.active) .tab-count{background:var(--bg);color:var(--muted)}
 /* Table */
-.ticket-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-.tt-header{display:grid;grid-template-columns:90px 1fr 130px 140px 100px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.ticket-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:visible;box-shadow:var(--shadow)}
+.tt-header{display:grid;grid-template-columns:90px 1fr 130px 140px 100px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
 .tt-row{display:grid;grid-template-columns:90px 1fr 130px 140px 100px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
 .tt-row:last-child{border-bottom:none}
 .tt-row:hover{background:#f7f9ff}
@@ -61,7 +61,7 @@
 .more-btn{border:none;background:none;cursor:pointer;color:var(--muted-lt);padding:5px 7px;border-radius:7px;font-size:18px;line-height:1;opacity:0;transition:opacity .12s,background .12s}
 .tt-row:hover .more-btn,.more-btn:focus,.more-btn.active{opacity:1}
 .more-btn:hover{background:var(--bg);color:var(--text)}
-.dropdown-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);width:170px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:600;overflow:hidden;padding:4px}
+.dropdown-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);width:170px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:999;overflow:hidden;padding:4px}
 .dropdown-menu.open{display:block;animation:dropFade .15s ease}
 @keyframes dropFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 .dd-item{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:12.5px;font-weight:600;color:var(--text);text-decoration:none;border-radius:7px;cursor:pointer;border:none;background:none;font-family:inherit;width:100%;text-align:left;transition:background .1s}
@@ -218,10 +218,6 @@ textarea.form-control{resize:vertical;min-height:80px}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Ticket
         </button>
-        <button class="dd-item" onclick="duplicateTicket({{ $ticket->id }})">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Duplicate
-        </button>
         <div class="dd-sep"></div>
         <button class="dd-item danger" onclick="confirmDelete({{ $ticket->id }},'#TK-{{ str_pad($ticket->id,4,'0',STR_PAD_LEFT) }}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -345,14 +341,12 @@ textarea.form-control{resize:vertical;min-height:80px}
     </div>
     <div class="del-modal-foot">
       <button onclick="closeDeleteModal()" class="btn-sm" style="flex:1;justify-content:center">Cancel</button>
-      <form id="deleteForm" method="POST" style="flex:1">
-        @csrf @method('DELETE')
-        <button type="submit" class="btn-sm btn-danger" style="width:100%;justify-content:center">Delete</button>
-      </form>
+      <button id="deleteConfirmBtn" onclick="doDeleteTicket()" class="btn-sm btn-danger" style="flex:1;justify-content:center">Delete</button>
     </div>
   </div>
 </div>
 
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <div id="toast">
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
   <span id="toastMsg"></span>
@@ -421,19 +415,37 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
 function closeModal(){document.getElementById('ticketModal').classList.remove('open');}
 
 // Delete
+let _deleteTicketId = null;
 function confirmDelete(id,label){
+  _deleteTicketId = id;
   document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
   document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('deleteLabel').textContent=label;
-  document.getElementById('deleteForm').action='/tickets/'+id;
   document.getElementById('deleteModal').classList.add('open');
 }
-function closeDeleteModal(){document.getElementById('deleteModal').classList.remove('open');}
-
-function duplicateTicket(id){
-  document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
-  document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
-  showToast('Ticket duplicated');
+function closeDeleteModal(){
+  document.getElementById('deleteModal').classList.remove('open');
+  _deleteTicketId = null;
+}
+function doDeleteTicket(){
+  if(!_deleteTicketId) return;
+  const btn = document.getElementById('deleteConfirmBtn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  fetch('/tickets/' + _deleteTicketId, {
+    method: 'POST',
+    headers: {'X-CSRF-TOKEN': csrf, 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest'},
+    body: '_method=DELETE'
+  }).then(r => {
+    if(r.ok || r.redirected){
+      closeDeleteModal();
+      showToast('Ticket deleted');
+      setTimeout(() => window.location.reload(), 700);
+    } else {
+      showToast('Delete failed', false);
+      btn.disabled = false; btn.textContent = 'Delete';
+    }
+  }).catch(() => { showToast('Delete failed', false); btn.disabled = false; btn.textContent = 'Delete'; });
 }
 
 function showToast(msg,ok=true){

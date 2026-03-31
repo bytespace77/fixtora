@@ -188,4 +188,18 @@ class TicketController extends Controller
         $ticket->delete();
         return redirect()->route('tickets.index')->with('success', 'Ticket deleted!');
     }
+
+    // Delete a single comment (and its attachments) — only the comment's author may delete
+    public function deleteComment(Ticket $ticket, \App\Models\TicketComment $comment)
+    {
+        abort_if($comment->ticket_id !== $ticket->id, 403);
+        abort_if($comment->user_id !== auth()->id(), 403);
+        // Delete any files attached to this comment
+        foreach ($comment->attachments as $att) {
+            Storage::disk('public')->delete($att->stored_path);
+            $att->delete();
+        }
+        $comment->delete();
+        return response()->json(['success' => true]);
+    }
 }

@@ -46,11 +46,7 @@
 .tk-attach-actions{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
 .icon-act{width:26px;height:26px;border:none;background:none;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted-lt);transition:all .12s;text-decoration:none}
 .icon-act:hover{background:var(--bg);color:var(--blue)}.icon-act.del-act:hover{color:#ef4444}
-.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .15s;margin-top:10px}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:#f0f6ff}
-.drop-zone svg{margin:0 auto 4px;display:block;color:var(--muted-lt)}
-.drop-zone p{font-size:12px;font-weight:700;color:var(--muted);margin:0}
-.drop-zone span{font-size:11px;color:var(--muted-lt)}
+
 /* Timeline */
 .timeline{display:flex;flex-direction:column;gap:0;position:relative}
 .tl-item{display:flex;gap:14px;padding-bottom:18px;position:relative}
@@ -108,7 +104,23 @@
 .role-toggle select{font-size:11px;font-weight:800;color:var(--navy);border:none;outline:none;background:transparent;cursor:pointer;font-family:inherit}
 .send-btn{padding:7px 14px;background:var(--navy);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:all .15s}
 .send-btn:hover{background:var(--blue)}.send-btn:active{transform:scale(.97)}
-.cmt-hint{font-size:11px;color:var(--muted-lt);margin-top:8px;font-weight:500}
+.cmt-del-pill{display:inline-flex;align-items:center;gap:4px;margin-left:auto;padding:3px 9px;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.cmt-del-pill:hover{background:#dc2626;color:#fff;border-color:#dc2626}
+/* Delete comment modal */
+.cmt-del-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);z-index:800;align-items:center;justify-content:center;padding:20px}
+.cmt-del-modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+.cmt-del-modal-box{background:var(--surface);border-radius:16px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.22);overflow:hidden;animation:slideUp .2s ease}
+.cmt-del-modal-icon{width:60px;height:60px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#dc2626}
+.cmt-del-modal-body{padding:32px 28px 16px;text-align:center}
+.cmt-del-modal-body h3{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:10px}
+.cmt-del-modal-body p{font-size:13px;color:var(--muted);line-height:1.6}
+.cmt-del-preview{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--text);font-style:italic;margin-top:12px;text-align:left;line-height:1.5}
+.cmt-del-modal-foot{display:flex;gap:10px;padding:16px 24px 24px}
+.cmt-drop-zone{border:2px dashed var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .15s;background:var(--bg);}
+.cmt-drop-zone:hover,.cmt-drop-zone.drag-over{border-color:var(--blue);background:#f0f6ff;}
+.cmt-drop-zone svg{color:var(--muted-lt);flex-shrink:0;}
+#cmtDropLabel{font-size:12px;font-weight:700;color:var(--muted);flex:1;}
+.cmt-drop-hint{font-size:10.5px;color:var(--muted-lt);white-space:nowrap;}
 /* Right col */
 .meta-list{display:flex;flex-direction:column}
 .meta-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px}
@@ -214,29 +226,13 @@ textarea.form-control{resize:vertical;min-height:80px}
                   <a href="{{ $att->url }}" download="{{ $att->original_name }}" class="icon-act" title="Download">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   </a>
-                  <button class="icon-act del-act" title="Delete" onclick="confirmDeleteAttachment({{ $att->id }},'{{ addslashes($att->original_name) }}')">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                  </button>
                 </div>
               </div>
             @endforeach
           </div>
         @endif
 
-        {{-- Upload more files zone --}}
-        <form action="{{ route('tickets.attachments.store', $ticket) }}" method="POST" enctype="multipart/form-data" id="attachUploadForm">
-          @csrf
-          <label for="ticketFileInput">
-            <div class="drop-zone" id="dropZone" ondrop="handleTicketDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <p id="dropZoneTitle">Upload more files</p>
-              <span>JPG, PNG, LOG, JSON, ZIP · max 25MB</span>
-            </div>
-          </label>
-          <input type="file" id="ticketFileInput" name="attachments[]" style="display:none" multiple accept=".jpg,.jpeg,.png,.log,.json,.zip" onchange="handleTicketUpload(event)">
-          <div id="uploadFileList" style="margin-top:6px;font-size:11px;"></div>
-          <button type="submit" id="uploadSubmitBtn" style="display:none;margin-top:8px;width:100%;padding:8px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">⬆ Upload Files</button>
-        </form>
+
       </div>
     </div>
 
@@ -292,6 +288,12 @@ textarea.form-control{resize:vertical;min-height:80px}
                   <span class="cmt-name">{{ $comment->user->name??($comment->role==='superadmin'?'Superadmin':'User') }}</span>
                   <span class="cmt-role-badge {{ $comment->role==='superadmin'?'badge-admin':'badge-user' }}">{{ $comment->role==='superadmin'?'Admin':'User' }}</span>
                   <span class="cmt-time">{{ $comment->created_at->diffForHumans() }}</span>
+                  @if($comment->user_id === auth()->id())
+                  <button class="cmt-del-pill" onclick="confirmDeleteComment({{ $comment->id }},'{{ addslashes(Str::limit($comment->body,40)) }}')" title="Delete comment">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    Delete
+                  </button>
+                  @endif
                 </div>
                 <div class="cmt-text">{{ $comment->body }}</div>
 
@@ -319,7 +321,7 @@ textarea.form-control{resize:vertical;min-height:80px}
       </div>
 
       {{-- Comment input with file attach --}}
-      <form action="{{ route('tickets.comments.store', $ticket) }}" method="POST" enctype="multipart/form-data">
+      <form id="cmtForm" action="{{ route('tickets.comments.store', $ticket) }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="cmt-input-wrap">
           <div class="cmt-sender">
@@ -330,14 +332,19 @@ textarea.form-control{resize:vertical;min-height:80px}
             </div>
           </div>
           <div class="cmt-editor">
-            <textarea name="body" id="cmtInput" class="cmt-textarea" rows="3" placeholder="Write a comment… attach files with the 📎 button below" required onkeydown="handleCmtKey(event)"></textarea>
+            <textarea name="body" id="cmtInput" class="cmt-textarea" rows="3" placeholder="Write a comment… attach files with the 📎 button or drag &amp; drop below" required onkeydown="handleCmtKey(event)"></textarea>
             <div id="cmtFilePreview" class="cmt-file-preview"></div>
+            {{-- Drag-and-drop zone for comment attachments --}}
+            <div id="cmtDropZone" class="cmt-drop-zone"
+                 ondrop="handleCmtDrop(event)" ondragover="handleCmtDragOver(event)" ondragleave="handleCmtDragLeave(event)"
+                 onclick="document.getElementById('cmtFileInput').click()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span id="cmtDropLabel">Attach files — click or drag &amp; drop here</span>
+              <span class="cmt-drop-hint">JPG, PNG, LOG, JSON, ZIP · max 25MB</span>
+            </div>
             <div class="cmt-toolbar">
-              <div class="toolbar-left">
-                <button type="button" class="tool-btn" onclick="document.getElementById('cmtFileInput').click()" title="Attach files">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                  Attach
-                </button>
+              <div class="toolbar-left" style="font-size:11px;color:var(--muted-lt)">
+                <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly
               </div>
               <div class="toolbar-right">
                 <div class="role-toggle">
@@ -347,14 +354,13 @@ textarea.form-control{resize:vertical;min-height:80px}
                     <option value="user">User</option>
                   </select>
                 </div>
-                <button type="submit" class="send-btn">
+                <button type="submit" class="send-btn" id="cmtSendBtn">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send
                 </button>
               </div>
             </div>
           </div>
-          <input type="file" id="cmtFileInput" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.log,.json,.zip" style="display:none" onchange="handleCmtFileSelect(this.files);this.value='';">
-          <p class="cmt-hint">Press <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly · JPG, PNG, LOG, JSON, ZIP · max 25MB</p>
+          <input type="file" id="cmtFileInput" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.log,.json,.zip" style="display:none" onchange="handleCmtFileSelect(this.files);">
         </div>
       </form>
     </div>
@@ -443,7 +449,7 @@ textarea.form-control{resize:vertical;min-height:80px}
     </div>
     <div class="del-modal-foot">
       <button onclick="closeDeleteModal()" class="btn-sm" style="flex:1;justify-content:center">Cancel</button>
-      <form action="{{ route('tickets.destroy', $ticket) }}" method="POST" style="flex:1">@csrf @method('DELETE')<button type="submit" class="btn-sm btn-danger" style="width:100%;justify-content:center">Delete</button></form>
+      <button id="deleteTicketConfirmBtn" onclick="doDeleteTicket()" class="btn-sm btn-danger" style="flex:1;justify-content:center">Delete</button>
     </div>
   </div>
 </div>
@@ -458,7 +464,29 @@ textarea.form-control{resize:vertical;min-height:80px}
     </div>
     <div class="del-modal-foot">
       <button onclick="closeDeleteAttachModal()" class="btn-sm" style="flex:1;justify-content:center">Cancel</button>
-      <form id="deleteAttachForm" method="POST" style="flex:1">@csrf @method('DELETE')<button type="submit" class="btn-sm btn-danger" style="width:100%;justify-content:center">Delete</button></form>
+      <button id="deleteAttachConfirmBtn" onclick="doDeleteAttachment()" class="btn-sm btn-danger" style="flex:1;justify-content:center">Delete</button>
+    </div>
+  </div>
+</div>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
+{{-- Delete Comment Modal --}}
+<div class="cmt-del-modal-overlay" id="deleteCmtModal" onclick="closeDeleteCmtModal()">
+  <div class="cmt-del-modal-box" onclick="event.stopPropagation()">
+    <div class="cmt-del-modal-body">
+      <div class="cmt-del-modal-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <h3>Delete this comment?</h3>
+      <p>This message will be permanently removed and cannot be recovered.</p>
+      <div class="cmt-del-preview" id="deleteCmtPreview"></div>
+    </div>
+    <div class="cmt-del-modal-foot">
+      <button onclick="closeDeleteCmtModal()" class="btn-sm" style="flex:1;justify-content:center">Cancel</button>
+      <button id="deleteCmtConfirmBtn" onclick="doDeleteComment()" class="btn-sm btn-danger" style="flex:1;justify-content:center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Yes, Delete
+      </button>
     </div>
   </div>
 </div>
@@ -470,78 +498,165 @@ function openEditModal(){document.getElementById('editModal').classList.add('ope
 function closeEditModal(){document.getElementById('editModal').classList.remove('open');}
 function openDeleteModal(){document.getElementById('deleteModal').classList.add('open');}
 function closeDeleteModal(){document.getElementById('deleteModal').classList.remove('open');}
-function handleCmtKey(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();e.target.closest('form').submit();}}
 
-// ── Comment file attachments ──
+function doDeleteTicket(){
+  const btn=document.getElementById('deleteTicketConfirmBtn');
+  btn.disabled=true; btn.textContent='Deleting…';
+  const csrfToken=document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  fetch('{{ route('tickets.destroy', $ticket) }}',{
+    method:'POST',
+    headers:{'X-CSRF-TOKEN':csrfToken,'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},
+    body:'_method=DELETE'
+  }).then(r=>{
+    if(r.ok||r.redirected){
+      window.location.href='{{ route('tickets.index') }}';
+    } else {
+      showToast('Delete failed',false);
+      btn.disabled=false; btn.textContent='Delete';
+      closeDeleteModal();
+    }
+  }).catch(()=>{showToast('Delete failed',false);btn.disabled=false;btn.textContent='Delete';closeDeleteModal();});
+}
+function handleCmtKey(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();submitCmtForm();}}
+
+// ── Comment file attachments (fixed) ──
 let cmtFiles=[];
 const cmtAllowed=['jpg','jpeg','png','log','json','zip'];
 const cmtMaxMB=25;
 
 function handleCmtFileSelect(incoming){
   [...incoming].forEach(f=>{if(!cmtFiles.find(x=>x.name===f.name))cmtFiles.push(f);});
-  syncCmtFiles();
+  // Reset input so same file can be re-added after removal
+  document.getElementById('cmtFileInput').value='';
+  renderCmtPreview();
 }
-function removeCmtFile(name){cmtFiles=cmtFiles.filter(f=>f.name!==name);syncCmtFiles();}
-function syncCmtFiles(){
-  const input=document.getElementById('cmtFileInput');
+function handleCmtDrop(e){
+  e.preventDefault();
+  document.getElementById('cmtDropZone').classList.remove('drag-over');
+  handleCmtFileSelect(e.dataTransfer.files);
+}
+function handleCmtDragOver(e){e.preventDefault();document.getElementById('cmtDropZone').classList.add('drag-over');}
+function handleCmtDragLeave(){document.getElementById('cmtDropZone').classList.remove('drag-over');}
+
+function removeCmtFile(name){cmtFiles=cmtFiles.filter(f=>f.name!==name);renderCmtPreview();}
+
+function renderCmtPreview(){
   const preview=document.getElementById('cmtFilePreview');
-  const dt=new DataTransfer();
-  cmtFiles.forEach(f=>{const ext=f.name.split('.').pop().toLowerCase();if(cmtAllowed.includes(ext)&&f.size/1024/1024<=cmtMaxMB)dt.items.add(f);});
-  input.files=dt.files;
+  const label=document.getElementById('cmtDropLabel');
+  const validCount=cmtFiles.filter(f=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    return cmtAllowed.includes(ext)&&f.size/1024/1024<=cmtMaxMB;
+  }).length;
+
   preview.innerHTML=cmtFiles.map(f=>{
     const ext=f.name.split('.').pop().toLowerCase();
     const valid=cmtAllowed.includes(ext)&&f.size/1024/1024<=cmtMaxMB;
-    return `<span class="cmt-fpill" style="${valid?'':'border-color:#fecaca;color:#dc2626;background:#fef2f2'}">${valid?'📎':'❌'} ${f.name}<button type="button" onclick="removeCmtFile('${f.name.replace(/'/g,"\\'")}')">✕</button></span>`;
+    return `<span class="cmt-fpill" style="${valid?'':'border-color:#fecaca;color:#dc2626;background:#fef2f2'}">
+      ${valid?'📎':'❌'} ${f.name}
+      <button type="button" onclick="removeCmtFile('${f.name.replace(/'/g,"\\'")}')">✕</button>
+    </span>`;
   }).join('');
+
+  label.textContent=validCount
+    ? `${validCount} file(s) attached — click or drag to add more`
+    : 'Attach files — click or drag & drop here';
 }
 
-// ── Ticket upload drop zone ──
-const allowedExts=['jpg','jpeg','png','log','json','zip'];
-const maxMB=25;
-let pendingFiles=[];
+// Submit comment form via FormData so files are reliably included
+function submitCmtForm(){
+  const form=document.getElementById('cmtForm');
+  const body=document.getElementById('cmtInput').value.trim();
+  if(!body){document.getElementById('cmtInput').focus();return;}
 
-function handleTicketUpload(e){addPending([...e.target.files]);e.target.value='';}
-function handleTicketDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');addPending([...e.dataTransfer.files]);}
-function handleDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag-over');}
-function handleDragLeave(){document.getElementById('dropZone').classList.remove('drag-over');}
-
-function addPending(files){
-  files.forEach(f=>{if(!pendingFiles.find(x=>x.name===f.name))pendingFiles.push(f);});
-  renderPending();
-}
-function removePendingFile(name){pendingFiles=pendingFiles.filter(f=>f.name!==name);renderPending();}
-function renderPending(){
-  const input=document.getElementById('ticketFileInput');
-  const listEl=document.getElementById('uploadFileList');
-  const btn=document.getElementById('uploadSubmitBtn');
-  const title=document.getElementById('dropZoneTitle');
-  const dt=new DataTransfer();
-  let out=[];
-  pendingFiles.forEach(f=>{
+  const fd=new FormData(form);
+  // Remove any stale attachments[] from the form's own hidden input
+  fd.delete('attachments[]');
+  // Append valid files from our JS array
+  cmtFiles.forEach(f=>{
     const ext=f.name.split('.').pop().toLowerCase();
-    const sizeMB=f.size/1024/1024;
-    const valid=allowedExts.includes(ext)&&sizeMB<=maxMB;
-    if(valid)dt.items.add(f);
-    out.push(`<div style="display:flex;align-items:center;gap:7px;background:${valid?'#f0fdf4':'#fef2f2'};border:1px solid ${valid?'#bbf7d0':'#fecaca'};border-radius:7px;padding:4px 9px;margin-bottom:4px;font-size:11px;font-weight:600;color:${valid?'#15803d':'#dc2626'};">
-      ${valid?'✅':'❌'} <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</span>
-      ${valid?`<span style="color:#94a3b8">${sizeMB.toFixed(2)}MB</span>`:''}
-      <button type="button" onclick="removePendingFile('${f.name.replace(/'/g,"\\'")}');" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;line-height:1;padding:0 2px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#94a3b8'">✕</button>
-    </div>`);
+    if(cmtAllowed.includes(ext)&&f.size/1024/1024<=cmtMaxMB) fd.append('attachments[]',f);
   });
-  input.files=dt.files;
-  listEl.innerHTML=out.join('');
-  const validCount=dt.files.length;
-  title.textContent=validCount?`${validCount} file(s) ready to upload`:'Upload more files';
-  btn.style.display=validCount?'block':'none';
+
+  const btn=document.getElementById('cmtSendBtn');
+  btn.disabled=true;btn.innerHTML='Sending…';
+
+  fetch(form.action,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(r=>{if(r.redirected){window.location.href=r.url;}else{window.location.reload();}})
+    .catch(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send';showToast('Failed to send',false);});
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('cmtForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    submitCmtForm();
+  });
+});
+
+
+// ── Delete comment ──
+let _deleteCmtId=null;
+function confirmDeleteComment(id, preview){
+  _deleteCmtId=id;
+  document.getElementById('deleteCmtPreview').textContent='"'+preview+(preview.length>=40?'…':'')+'"';
+  document.getElementById('deleteCmtModal').classList.add('open');
+}
+function closeDeleteCmtModal(){
+  document.getElementById('deleteCmtModal').classList.remove('open');
+  _deleteCmtId=null;
+}
+function doDeleteComment(){
+  if(!_deleteCmtId) return;
+  const btn=document.getElementById('deleteCmtConfirmBtn');
+  btn.disabled=true; btn.innerHTML='Deleting…';
+  const csrfToken=document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  fetch(`/tickets/{{ $ticket->id }}/comments/${_deleteCmtId}`,{
+    method:'POST',
+    headers:{'X-CSRF-TOKEN':csrfToken,'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},
+    body:'_method=DELETE'
+  }).then(r=>{
+    if(r.ok){
+      closeDeleteCmtModal();
+      showToast('Comment deleted');
+      setTimeout(()=>window.location.reload(),600);
+    } else {
+      showToast('Delete failed',false);
+      btn.disabled=false;
+      btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Yes, Delete';
+    }
+  }).catch(()=>{showToast('Delete failed',false);btn.disabled=false;});
 }
 
 // ── Delete attachment ──
+let _deleteAttachId=null;
 function confirmDeleteAttachment(id,name){
+  _deleteAttachId=id;
   document.getElementById('deleteAttachName').textContent=name;
-  document.getElementById('deleteAttachForm').action=`/tickets/{{ $ticket->id }}/attachments/${id}`;
   document.getElementById('deleteAttachModal').classList.add('open');
 }
-function closeDeleteAttachModal(){document.getElementById('deleteAttachModal').classList.remove('open');}
+function closeDeleteAttachModal(){
+  document.getElementById('deleteAttachModal').classList.remove('open');
+  _deleteAttachId=null;
+}
+function doDeleteAttachment(){
+  if(!_deleteAttachId) return;
+  const btn=document.getElementById('deleteAttachConfirmBtn');
+  btn.disabled=true; btn.textContent='Deleting…';
+  const csrfToken=document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  fetch(`/tickets/{{ $ticket->id }}/attachments/${_deleteAttachId}`,{
+    method:'POST',
+    headers:{'X-CSRF-TOKEN':csrfToken,'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'},
+    body:'_method=DELETE'
+  }).then(r=>{
+    if(r.ok||r.redirected){
+      closeDeleteAttachModal();
+      showToast('Attachment deleted');
+      setTimeout(()=>window.location.reload(),600);
+    } else {
+      showToast('Delete failed',false);
+      btn.disabled=false; btn.textContent='Delete';
+    }
+  }).catch(()=>{showToast('Delete failed',false);btn.disabled=false;btn.textContent='Delete';});
+}
 
 function showToast(msg,ok=true){
   document.getElementById('toastMsg').textContent=msg;
