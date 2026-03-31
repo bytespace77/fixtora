@@ -30,6 +30,7 @@
 .pill-open{background:#fff7ed;color:#f97316;border:1px solid #fed7aa}
 .pill-resolved{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
 .pill-in_progress,.pill-in-progress{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
+.pill-in_review{background:#fdf4ff;color:#c026d3;border:1px solid #fae8ff}
 .pill-closed{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
 /* Layout */
 .detail-grid{display:grid;grid-template-columns:1fr 300px;gap:18px}
@@ -263,61 +264,75 @@ textarea.form-control{resize:vertical;min-height:80px}
         <div class="card-head-left">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Comments
-          <span id="commentCount" style="background:var(--navy);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:2px">0</span>
+          <span id="commentCount" style="background:var(--navy);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:2px">{{ $ticket->comments->count() }}</span>
         </div>
         <span style="font-size:11px;color:var(--muted-lt);font-weight:600">Admin & user communication</span>
       </div>
 
       <div class="card-body" style="padding-bottom:0">
         <div id="commentsList" class="comment-list">
-          <div id="emptyCmt" class="cmt-empty">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <p>No comments yet</p>
-            <span>Start the conversation below</span>
-          </div>
+          @forelse($ticket->comments as $comment)
+            <div class="comment-item">
+              <div class="cmt-av" style="background:{{ $comment->role === 'superadmin' ? '#0f1f38' : '#2563eb' }}">
+                 {{ strtoupper(substr($comment->user->name ?? 'U', 0, 2)) }}
+              </div>
+              <div class="cmt-bubble">
+                <div class="cmt-meta">
+                  <span class="cmt-name">{{ $comment->user->name ?? ($comment->role==='superadmin'?'Superadmin':'User') }}</span>
+                  <span class="cmt-role-badge {{ $comment->role === 'superadmin' ? 'badge-admin' : 'badge-user' }}">
+                      {{ $comment->role === 'superadmin' ? 'Admin' : 'User' }}
+                  </span>
+                  <span class="cmt-time">{{ $comment->created_at->diffForHumans() }}</span>
+                </div>
+                <div class="cmt-text">{{ $comment->body }}</div>
+              </div>
+            </div>
+          @empty
+            <div id="emptyCmt" class="cmt-empty">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <p>No comments yet</p>
+              <span>Start the conversation below</span>
+            </div>
+          @endforelse
         </div>
       </div>
 
       <!-- Input Area -->
-      <div class="cmt-input-wrap">
-        <div class="cmt-sender">
-          <div class="cmt-sender-av">SA</div>
-          <div class="cmt-sender-info">
-            <span class="name">Superadmin</span>
-            <span class="role-lbl">replying as admin</span>
-          </div>
-        </div>
-        <div class="cmt-editor">
-          <textarea id="cmtInput" class="cmt-textarea" rows="3" placeholder="Write a comment to communicate with the user…" onkeydown="handleCmtKey(event)"></textarea>
-          <div id="attachPreview" class="attach-preview"></div>
-          <div class="cmt-toolbar">
-            <div class="toolbar-left">
-              <label for="cmtFileInput" class="tool-btn" title="Attach files">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                Attach
-              </label>
-              <input type="file" id="cmtFileInput" class="hidden" style="display:none" multiple accept="image/*,.pdf,.doc,.docx,.txt,.xlsx,.csv" onchange="handleFileSelect(event)">
-              <button class="tool-btn" title="Bold"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
-              <button class="tool-btn" title="Italic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
-              <button class="tool-btn" title="Link"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+      <form action="{{ route('tickets.comments.store', $ticket) }}" method="POST">
+        @csrf
+        <div class="cmt-input-wrap">
+          <div class="cmt-sender">
+            <div class="cmt-sender-av">SA</div>
+            <div class="cmt-sender-info">
+              <span class="name">Superadmin</span>
+              <span class="role-lbl">replying as admin</span>
             </div>
-            <div class="toolbar-right">
-              <div class="role-toggle">
-                <span>Send as:</span>
-                <select id="cmtRole">
-                  <option value="superadmin">Superadmin</option>
-                  <option value="user">User</option>
-                </select>
+          </div>
+          <div class="cmt-editor">
+            <textarea name="body" id="cmtInput" class="cmt-textarea" rows="3" placeholder="Write a comment to communicate with the user…" required onkeydown="handleCmtKey(event)"></textarea>
+            <div class="cmt-toolbar">
+              <div class="toolbar-left">
+                <!-- Toolbar icons placeholder -->
+                <button type="button" class="tool-btn" title="Bold"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
               </div>
-              <button class="send-btn" onclick="postComment()">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Send
-              </button>
+              <div class="toolbar-right">
+                <div class="role-toggle">
+                  <span>Send as:</span>
+                  <select name="role" id="cmtRole">
+                    <option value="superadmin">Superadmin</option>
+                    <option value="user">User</option>
+                  </select>
+                </div>
+                <button type="submit" class="send-btn">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  Send
+                </button>
+              </div>
             </div>
           </div>
+          <p class="cmt-hint">Press <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly</p>
         </div>
-        <p class="cmt-hint">Press <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly</p>
-      </div>
+      </form>
     </div>
 
   </div>
@@ -339,6 +354,7 @@ textarea.form-control{resize:vertical;min-height:80px}
           <select name="status" class="status-select">
             <option value="open" {{ $ticket->status=='open'?'selected':'' }}>Open</option>
             <option value="in_progress" {{ $ticket->status=='in_progress'?'selected':'' }}>In Progress</option>
+            <option value="in_review" {{ $ticket->status=='in_review'?'selected':'' }}>In Review</option>
             <option value="resolved" {{ $ticket->status=='resolved'?'selected':'' }}>Resolved</option>
             <option value="closed" {{ $ticket->status=='closed'?'selected':'' }}>Closed</option>
           </select>
@@ -364,6 +380,7 @@ textarea.form-control{resize:vertical;min-height:80px}
           <div class="meta-row"><span class="meta-key">Priority</span><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></div>
           <div class="meta-row"><span class="meta-key">Impact</span><span class="pill pill-{{ $ticket->impact ?? 'low' }}">{{ ucfirst($ticket->impact ?? 'low') }}</span></div>
           <div class="meta-row"><span class="meta-key">Status</span><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>
+          <div class="meta-row"><span class="meta-key">Due Date</span><span class="meta-val">{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format('M d, Y') : '—' }}</span></div>
           <div class="meta-row"><span class="meta-key">Created</span><span class="meta-val">{{ $ticket->created_at->format('M d, Y') }}</span></div>
           <div class="meta-row"><span class="meta-key">Updated</span><span class="meta-val" id="lastUpdated">{{ $ticket->updated_at->diffForHumans() }}</span></div>
         </div>
@@ -466,10 +483,15 @@ textarea.form-control{resize:vertical;min-height:80px}
             <select name="status" class="form-control">
               <option value="open" {{ $ticket->status==='open'?'selected':'' }}>Open</option>
               <option value="in_progress" {{ $ticket->status==='in_progress'?'selected':'' }}>In Progress</option>
+              <option value="in_review" {{ $ticket->status==='in_review'?'selected':'' }}>In Review</option>
               <option value="resolved" {{ $ticket->status==='resolved'?'selected':'' }}>Resolved</option>
               <option value="closed" {{ $ticket->status==='closed'?'selected':'' }}>Closed</option>
             </select>
           </div>
+        </div>
+        <div class="form-group" style="margin-top: 14px;">
+          <label>Due Date</label>
+          <input type="date" name="due_date" class="form-control" value="{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format('Y-m-d') : '' }}">
         </div>
       </div>
       <div class="modal-foot">
@@ -513,48 +535,14 @@ function openDeleteModal(){document.getElementById('deleteModal').classList.add(
 function closeDeleteModal(){document.getElementById('deleteModal').classList.remove('open');}
 
 // ── Comments ──
-let comments=[], pendingFiles=[], ticketFiles=[];
+let ticketFiles=[];
 
-function postComment(){
-  const input=document.getElementById('cmtInput');
-  const text=input.value.trim();
-  const role=document.getElementById('cmtRole').value;
-  if(!text && pendingFiles.length===0){input.focus();return;}
-  const c={id:Date.now(),text,role,name:role==='superadmin'?'Superadmin':'User',initials:role==='superadmin'?'SA':'U',color:role==='superadmin'?'#0f1f38':'#2563eb',time:'Just now',files:[...pendingFiles]};
-  comments.push(c);
-  renderComment(c);
-  addTimeline(role==='superadmin'?'Superadmin commented':'User replied','gray');
-  input.value='';
-  pendingFiles=[];
-  renderPendingPreviews();
-  document.getElementById('commentCount').textContent=comments.length;
-  document.getElementById('emptyCmt').style.display='none';
-  const list=document.getElementById('commentsList');
-  list.scrollTop=list.scrollHeight;
-  showToast('Comment posted');
+function handleCmtKey(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    e.target.closest('form').submit();
+  }
 }
-
-function renderComment(c){
-  const list=document.getElementById('commentsList');
-  const d=document.createElement('div');
-  d.className='comment-item';
-  const filesHTML=c.files.length>0?`<div class="cmt-files">${c.files.map(f=>`<div class="file-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>${esc(f.name)}</span><span class="file-size">${fmtSize(f.size)}</span></div>`).join('')}</div>`:'';
-  d.innerHTML=`<div class="cmt-av" style="background:${c.color}">${c.initials}</div><div class="cmt-bubble"><div class="cmt-meta"><span class="cmt-name">${c.name}</span><span class="cmt-role-badge ${c.role==='superadmin'?'badge-admin':'badge-user'}">${c.role==='superadmin'?'Admin':'User'}</span><span class="cmt-time">${c.time}</span></div>${c.text?`<div class="cmt-text">${esc(c.text)}</div>`:''}${filesHTML}</div>`;
-  list.appendChild(d);
-}
-
-function handleCmtKey(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();postComment();}}
-
-// ── Comment file attach ──
-function handleFileSelect(e){addPending(Array.from(e.target.files));e.target.value='';}
-function addPending(files){files.forEach(f=>{if(!pendingFiles.find(p=>p.name===f.name))pendingFiles.push(f);});renderPendingPreviews();}
-function renderPendingPreviews(){
-  const p=document.getElementById('attachPreview');
-  if(!pendingFiles.length){p.style.display='none';p.innerHTML='';return;}
-  p.style.display='flex';
-  p.innerHTML=pendingFiles.map((f,i)=>`<div class="attach-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${esc(f.name)}<button onclick="removePending(${i})" type="button">×</button></div>`).join('');
-}
-function removePending(i){pendingFiles.splice(i,1);renderPendingPreviews();}
 
 // ── Ticket attachments ──
 function handleTicketUpload(e){addTicketFiles(Array.from(e.target.files));e.target.value='';}

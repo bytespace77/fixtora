@@ -358,6 +358,7 @@ html, body {
     cursor: pointer;
     transition: background 0.12s;
     position: relative;
+    text-decoration: none;
 }
 .noti-item:last-child { border-bottom: none; }
 .noti-item:hover { background: var(--bg); }
@@ -487,8 +488,8 @@ html, body {
           <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
         </svg>
         Tickets
-        @php $openCount = \App\Models\Ticket::where('status','open')->count(); @endphp
-        @if($openCount > 0)<span class="nav-badge">{{ $openCount }}</span>@endif
+        @php $unreadCount = \App\Models\Ticket::where('is_read', false)->count(); @endphp
+        @if($unreadCount > 0)<span class="nav-badge">{{ $unreadCount }}</span>@endif
       </a>
 
       <a href="{{ route('tasks.index') }}" class="nav-item {{ request()->routeIs('tasks.*') ? 'active' : '' }}">
@@ -642,7 +643,7 @@ html, body {
           </div>
         </div>
 
-        <button class="icon-btn" style="font-size:11px;font-weight:700;letter-spacing:0.3px;width:auto;padding:0 12px;">
+        <button id="notiTextBtn" class="icon-btn" style="font-size:11px;font-weight:700;letter-spacing:0.3px;width:auto;padding:0 12px;">
           ({{ $newNotificationsCount ?? 0 }})
         </button>
       </div>
@@ -675,10 +676,86 @@ function toggleNoti(e) {
     e.stopPropagation();
     document.getElementById('notiDropdown').classList.toggle('open');
 }
-document.addEventListener('click', function(e) {
+
+document.addEventListener('DOMContentLoaded', () => {
     const wrap = document.getElementById('notiWrap');
-    if (wrap && !wrap.contains(e.target)) {
-        document.getElementById('notiDropdown').classList.remove('open');
+    document.addEventListener('click', function(e) {
+        if (wrap && !wrap.contains(e.target)) {
+            document.getElementById('notiDropdown').classList.remove('open');
+        }
+    });
+
+    // Handle LocalStorage Client-Side read states
+    let readNotis = JSON.parse(localStorage.getItem('fixtora_read_notifications') || '[]');
+    let items = document.querySelectorAll('.noti-item');
+    let unreadCount = 0;
+
+    items.forEach(item => {
+        let key = item.getAttribute('href') + '|' + (item.querySelector('.noti-title') ? item.querySelector('.noti-title').innerText : '');
+        
+        if (readNotis.includes(key)) {
+            item.classList.remove('unread');
+        } else if (item.classList.contains('unread')) {
+            unreadCount++;
+        }
+
+        item.addEventListener('click', () => {
+            if (!readNotis.includes(key)) {
+                readNotis.push(key);
+                // Keep array size reasonable
+                if(readNotis.length > 100) readNotis.shift();
+                localStorage.setItem('fixtora_read_notifications', JSON.stringify(readNotis));
+            }
+            // Immediately hide visual cues before navigation completes
+            item.classList.remove('unread');
+            unreadCount = Math.max(0, unreadCount - 1);
+            updateNotiVisuals(unreadCount);
+        });
+    });
+
+    updateNotiVisuals(unreadCount);
+
+    let markAllBtn = document.getElementById('markAllReadBtn');
+    if (markAllBtn) {
+        markAllBtn.addEventListener('click', () => {
+            items.forEach(item => {
+                let key = item.getAttribute('href') + '|' + (item.querySelector('.noti-title') ? item.querySelector('.noti-title').innerText : '');
+                if (!readNotis.includes(key)) {
+                    readNotis.push(key);
+                }
+                item.classList.remove('unread');
+            });
+            if(readNotis.length > 200) readNotis = readNotis.slice(-200);
+            localStorage.setItem('fixtora_read_notifications', JSON.stringify(readNotis));
+            
+            unreadCount = 0;
+            updateNotiVisuals(unreadCount);
+        });
+    }
+
+    function updateNotiVisuals(count) {
+        let badge = document.getElementById('notiBadge');
+        let textBtn = document.getElementById('notiTextBtn');
+        let ovUnread = document.getElementById('ovUnreadCount');
+        let currentTitle = document.title.replace(/^\(\d+\)\s/, '');
+        
+        if (ovUnread) ovUnread.textContent = count;
+        
+        if (count > 0) {
+            if(badge) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            }
+            if(textBtn) textBtn.textContent = '(' + count + ')';
+            document.title = '(' + count + ') ' + currentTitle;
+        } else {
+            if(badge) {
+                badge.textContent = '';
+                badge.classList.add('hidden');
+            }
+            if(textBtn) textBtn.textContent = '(0)';
+            document.title = currentTitle;
+        }
     }
 });
 </script>

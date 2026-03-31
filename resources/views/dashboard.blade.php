@@ -118,6 +118,7 @@
 .status-pill { display:inline-block; padding:3px 10px; border-radius:20px; font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
 .pill-open        { background:#fff7ed; color:#f97316; border:1px solid #fed7aa; }
 .pill-in_progress { background:var(--blue-bg); color:var(--blue); border:1px solid #bfdbfe; }
+.pill-in_review   { background:#fdf4ff; color:#c026d3; border:1px solid #fae8ff; }
 .pill-resolved    { background:#dcfce7; color:#16a34a; border:1px solid #bbf7d0; }
 .pill-closed      { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; }
 .priority-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }

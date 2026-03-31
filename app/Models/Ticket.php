@@ -19,6 +19,7 @@ class Ticket extends Model
         'priority',
         'impact',
         'status',
+        'due_date',
     ];
 
     // Auto-filter by company — superadmin sees ALL
@@ -57,5 +58,10 @@ class Ticket extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(TicketComment::class);
     }
 }

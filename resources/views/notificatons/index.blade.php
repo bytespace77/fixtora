@@ -12,7 +12,7 @@
 .btn-sm { padding:8px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:1px solid var(--border); background:var(--surface); color:var(--text-2); font-family:inherit; }
 .btn-sm.primary { background:var(--blue); border-color:var(--blue); color:#fff; }
 
-.noti-grid { display:grid; grid-template-columns: 2fr 1fr; gap:16px; }
+.noti-grid { display:grid; grid-template-columns: 1fr; gap:16px; }
 .card-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
 .card-head { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); }
 .card-title { font-size:14px; font-weight:700; color:var(--navy); }
@@ -78,8 +78,7 @@
             <p>Track alerts, ticket updates, and operational events in one place.</p>
         </div>
         <div class="noti-actions">
-            <button class="btn-sm">Notification Settings</button>
-            <button class="btn-sm primary">Mark all as read</button>
+            <button id="markAllReadBtn" class="btn-sm primary">Mark all as read</button>
         </div>
     </div>
 
@@ -96,7 +95,7 @@
             <div class="overview">
                 <div class="ov-item">
                     <div class="ov-label">Unread</div>
-                    <div class="ov-value">{{ $unreadCount }}</div>
+                    <div class="ov-value" id="ovUnreadCount">{{ $unreadCount }}</div>
                     <div class="ov-help">Need attention</div>
                 </div>
                 <div class="ov-item">
@@ -152,44 +151,6 @@
             </div>
         </div>
 
-        <div class="card-box">
-            <div class="card-head">
-                <div>
-                    <div class="card-title">Delivery Preferences</div>
-                    <div class="card-sub">Current channel configuration</div>
-                </div>
-            </div>
-            <div class="pref-body">
-                <div class="pref-row">
-                    <div>
-                        <div class="pref-name">In-app Notifications</div>
-                        <div class="pref-desc">Show alerts in dashboard and topbar bell</div>
-                    </div>
-                    <span class="pref-pill on">Enabled</span>
-                </div>
-                <div class="pref-row">
-                    <div>
-                        <div class="pref-name">Email Alerts</div>
-                        <div class="pref-desc">Ticket assignment, status changes, SLA warnings</div>
-                    </div>
-                    <span class="pref-pill off">Disabled</span>
-                </div>
-                <div class="pref-row">
-                    <div>
-                        <div class="pref-name">Push Alerts</div>
-                        <div class="pref-desc">Browser push for urgent or critical incidents</div>
-                    </div>
-                    <span class="pref-pill off">Disabled</span>
-                </div>
-                <div class="pref-row">
-                    <div>
-                        <div class="pref-name">Digest Summary</div>
-                        <div class="pref-desc">Daily summary sent at 8:00 AM</div>
-                    </div>
-                    <span class="pref-pill off">Disabled</span>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 @endsection

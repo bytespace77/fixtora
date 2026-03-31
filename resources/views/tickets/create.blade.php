@@ -134,6 +134,25 @@ textarea.form-input:focus{border:none;box-shadow:none}
           @error('priority')<div class="error-msg">{{ $message }}</div>@enderror
         </div>
       </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="lbl" for="status">Ticket Status</label>
+          <select id="status" name="status" class="form-input {{ $errors->has('status') ? 'is-invalid' : '' }}">
+            <option value="open" {{ old('status', 'open') == 'open' ? 'selected' : '' }}>Open</option>
+            <option value="in_progress" {{ old('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+            <option value="in_review" {{ old('status') == 'in_review' ? 'selected' : '' }}>In Review</option>
+            <option value="resolved" {{ old('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
+            <option value="closed" {{ old('status') == 'closed' ? 'selected' : '' }}>Closed</option>
+          </select>
+          @error('status')<div class="error-msg">{{ $message }}</div>@enderror
+        </div>
+        <div class="field-group">
+          <label class="lbl" for="due_date">Due Date</label>
+          <input type="date" id="due_date" name="due_date" class="form-input {{ $errors->has('due_date') ? 'is-invalid' : '' }}" value="{{ old('due_date') }}" />
+          @error('due_date')<div class="error-msg">{{ $message }}</div>@enderror
+        </div>
+      </div>
     </div>
 
     <!-- Functional Details -->

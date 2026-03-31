@@ -83,23 +83,23 @@
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Total Tickets</div>
-            <div class="stat-value">0</div>
-            <div class="stat-sub">No data yet</div>
+            <div class="stat-value">{{ $totalTickets }}</div>
+            <div class="stat-sub">Across all systems</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Avg Resolution Time</div>
-            <div class="stat-value">0h 0m</div>
-            <div class="stat-sub">No data yet</div>
+            <div class="stat-value">{{ $avgResolution }}h</div>
+            <div class="stat-sub">Based on history</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">SLA Compliance</div>
-            <div class="stat-value">0%</div>
-            <div class="stat-sub">No data yet</div>
+            <div class="stat-value">{{ $slaCompliance }}%</div>
+            <div class="stat-sub">Resolved on time</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Customer CSAT</div>
-            <div class="stat-value">0.0/5</div>
-            <div class="stat-sub">No data yet</div>
+            <div class="stat-value">{{ $csat }}</div>
+            <div class="stat-sub">Average rating</div>
         </div>
     </div>
 
@@ -129,15 +129,15 @@
             <div class="issue-list">
                 <div class="issue-row">
                     <div class="issue-left"><span class="issue-dot" style="background:#0f3f83"></span>Backend Infrastructure</div>
-                    <div>0%</div>
+                    <div>{{ $distribution[0] }}</div>
                 </div>
                 <div class="issue-row">
                     <div class="issue-left"><span class="issue-dot" style="background:#3b82f6"></span>Frontend / UI Issues</div>
-                    <div>0%</div>
+                    <div>{{ $distribution[1] }}</div>
                 </div>
                 <div class="issue-row">
                     <div class="issue-left"><span class="issue-dot" style="background:#bfdbfe"></span>API Integrations</div>
-                    <div>0%</div>
+                    <div>{{ $distribution[2] }}</div>
                 </div>
             </div>
         </div>
@@ -211,11 +211,11 @@
     new Chart(trendEl, {
       type: 'line',
       data: {
-        labels: ['Sep 01', 'Sep 05', 'Sep 10', 'Sep 14', 'Sep 18', 'Sep 22', 'Sep 26', 'Sep 30'],
+        labels: {!! json_encode($labels) !!},
         datasets: [
           {
             label: 'New',
-            data: [0, 0, 0, 0, 0, 0, 0, 0],
+            data: {!! json_encode($newTrend) !!},
             borderColor: '#0f3f83',
             backgroundColor: 'rgba(15,63,131,0.08)',
             tension: 0.42,
@@ -225,7 +225,7 @@
           },
           {
             label: 'Closed',
-            data: [0, 0, 0, 0, 0, 0, 0, 0],
+            data: {!! json_encode($closedTrend) !!},
             borderColor: '#94a3b8',
             tension: 0.35,
             pointRadius: 0,
@@ -251,7 +251,7 @@
       data: {
         labels: ['Backend Infrastructure', 'Frontend / UI Issues', 'API Integrations'],
         datasets: [{
-          data: [0, 0, 0],
+          data: {!! json_encode($distribution) !!},
           backgroundColor: ['#0f3f83', '#3b82f6', '#bfdbfe'],
           borderWidth: 0
         }]

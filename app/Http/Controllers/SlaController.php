@@ -48,7 +48,7 @@ class SlaController extends Controller
             ->values();
 
         // All open tickets for compliance table
-        $allOpen = Ticket::whereIn('status', ['open', 'in_progress'])
+        $allOpen = Ticket::whereIn('status', ['open', 'in_progress', 'in_review'])
             ->orderBy('created_at')
             ->get()
             ->sortBy(fn($t) => $priorityOrder[$t->priority] ?? 9)

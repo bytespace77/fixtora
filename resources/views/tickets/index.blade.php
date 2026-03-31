@@ -54,6 +54,7 @@
 .pill-open{background:#fff7ed;color:#f97316;border:1px solid #fed7aa}
 .pill-resolved{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
 .pill-in_progress,.pill-in-progress{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
+.pill-in_review{background:#fdf4ff;color:#c026d3;border:1px solid #fae8ff}
 .pill-closed{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
 /* 3-dot */
 .more-wrap{position:relative;display:flex;justify-content:center}
@@ -144,6 +145,7 @@ textarea.form-control{resize:vertical;min-height:80px}
       <label class="filter-check"><input type="checkbox" class="filter-status" value="all" checked><span>All</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="open"><span>Open</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="in_progress"><span>In Progress</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="in_review"><span>In Review</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="resolved"><span>Resolved</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="closed"><span>Closed</span></label>
     </div>
@@ -184,6 +186,7 @@ textarea.form-control{resize:vertical;min-height:80px}
   </a>
   <a href="{{ route('tickets.index', ['status'=>'open']) }}" class="filter-tab {{ request('status')==='open' ? 'active' : '' }}">Open</a>
   <a href="{{ route('tickets.index', ['status'=>'in_progress']) }}" class="filter-tab {{ request('status')==='in_progress' ? 'active' : '' }}">In Progress</a>
+  <a href="{{ route('tickets.index', ['status'=>'in_review']) }}" class="filter-tab {{ request('status')==='in_review' ? 'active' : '' }}">In Review</a>
   <a href="{{ route('tickets.index', ['status'=>'resolved']) }}" class="filter-tab {{ request('status')==='resolved' ? 'active' : '' }}">Resolved</a>
   <a href="{{ route('tickets.index', ['status'=>'closed']) }}" class="filter-tab {{ request('status')==='closed' ? 'active' : '' }}">Closed</a>
 </div>
@@ -211,7 +214,7 @@ textarea.form-control{resize:vertical;min-height:80px}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           View Details
         </a>
-        <button class="dd-item" onclick="openModal('edit',{{ $ticket->id }},'{{ addslashes($ticket->title) }}','{{ addslashes($ticket->description) }}','{{ $ticket->system }}','{{ $ticket->priority }}','{{ $ticket->impact }}','{{ $ticket->status }}')">
+        <button class="dd-item" onclick="openModal('edit',{{ $ticket->id }},'{{ addslashes($ticket->title) }}','{{ addslashes($ticket->description) }}','{{ $ticket->system }}','{{ $ticket->priority }}','{{ $ticket->impact }}','{{ $ticket->status }}','{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format("Y-m-d") : "" }}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Ticket
         </button>
@@ -296,12 +299,16 @@ textarea.form-control{resize:vertical;min-height:80px}
               <option value="low" selected>Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
             </select>
           </div>
-          <div class="form-group" id="statusGroup" style="display:none">
+          <div class="form-group" id="statusGroup">
             <label>Status</label>
             <select name="status" id="fStatus" class="form-control">
-              <option value="open">Open</option><option value="in_progress">In Progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option>
+              <option value="open">Open</option><option value="in_progress">In Progress</option><option value="in_review">In Review</option><option value="resolved">Resolved</option><option value="closed">Closed</option>
             </select>
           </div>
+        </div>
+        <div class="form-group" style="margin-top: 14px;">
+          <label>Due Date</label>
+          <input type="date" name="due_date" id="fDueDate" class="form-control">
         </div>
       </div>
       <div class="modal-foot">
@@ -358,12 +365,11 @@ function applyFilters(){toggleFilter();showToast('Filters applied');}
 
 // Modal
 let currentMode='new';
-function openModal(mode,id,title,desc,system,priority,impact,status){
+function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
   currentMode=mode;
   document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
   document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
   const form=document.getElementById('ticketForm');
-  document.getElementById('statusGroup').style.display=mode==='edit'?'block':'none';
   if(mode==='new'){
     document.getElementById('modalHeadTitle').textContent='New Ticket';
     document.getElementById('modalSaveBtn').textContent='Create Ticket';
@@ -374,6 +380,8 @@ function openModal(mode,id,title,desc,system,priority,impact,status){
     document.getElementById('fSystem').value='Payment GW';
     document.getElementById('fPriority').value='medium';
     document.getElementById('fImpact').value='low';
+    document.getElementById('fStatus').value='open';
+    document.getElementById('fDueDate').value='';
   } else {
     document.getElementById('modalHeadTitle').textContent='Edit Ticket';
     document.getElementById('modalSaveBtn').textContent='Save Changes';
@@ -386,6 +394,7 @@ function openModal(mode,id,title,desc,system,priority,impact,status){
     if(priority)document.getElementById('fPriority').value=priority;
     if(impact)document.getElementById('fImpact').value=impact;
     if(status)document.getElementById('fStatus').value=status;
+    document.getElementById('fDueDate').value=due_date||'';
   }
   document.getElementById('ticketModal').classList.add('open');
 }

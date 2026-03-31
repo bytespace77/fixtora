@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ticket;
+use App\Models\TicketComment;
 use Illuminate\Http\Request;
 
 class TicketController extends Controller
@@ -38,10 +39,11 @@ class TicketController extends Controller
             'system'      => 'required|string',
             'priority'    => 'required|in:low,medium,high,critical',
             'impact'      => 'required|in:low,medium,high,critical',
+            'status'      => 'required|in:open,in_progress,in_review,resolved,closed',
+            'due_date'    => 'nullable|date',
         ]);
 
         $validated['user_id'] = auth()->id();
-        $validated['status']  = 'open';
 
         Ticket::create($validated);
 
@@ -50,17 +52,60 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket)
     {
+        if (!$ticket->is_read) {
+            $ticket->timestamps = false;
+            $ticket->is_read = true;
+            $ticket->save();
+            $ticket->timestamps = true;
+        }
+
+        $ticket->load('comments.user');
         return view('tickets.show', compact('ticket'));
     }
 
     public function update(Request $request, Ticket $ticket)
     {
-        $request->validate([
-            'status' => 'required|in:open,in_progress,resolved,closed',
+        $validated = $request->validate([
+            'title'       => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|required|string',
+            'system'      => 'sometimes|nullable|string',
+            'priority'    => 'sometimes|required|in:low,medium,high,critical',
+            'impact'      => 'sometimes|required|in:low,medium,high,critical',
+            'status'      => 'sometimes|required|in:open,in_progress,in_review,resolved,closed',
+            'due_date'    => 'nullable|date',
         ]);
 
-        $ticket->update(['status' => $request->status]);
+        $oldStatus = $ticket->status;
+        $ticket->update($validated);
 
-        return redirect()->route('tickets.show', $ticket)->with('success', 'Ticket status updated!');
+        if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
+            TicketComment::create([
+                'ticket_id' => $ticket->id,
+                'user_id' => auth()->id(),
+                'body' => 'Status changed to ' . ucfirst(str_replace('_', ' ', $validated['status'])),
+                'role' => 'system',
+                'type' => 'status_change'
+            ]);
+        }
+
+        return redirect()->route('tickets.show', $ticket)->with('success', 'Ticket updated!');
+    }
+
+    public function addComment(Request $request, Ticket $ticket)
+    {
+        $validated = $request->validate([
+            'body' => 'required|string',
+            'role' => 'required|in:superadmin,user',
+        ]);
+
+        TicketComment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => auth()->id(),
+            'body' => $validated['body'],
+            'role' => $validated['role'],
+            'type' => 'comment'
+        ]);
+
+        return redirect()->route('tickets.show', $ticket)->with('success', 'Comment posted!');
     }
 }

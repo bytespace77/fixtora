@@ -50,14 +50,43 @@ class AppServiceProvider extends ServiceProvider
                 $isNew = $ticket->created_at && $ticket->created_at->greaterThan(now()->subDay());
 
                 return [
-                    'title' => 'Ticket updated: #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT),
-                    'description' => $ticket->title ?: 'Ticket activity updated.',
-                    'time' => $ticket->updated_at,
-                    'time_human' => $this->humanTime($ticket->updated_at),
+                    'title' => 'New Ticket: #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT),
+                    'description' => $ticket->title ?: 'New ticket submitted.',
+                    'time' => $ticket->created_at,
+                    'time_human' => $this->humanTime($ticket->created_at),
                     'is_new' => $isNew,
                     'type' => $this->mapTicketType($ticket->priority),
                     'category' => 'Ticket',
                     'url' => route('tickets.show', $ticket),
+                ];
+            });
+
+        $commentItems = \App\Models\TicketComment::with('ticket')
+            ->latest()
+            ->take(20)
+            ->get()
+            ->map(function (\App\Models\TicketComment $comment) {
+                $isNew = $comment->created_at && $comment->created_at->greaterThan(now()->subDay());
+
+                if ($comment->type === 'status_change') {
+                    $title = 'Status Update: #' . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
+                    $desc = $comment->body;
+                    $typeColor = 'orange';
+                } else {
+                    $title = 'New Comment: #' . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
+                    $desc = \Illuminate\Support\Str::limit($comment->body, 50);
+                    $typeColor = 'blue';
+                }
+
+                return [
+                    'title' => $title,
+                    'description' => $desc,
+                    'time' => $comment->created_at,
+                    'time_human' => $this->humanTime($comment->created_at),
+                    'is_new' => $isNew,
+                    'type' => $typeColor,
+                    'category' => $comment->type === 'status_change' ? 'System' : 'Discussion',
+                    'url' => route('tickets.show', $comment->ticket_id),
                 ];
             });
 
@@ -82,6 +111,7 @@ class AppServiceProvider extends ServiceProvider
             });
 
         return $ticketItems
+            ->merge($commentItems)
             ->merge($taskItems)
             ->sortByDesc('time')
             ->values();
