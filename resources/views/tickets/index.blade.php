@@ -265,7 +265,7 @@ textarea.form-control{resize:vertical;min-height:80px}
       <h3 id="modalHeadTitle">New Ticket</h3>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <form id="ticketForm" method="POST" action="{{ route('tickets.store') }}">
+    <form id="ticketForm" method="POST" action="{{ route('tickets.store') }}" enctype="multipart/form-data">
       @csrf
       <input type="hidden" name="_method" id="formMethod" value="POST">
       <input type="hidden" id="formTicketId" value="">
@@ -309,6 +309,20 @@ textarea.form-control{resize:vertical;min-height:80px}
         <div class="form-group" style="margin-top: 14px;">
           <label>Due Date</label>
           <input type="date" name="due_date" id="fDueDate" class="form-control">
+        </div>
+        <div class="form-group" id="attachmentGroup">
+          <label>Attachments <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(optional · JPG, PNG, LOG, JSON, ZIP · max 25MB)</span></label>
+          <label for="modal_file_upload" style="display:block;cursor:pointer;">
+            <div id="modal_dropzone" style="border:2px dashed var(--border);border-radius:8px;padding:14px 16px;text-align:center;transition:all .15s;">
+              <div style="font-size:18px;margin-bottom:4px;">📎</div>
+              <div style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:2px;" id="modal_dz_title">Drag &amp; drop files or <span style="color:var(--blue)">browse</span></div>
+              <div style="font-size:11px;color:var(--muted);">JPG, PNG, LOG, JSON, ZIP · max 25MB each</div>
+            </div>
+          </label>
+          <input type="file" id="modal_file_upload" name="attachments[]" multiple
+                 accept=".jpg,.jpeg,.png,.log,.json,.zip" style="display:none;"
+                 onchange="handleModalFiles(this.files); this.value='';">
+          <div id="modal_file_list" style="margin-top:6px;font-size:11px;line-height:1.8;"></div>
         </div>
       </div>
       <div class="modal-foot">
@@ -382,6 +396,11 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
     document.getElementById('fImpact').value='low';
     document.getElementById('fStatus').value='open';
     document.getElementById('fDueDate').value='';
+    document.getElementById('modal_file_upload').value='';
+    document.getElementById('modal_file_list').innerHTML='';
+    document.getElementById('modal_dz_title').innerHTML='Drag &amp; drop files or <span style="color:var(--blue)">browse</span>';
+    document.getElementById('attachmentGroup').style.display='block';
+    modalFiles = [];
   } else {
     document.getElementById('modalHeadTitle').textContent='Edit Ticket';
     document.getElementById('modalSaveBtn').textContent='Save Changes';
@@ -395,6 +414,7 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
     if(impact)document.getElementById('fImpact').value=impact;
     if(status)document.getElementById('fStatus').value=status;
     document.getElementById('fDueDate').value=due_date||'';
+    document.getElementById('attachmentGroup').style.display='none';
   }
   document.getElementById('ticketModal').classList.add('open');
 }
@@ -429,6 +449,70 @@ document.getElementById('ticketForm').addEventListener('submit',function(){
   if(currentMode==='edit'){
     this.action='/tickets/'+document.getElementById('formTicketId').value;
   }
+});
+
+// Modal file upload — with removable pills
+let modalFiles = [];
+const modalMaxMB = 25;
+const modalAllowed = ['jpg','jpeg','png','log','json','zip'];
+
+function handleModalFiles(incoming) {
+  [...incoming].forEach(f => {
+    if (!modalFiles.find(x => x.name === f.name)) modalFiles.push(f);
+  });
+  syncModalFiles();
+}
+
+function removeModalFile(name) {
+  modalFiles = modalFiles.filter(f => f.name !== name);
+  syncModalFiles();
+}
+
+function syncModalFiles() {
+  const input = document.getElementById('modal_file_upload');
+  const list  = document.getElementById('modal_file_list');
+  const title = document.getElementById('modal_dz_title');
+  const dt    = new DataTransfer();
+
+  modalFiles.forEach(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (modalAllowed.includes(ext) && f.size/1024/1024 <= modalMaxMB) dt.items.add(f);
+  });
+  input.files = dt.files;
+
+  const validCount = dt.files.length;
+  title.innerHTML = validCount
+    ? `${validCount} file(s) ready to upload`
+    : 'Drag &amp; drop files or <span style="color:var(--blue)">browse</span>';
+
+  if (!modalFiles.length) { list.innerHTML = ''; return; }
+
+  list.innerHTML = modalFiles.map(f => {
+    const ext    = f.name.split('.').pop().toLowerCase();
+    const sizeMB = f.size / 1024 / 1024;
+    const valid  = modalAllowed.includes(ext) && sizeMB <= modalMaxMB;
+    const errMsg = !modalAllowed.includes(ext) ? ' — unsupported' : ` — exceeds 25MB`;
+    return `<div style="display:flex;align-items:center;gap:7px;background:${valid?'#f0fdf4':'#fef2f2'};border:1px solid ${valid?'#bbf7d0':'#fecaca'};border-radius:7px;padding:5px 9px;margin-bottom:4px;font-size:11px;font-weight:600;color:${valid?'#15803d':'#dc2626'};">
+      <span>${valid?'✅':'❌'}</span>
+      <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${f.name}">${f.name}${!valid?errMsg:''}</span>
+      ${valid?`<span style="color:#94a3b8;flex-shrink:0;">${sizeMB.toFixed(2)}MB</span>`:''}
+      <button type="button" onclick="removeModalFile('${f.name.replace(/'/g,"\\'")}')"
+        style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:15px;line-height:1;padding:0 2px;flex-shrink:0;transition:color .12s;"
+        onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#94a3b8'"
+        title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const mdz = document.getElementById('modal_dropzone');
+  mdz.addEventListener('dragover', e => { e.preventDefault(); mdz.style.borderColor='#2563eb'; mdz.style.background='var(--blue-bg)'; });
+  mdz.addEventListener('dragleave', () => { mdz.style.borderColor=''; mdz.style.background=''; });
+  mdz.addEventListener('drop', e => {
+    e.preventDefault();
+    mdz.style.borderColor=''; mdz.style.background='';
+    handleModalFiles(e.dataTransfer.files);
+  });
 });
 
 @if(session('success'))

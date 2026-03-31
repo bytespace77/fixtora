@@ -23,4 +23,9 @@ class TicketComment extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function attachments()
+    {
+        return $this->hasMany(TicketAttachment::class, 'comment_id');
+    }
 }

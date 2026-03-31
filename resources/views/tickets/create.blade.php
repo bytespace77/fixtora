@@ -87,7 +87,7 @@ textarea.form-input:focus{border:none;box-shadow:none}
   <h1>Create New Service Request</h1>
 </div>
 
-<form action="{{ route('tickets.store') }}" method="POST">
+<form action="{{ route('tickets.store') }}" method="POST" enctype="multipart/form-data">
 @csrf
 <div class="form-grid">
   <!-- LEFT COLUMN -->
@@ -183,12 +183,19 @@ textarea.form-input:focus{border:none;box-shadow:none}
         </div>
         Evidentiary Support
       </div>
-      <div class="upload-zone">
-        <div class="upload-icon">📎</div>
-        <div class="upload-title">Drag and drop log files or screenshots here</div>
-        <div class="upload-sub">Maximum file size 25MB · JPG, PNG, LOG, JSON</div>
-        <span class="upload-link">OR BROWSE FILES</span>
-      </div>
+      <label for="file_upload" style="display:block;cursor:pointer;">
+        <div class="upload-zone" id="dropzone">
+          <div class="upload-icon">📎</div>
+          <div class="upload-title" id="dropzone-title">Drag and drop log files or screenshots here</div>
+          <div class="upload-sub">Maximum file size 25MB · JPG, PNG, LOG, JSON, ZIP</div>
+          <span class="upload-link">OR BROWSE FILES</span>
+        </div>
+      </label>
+      <input type="file" id="file_upload" name="attachments[]" multiple
+             accept=".jpg,.jpeg,.png,.log,.json,.zip"
+             style="display:none;"
+             onchange="handleFileSelect(this.files)">
+      <div id="file-list" style="margin-top:8px;font-size:12px;line-height:1.8;"></div>
     </div>
 
   </div>
@@ -263,4 +270,77 @@ textarea.form-input:focus{border:none;box-shadow:none}
   </div>
 </div>
 </form>
+
+<style>
+.file-pill{display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;color:#15803d;margin-bottom:5px;}
+.file-pill.error{background:#fef2f2;border-color:#fecaca;color:#dc2626;}
+.file-pill-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-pill-size{font-size:11px;color:#94a3b8;flex-shrink:0;}
+.file-pill-remove{background:none;border:none;cursor:pointer;color:#94a3b8;font-size:16px;line-height:1;padding:0 2px;border-radius:4px;transition:color .12s;flex-shrink:0;}
+.file-pill-remove:hover{color:#dc2626;}
+</style>
+<script>
+  // Shared file store for create page
+  let selectedFiles = [];
+  const maxMB = 25;
+  const allowed = ['jpg','jpeg','png','log','json','zip'];
+
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='#2563eb'; dz.style.background='var(--blue-bg)'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor=''; dz.style.background=''; });
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.style.borderColor=''; dz.style.background='';
+    addFiles([...e.dataTransfer.files]);
+  });
+
+  function handleFileSelect(files) { addFiles([...files]); }
+
+  function addFiles(incoming) {
+    incoming.forEach(f => {
+      // avoid duplicates by name
+      if (!selectedFiles.find(x => x.name === f.name)) {
+        selectedFiles.push(f);
+      }
+    });
+    syncInputAndRender();
+  }
+
+  function removeFile(name) {
+    selectedFiles = selectedFiles.filter(f => f.name !== name);
+    syncInputAndRender();
+  }
+
+  function syncInputAndRender() {
+    // Push valid files back into the real <input> via DataTransfer
+    const input = document.getElementById('file_upload');
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => { const ext = f.name.split('.').pop().toLowerCase(); if (allowed.includes(ext) && f.size/1024/1024 <= maxMB) dt.items.add(f); });
+    input.files = dt.files;
+
+    const title = document.getElementById('dropzone-title');
+    const list  = document.getElementById('file-list');
+    const validCount = dt.files.length;
+
+    title.textContent = validCount
+      ? `${validCount} file(s) ready to upload`
+      : 'Drag and drop log files or screenshots here';
+
+    if (!selectedFiles.length) { list.innerHTML = ''; return; }
+
+    list.innerHTML = selectedFiles.map(f => {
+      const ext    = f.name.split('.').pop().toLowerCase();
+      const sizeMB = f.size / 1024 / 1024;
+      const valid  = allowed.includes(ext) && sizeMB <= maxMB;
+      const errMsg = !allowed.includes(ext) ? ' — unsupported format' : ` — exceeds 25MB (${sizeMB.toFixed(1)}MB)`;
+      const icon   = valid ? '✅' : '❌';
+      const sizeLabel = valid ? `${sizeMB.toFixed(2)}MB` : '';
+      return `<div class="file-pill ${valid ? '' : 'error'}">
+        <span>${icon}</span>
+        <span class="file-pill-name" title="${f.name}">${f.name}${!valid ? errMsg : ''}</span>
+        ${valid ? `<span class="file-pill-size">${sizeLabel}</span>` : ''}
+        <button type="button" class="file-pill-remove" onclick="removeFile('${f.name.replace(/'/g,"\\'")}')" title="Remove">✕</button>
+      </div>`;
+    }).join('');
+  }
+</script>
 @endsection

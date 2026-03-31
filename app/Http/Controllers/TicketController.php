@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\TicketComment;
+use App\Models\TicketAttachment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TicketController extends Controller
 {
@@ -16,13 +18,10 @@ class TicketController extends Controller
     public function index(Request $request)
     {
         $query = Ticket::with('user')->latest();
-
         if ($request->status) {
             $query->where('status', $request->status);
         }
-
         $tickets = $query->paginate(10)->withQueryString();
-
         return view('tickets.index', compact('tickets'));
     }
 
@@ -34,18 +33,35 @@ class TicketController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title'       => 'required|string|max:255',
-            'description' => 'required|string',
-            'system'      => 'required|string',
-            'priority'    => 'required|in:low,medium,high,critical',
-            'impact'      => 'required|in:low,medium,high,critical',
-            'status'      => 'required|in:open,in_progress,in_review,resolved,closed',
-            'due_date'    => 'nullable|date',
+            'title'         => 'required|string|max:255',
+            'description'   => 'required|string',
+            'system'        => 'required|string',
+            'priority'      => 'required|in:low,medium,high,critical',
+            'impact'        => 'required|in:low,medium,high,critical',
+            'status'        => 'required|in:open,in_progress,in_review,resolved,closed',
+            'due_date'      => 'nullable|date',
+            'attachments'   => 'nullable|array|max:10',
+            'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
         ]);
 
         $validated['user_id'] = auth()->id();
+        unset($validated['attachments']);
+        $ticket = Ticket::create($validated);
 
-        Ticket::create($validated);
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store("ticket-attachments/{$ticket->id}", 'public');
+                TicketAttachment::create([
+                    'ticket_id'     => $ticket->id,
+                    'comment_id'    => null,
+                    'user_id'       => auth()->id(),
+                    'original_name' => $file->getClientOriginalName(),
+                    'stored_path'   => $path,
+                    'mime_type'     => $file->getMimeType(),
+                    'size'          => $file->getSize(),
+                ]);
+            }
+        }
 
         return redirect()->route('tickets.index')->with('success', 'Ticket created successfully!');
     }
@@ -59,7 +75,13 @@ class TicketController extends Controller
             $ticket->timestamps = true;
         }
 
-        $ticket->load('comments.user');
+        // Load comments with their attachments, and ticket-level attachments (no comment_id)
+        $ticket->load([
+            'comments.user',
+            'comments.attachments',
+            'attachments' => fn($q) => $q->whereNull('comment_id'),
+        ]);
+
         return view('tickets.show', compact('ticket'));
     }
 
@@ -81,10 +103,10 @@ class TicketController extends Controller
         if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
             TicketComment::create([
                 'ticket_id' => $ticket->id,
-                'user_id' => auth()->id(),
-                'body' => 'Status changed to ' . ucfirst(str_replace('_', ' ', $validated['status'])),
-                'role' => 'system',
-                'type' => 'status_change'
+                'user_id'   => auth()->id(),
+                'body'      => 'Status changed to ' . ucfirst(str_replace('_', ' ', $validated['status'])),
+                'role'      => 'system',
+                'type'      => 'status_change',
             ]);
         }
 
@@ -93,19 +115,77 @@ class TicketController extends Controller
 
     public function addComment(Request $request, Ticket $ticket)
     {
-        $validated = $request->validate([
-            'body' => 'required|string',
-            'role' => 'required|in:superadmin,user',
+        $request->validate([
+            'body'          => 'required|string',
+            'role'          => 'required|in:superadmin,user',
+            'attachments'   => 'nullable|array|max:10',
+            'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
         ]);
 
-        TicketComment::create([
+        $comment = TicketComment::create([
             'ticket_id' => $ticket->id,
-            'user_id' => auth()->id(),
-            'body' => $validated['body'],
-            'role' => $validated['role'],
-            'type' => 'comment'
+            'user_id'   => auth()->id(),
+            'body'      => $request->body,
+            'role'      => $request->role,
+            'type'      => 'comment',
         ]);
+
+        // Save any files attached to this comment
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store("ticket-attachments/{$ticket->id}", 'public');
+                TicketAttachment::create([
+                    'ticket_id'     => $ticket->id,
+                    'comment_id'    => $comment->id,
+                    'user_id'       => auth()->id(),
+                    'original_name' => $file->getClientOriginalName(),
+                    'stored_path'   => $path,
+                    'mime_type'     => $file->getMimeType(),
+                    'size'          => $file->getSize(),
+                ]);
+            }
+        }
 
         return redirect()->route('tickets.show', $ticket)->with('success', 'Comment posted!');
+    }
+
+    // Upload new attachment to an existing ticket (no comment)
+    public function uploadAttachment(Request $request, Ticket $ticket)
+    {
+        $request->validate([
+            'attachments'   => 'required|array|max:10',
+            'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
+        ]);
+
+        foreach ($request->file('attachments') as $file) {
+            $path = $file->store("ticket-attachments/{$ticket->id}", 'public');
+            TicketAttachment::create([
+                'ticket_id'     => $ticket->id,
+                'comment_id'    => null,
+                'user_id'       => auth()->id(),
+                'original_name' => $file->getClientOriginalName(),
+                'stored_path'   => $path,
+                'mime_type'     => $file->getMimeType(),
+                'size'          => $file->getSize(),
+            ]);
+        }
+
+        return redirect()->route('tickets.show', $ticket)->with('success', 'File(s) uploaded!');
+    }
+
+    // Delete a single attachment
+    public function deleteAttachment(Ticket $ticket, TicketAttachment $attachment)
+    {
+        abort_if($attachment->ticket_id !== $ticket->id, 403);
+        Storage::disk('public')->delete($attachment->stored_path);
+        $attachment->delete();
+        return redirect()->route('tickets.show', $ticket)->with('success', 'Attachment deleted!');
+    }
+
+    public function destroy(Ticket $ticket)
+    {
+        Storage::disk('public')->deleteDirectory("ticket-attachments/{$ticket->id}");
+        $ticket->delete();
+        return redirect()->route('tickets.index')->with('success', 'Ticket deleted!');
     }
 }

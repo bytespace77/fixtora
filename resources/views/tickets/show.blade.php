@@ -3,11 +3,9 @@
 
 @section('styles')
 <style>
-/* Breadcrumb */
 .breadcrumb{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:12px}
 .breadcrumb a{color:var(--muted);text-decoration:none;transition:color .12s}.breadcrumb a:hover{color:var(--blue)}
 .bc-sep{color:var(--border-2);font-size:14px}
-/* Ticket Header */
 .ticket-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:24px}
 .ticket-hdr h1{font-size:22px;font-weight:800;letter-spacing:-.4px;color:var(--navy);margin-bottom:8px}
 .ticket-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -15,13 +13,9 @@
 .hdr-btns{display:flex;gap:8px;flex-shrink:0}
 .btn-sm{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:#475569;font-family:inherit;transition:all .15s;text-decoration:none}
 .btn-sm:hover{background:var(--bg)}
-.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
-.btn-primary:hover{background:#1a42c4;color:#fff}
-.btn-danger-outline{border-color:#fecaca;color:#ef4444}
-.btn-danger-outline:hover{background:#fff5f5}
-.btn-danger{background:#ef4444;color:#fff;border-color:#ef4444}
-.btn-danger:hover{background:#dc2626;color:#fff}
-/* Pills */
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn-primary:hover{background:#1a42c4;color:#fff}
+.btn-danger-outline{border-color:#fecaca;color:#ef4444}.btn-danger-outline:hover{background:#fff5f5}
+.btn-danger{background:#ef4444;color:#fff;border-color:#ef4444}.btn-danger:hover{background:#dc2626;color:#fff}
 .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
 .pill-critical{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
 .pill-high{background:#fff7ed;color:#f97316;border:1px solid #fed7aa}
@@ -32,17 +26,31 @@
 .pill-in_progress,.pill-in-progress{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
 .pill-in_review{background:#fdf4ff;color:#c026d3;border:1px solid #fae8ff}
 .pill-closed{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
-/* Layout */
 .detail-grid{display:grid;grid-template-columns:1fr 300px;gap:18px}
 .detail-col{display:flex;flex-direction:column;gap:14px}
-/* Cards */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
 .card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
 .card-head-left{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--navy)}
 .card-head-left svg{color:var(--muted-lt)}
 .card-body{padding:20px}
-/* Description */
 .desc-body{font-size:13.5px;color:var(--text);line-height:1.7;white-space:pre-wrap;background:var(--bg);padding:16px;border-radius:8px;border:1px solid var(--border);min-height:60px}
+/* Ticket attachments below description */
+.tk-attach-header{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:14px 0 6px;display:flex;align-items:center;gap:6px}
+.tk-attach-list{display:flex;flex-direction:column;gap:6px}
+.tk-attach-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;transition:border-color .12s}
+.tk-attach-item:hover{border-color:var(--blue)}
+.tk-attach-left{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.tk-attach-left svg{color:var(--blue);flex-shrink:0}
+.tk-attach-name{font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-attach-sz{font-size:10.5px;color:var(--muted-lt)}
+.tk-attach-actions{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
+.icon-act{width:26px;height:26px;border:none;background:none;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted-lt);transition:all .12s;text-decoration:none}
+.icon-act:hover{background:var(--bg);color:var(--blue)}.icon-act.del-act:hover{color:#ef4444}
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .15s;margin-top:10px}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:#f0f6ff}
+.drop-zone svg{margin:0 auto 4px;display:block;color:var(--muted-lt)}
+.drop-zone p{font-size:12px;font-weight:700;color:var(--muted);margin:0}
+.drop-zone span{font-size:11px;color:var(--muted-lt)}
 /* Timeline */
 .timeline{display:flex;flex-direction:column;gap:0;position:relative}
 .tl-item{display:flex;gap:14px;padding-bottom:18px;position:relative}
@@ -54,8 +62,7 @@
 .tl-time{font-size:11px;color:var(--muted-lt);font-weight:600}
 .tl-desc{font-size:12px;color:var(--muted);margin-top:3px}
 /* Comments */
-.comment-list{display:flex;flex-direction:column;gap:14px;max-height:480px;overflow-y:auto;padding-right:4px}
-.comment-list::-webkit-scrollbar{width:4px}.comment-list::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:4px}
+.comment-list{display:flex;flex-direction:column;gap:14px;padding-right:4px}
 .comment-item{display:flex;gap:10px;animation:cmtIn .25s ease}
 @keyframes cmtIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .cmt-av{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;margin-top:2px}
@@ -66,12 +73,11 @@
 .badge-admin{background:var(--navy);color:#fff}.badge-user{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
 .cmt-time{font-size:10.5px;color:var(--muted-lt);font-weight:600;margin-left:auto}
 .cmt-text{font-size:13px;color:var(--text);line-height:1.6}
-.cmt-files{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.file-chip{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:600;color:var(--text);cursor:pointer;transition:border-color .12s}
-.file-chip:hover{border-color:var(--blue)}
-.file-chip svg{color:var(--blue);flex-shrink:0}
-.file-size{color:var(--muted-lt);font-size:10px}
-/* Comment empty */
+/* Comment attached files displayed in bubble */
+.cmt-attach-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:8px;border-top:1px dashed var(--border)}
+.cmt-fchip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;color:var(--text);text-decoration:none;transition:border-color .12s}
+.cmt-fchip:hover{border-color:var(--blue);color:var(--blue)}
+.cmt-fchip-sz{color:var(--muted-lt);font-size:10px}
 .cmt-empty{text-align:center;padding:32px 20px;color:var(--muted)}
 .cmt-empty svg{margin:0 auto 10px;display:block;opacity:.18}
 .cmt-empty p{font-size:13px;font-weight:600}
@@ -86,24 +92,24 @@
 .cmt-editor:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
 .cmt-textarea{width:100%;padding:12px 14px;font-size:13px;font-family:inherit;border:none;outline:none;resize:none;color:var(--text);background:var(--surface)}
 .cmt-textarea::placeholder{color:var(--muted-lt)}
-.attach-preview{display:none;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
-.attach-chip{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:4px 10px;font-size:11.5px;font-weight:600;color:var(--text)}
-.attach-chip button{background:none;border:none;cursor:pointer;color:var(--muted-lt);font-size:14px;line-height:1;padding:0 2px;transition:color .12s}
-.attach-chip button:hover{color:#ef4444}
+/* file preview strip inside comment editor */
+.cmt-file-preview{display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;background:var(--bg);border-top:1px solid var(--border)}
+.cmt-file-preview:empty{display:none}
+.cmt-fpill{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;color:var(--text)}
+.cmt-fpill button{background:none;border:none;cursor:pointer;color:#94a3b8;font-size:13px;line-height:1;padding:0 1px;transition:color .12s}
+.cmt-fpill button:hover{color:#ef4444}
 .cmt-toolbar{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg);border-top:1px solid var(--border)}
 .toolbar-left{display:flex;align-items:center;gap:2px}
 .tool-btn{border:none;background:none;cursor:pointer;color:var(--muted);padding:5px 7px;border-radius:6px;transition:all .12s;font-family:inherit;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px}
 .tool-btn:hover{background:var(--surface);color:var(--text)}
-.tool-btn svg{flex-shrink:0}
 .toolbar-right{display:flex;align-items:center;gap:8px}
 .role-toggle{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 10px}
 .role-toggle span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted-lt)}
 .role-toggle select{font-size:11px;font-weight:800;color:var(--navy);border:none;outline:none;background:transparent;cursor:pointer;font-family:inherit}
 .send-btn{padding:7px 14px;background:var(--navy);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:all .15s}
-.send-btn:hover{background:var(--blue)}
-.send-btn:active{transform:scale(.97)}
+.send-btn:hover{background:var(--blue)}.send-btn:active{transform:scale(.97)}
 .cmt-hint{font-size:11px;color:var(--muted-lt);margin-top:8px;font-weight:500}
-/* Right column */
+/* Right col */
 .meta-list{display:flex;flex-direction:column}
 .meta-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:12.5px}
 .meta-row:last-child{border-bottom:none}
@@ -117,24 +123,6 @@
 .rep-av{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#2563eb,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
 .rep-name{font-size:13.5px;font-weight:800;color:var(--navy)}
 .rep-email{font-size:11.5px;color:var(--muted);margin-top:2px}
-/* Attachments */
-.attach-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.attach-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;transition:border-color .12s}
-.attach-item:hover{border-color:var(--blue)}
-.attach-item-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-.attach-item-left svg{color:var(--blue);flex-shrink:0}
-.attach-name{font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.attach-sz{font-size:10.5px;color:var(--muted-lt)}
-.attach-actions{display:flex;gap:4px;margin-left:8px;flex-shrink:0}
-.icon-act{width:26px;height:26px;border:none;background:none;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted-lt);transition:all .12s}
-.icon-act:hover{background:var(--surface);color:var(--blue)}
-.icon-act.del-act:hover{color:#ef4444}
-.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all .15s}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:#f0f6ff}
-.drop-zone svg{margin:0 auto 6px;display:block;color:var(--muted-lt)}
-.drop-zone p{font-size:12px;font-weight:700;color:var(--muted)}
-.drop-zone span{font-size:11px;color:var(--muted-lt)}
-/* Modals */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);z-index:700;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -157,24 +145,18 @@ textarea.form-control{resize:vertical;min-height:80px}
 .del-modal-body h3{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:8px}
 .del-modal-body p{font-size:13px;color:var(--muted);line-height:1.6}
 .del-modal-foot{display:flex;gap:10px;padding:18px 24px}
-/* Toast */
 #toast{position:fixed;bottom:24px;right:24px;z-index:900;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(16px);opacity:0;pointer-events:none;transition:all .25s ease}
 #toast.show{transform:translateY(0);opacity:1}
 </style>
 @endsection
 
 @section('content')
-
-<!-- Breadcrumb -->
 <div class="breadcrumb">
-  <a href="{{ route('home') }}">Dashboard</a>
-  <span class="bc-sep">/</span>
-  <a href="{{ route('tickets.index') }}">Tickets</a>
-  <span class="bc-sep">/</span>
+  <a href="{{ route('home') }}">Dashboard</a><span class="bc-sep">/</span>
+  <a href="{{ route('tickets.index') }}">Tickets</a><span class="bc-sep">/</span>
   <span>#TK-{{ str_pad($ticket->id,4,'0',STR_PAD_LEFT) }}</span>
 </div>
 
-<!-- Ticket Header -->
 <div class="ticket-hdr">
   <div>
     <h1>{{ $ticket->title }}</h1>
@@ -187,25 +169,21 @@ textarea.form-control{resize:vertical;min-height:80px}
   </div>
   <div class="hdr-btns">
     <button onclick="openEditModal()" class="btn-sm">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      Edit
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
     </button>
     <button onclick="openDeleteModal()" class="btn-sm btn-danger-outline">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-      Delete
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>Delete
     </button>
     <a href="{{ route('tickets.index') }}" class="btn-sm">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-      Back
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back
     </a>
   </div>
 </div>
 
 <div class="detail-grid">
-  <!-- LEFT COLUMN -->
   <div class="detail-col">
 
-    <!-- Description -->
+    {{-- ── Description + Attachments ── --}}
     <div class="card">
       <div class="card-head">
         <div class="card-head-left">
@@ -215,139 +193,179 @@ textarea.form-control{resize:vertical;min-height:80px}
       </div>
       <div class="card-body">
         <div class="desc-body">{{ $ticket->description }}</div>
+
+        {{-- Ticket-level attachments shown right below description --}}
+        @if($ticket->attachments->count())
+          <div class="tk-attach-header">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            Attachments ({{ $ticket->attachments->count() }})
+          </div>
+          <div class="tk-attach-list">
+            @foreach($ticket->attachments as $att)
+              <div class="tk-attach-item">
+                <div class="tk-attach-left">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <div>
+                    <div class="tk-attach-name" title="{{ $att->original_name }}">{{ $att->original_name }}</div>
+                    <div class="tk-attach-sz">{{ $att->formatted_size }}</div>
+                  </div>
+                </div>
+                <div class="tk-attach-actions">
+                  <a href="{{ $att->url }}" download="{{ $att->original_name }}" class="icon-act" title="Download">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </a>
+                  <button class="icon-act del-act" title="Delete" onclick="confirmDeleteAttachment({{ $att->id }},'{{ addslashes($att->original_name) }}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                  </button>
+                </div>
+              </div>
+            @endforeach
+          </div>
+        @endif
+
+        {{-- Upload more files zone --}}
+        <form action="{{ route('tickets.attachments.store', $ticket) }}" method="POST" enctype="multipart/form-data" id="attachUploadForm">
+          @csrf
+          <label for="ticketFileInput">
+            <div class="drop-zone" id="dropZone" ondrop="handleTicketDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p id="dropZoneTitle">Upload more files</p>
+              <span>JPG, PNG, LOG, JSON, ZIP · max 25MB</span>
+            </div>
+          </label>
+          <input type="file" id="ticketFileInput" name="attachments[]" style="display:none" multiple accept=".jpg,.jpeg,.png,.log,.json,.zip" onchange="handleTicketUpload(event)">
+          <div id="uploadFileList" style="margin-top:6px;font-size:11px;"></div>
+          <button type="submit" id="uploadSubmitBtn" style="display:none;margin-top:8px;width:100%;padding:8px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">⬆ Upload Files</button>
+        </form>
       </div>
     </div>
 
-    <!-- Activity Timeline -->
+    {{-- ── Activity Timeline ── --}}
     <div class="card">
       <div class="card-head">
         <div class="card-head-left">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Activity Timeline
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Activity Timeline
         </div>
       </div>
       <div class="card-body">
-        <div class="timeline" id="timeline">
+        <div class="timeline">
           <div class="tl-item">
-            <div class="tl-dot blue">{{ strtoupper(substr($ticket->user->name ?? 'U',0,1)) }}</div>
-            <div>
-              <div class="tl-title">Ticket Created</div>
-              <div class="tl-time">{{ $ticket->created_at->format('M d, Y · H:i') }}</div>
-              <div class="tl-desc">Submitted by {{ $ticket->user->name ?? 'Unknown' }}</div>
-            </div>
+            <div class="tl-dot blue">{{ strtoupper(substr($ticket->user->name??'U',0,1)) }}</div>
+            <div><div class="tl-title">Ticket Created</div><div class="tl-time">{{ $ticket->created_at->format('M d, Y · H:i') }}</div><div class="tl-desc">Submitted by {{ $ticket->user->name??'Unknown' }}</div></div>
           </div>
-          @if($ticket->status !== 'open')
+          @if($ticket->status!=='open')
           <div class="tl-item">
             <div class="tl-dot orange">↔</div>
-            <div>
-              <div class="tl-title">Status changed to {{ ucfirst(str_replace('_',' ',$ticket->status)) }}</div>
-              <div class="tl-time">{{ $ticket->updated_at->format('M d, Y · H:i') }}</div>
-            </div>
+            <div><div class="tl-title">Status changed to {{ ucfirst(str_replace('_',' ',$ticket->status)) }}</div><div class="tl-time">{{ $ticket->updated_at->format('M d, Y · H:i') }}</div></div>
           </div>
           @endif
-          @if($ticket->status === 'resolved')
+          @if($ticket->status==='resolved')
           <div class="tl-item">
             <div class="tl-dot green">✓</div>
-            <div>
-              <div class="tl-title">Ticket Resolved</div>
-              <div class="tl-time">{{ $ticket->updated_at->format('M d, Y · H:i') }}</div>
-            </div>
+            <div><div class="tl-title">Ticket Resolved</div><div class="tl-time">{{ $ticket->updated_at->format('M d, Y · H:i') }}</div></div>
           </div>
           @endif
         </div>
       </div>
     </div>
 
-    <!-- Comments -->
+    {{-- ── Comments ── --}}
     <div class="card">
       <div class="card-head">
         <div class="card-head-left">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Comments
-          <span id="commentCount" style="background:var(--navy);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:2px">{{ $ticket->comments->count() }}</span>
+          <span style="background:var(--navy);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:2px">{{ $ticket->comments->count() }}</span>
         </div>
         <span style="font-size:11px;color:var(--muted-lt);font-weight:600">Admin & user communication</span>
       </div>
 
       <div class="card-body" style="padding-bottom:0">
-        <div id="commentsList" class="comment-list">
+        <div class="comment-list">
           @forelse($ticket->comments as $comment)
             <div class="comment-item">
-              <div class="cmt-av" style="background:{{ $comment->role === 'superadmin' ? '#0f1f38' : '#2563eb' }}">
-                 {{ strtoupper(substr($comment->user->name ?? 'U', 0, 2)) }}
+              <div class="cmt-av" style="background:{{ $comment->role==='superadmin'?'#0f1f38':'#2563eb' }}">
+                {{ strtoupper(substr($comment->user->name??'U',0,2)) }}
               </div>
               <div class="cmt-bubble">
                 <div class="cmt-meta">
-                  <span class="cmt-name">{{ $comment->user->name ?? ($comment->role==='superadmin'?'Superadmin':'User') }}</span>
-                  <span class="cmt-role-badge {{ $comment->role === 'superadmin' ? 'badge-admin' : 'badge-user' }}">
-                      {{ $comment->role === 'superadmin' ? 'Admin' : 'User' }}
-                  </span>
+                  <span class="cmt-name">{{ $comment->user->name??($comment->role==='superadmin'?'Superadmin':'User') }}</span>
+                  <span class="cmt-role-badge {{ $comment->role==='superadmin'?'badge-admin':'badge-user' }}">{{ $comment->role==='superadmin'?'Admin':'User' }}</span>
                   <span class="cmt-time">{{ $comment->created_at->diffForHumans() }}</span>
                 </div>
                 <div class="cmt-text">{{ $comment->body }}</div>
+
+                {{-- Files attached to this specific comment --}}
+                @if($comment->attachments->count())
+                  <div class="cmt-attach-row">
+                    @foreach($comment->attachments as $cf)
+                      <a href="{{ $cf->url }}" download="{{ $cf->original_name }}" class="cmt-fchip" title="Download">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        {{ $cf->original_name }}
+                        <span class="cmt-fchip-sz">{{ $cf->formatted_size }}</span>
+                      </a>
+                    @endforeach
+                  </div>
+                @endif
               </div>
             </div>
           @empty
-            <div id="emptyCmt" class="cmt-empty">
+            <div class="cmt-empty">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <p>No comments yet</p>
-              <span>Start the conversation below</span>
+              <p>No comments yet</p><span>Start the conversation below</span>
             </div>
           @endforelse
         </div>
       </div>
 
-      <!-- Input Area -->
-      <form action="{{ route('tickets.comments.store', $ticket) }}" method="POST">
+      {{-- Comment input with file attach --}}
+      <form action="{{ route('tickets.comments.store', $ticket) }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="cmt-input-wrap">
           <div class="cmt-sender">
-            <div class="cmt-sender-av">SA</div>
+            <div class="cmt-sender-av">{{ strtoupper(substr(auth()->user()->name??'SA',0,2)) }}</div>
             <div class="cmt-sender-info">
-              <span class="name">Superadmin</span>
+              <span class="name">{{ auth()->user()->name??'Superadmin' }}</span>
               <span class="role-lbl">replying as admin</span>
             </div>
           </div>
           <div class="cmt-editor">
-            <textarea name="body" id="cmtInput" class="cmt-textarea" rows="3" placeholder="Write a comment to communicate with the user…" required onkeydown="handleCmtKey(event)"></textarea>
+            <textarea name="body" id="cmtInput" class="cmt-textarea" rows="3" placeholder="Write a comment… attach files with the 📎 button below" required onkeydown="handleCmtKey(event)"></textarea>
+            <div id="cmtFilePreview" class="cmt-file-preview"></div>
             <div class="cmt-toolbar">
               <div class="toolbar-left">
-                <!-- Toolbar icons placeholder -->
-                <button type="button" class="tool-btn" title="Bold"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
+                <button type="button" class="tool-btn" onclick="document.getElementById('cmtFileInput').click()" title="Attach files">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  Attach
+                </button>
               </div>
               <div class="toolbar-right">
                 <div class="role-toggle">
                   <span>Send as:</span>
-                  <select name="role" id="cmtRole">
+                  <select name="role">
                     <option value="superadmin">Superadmin</option>
                     <option value="user">User</option>
                   </select>
                 </div>
                 <button type="submit" class="send-btn">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                  Send
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send
                 </button>
               </div>
             </div>
           </div>
-          <p class="cmt-hint">Press <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly</p>
+          <input type="file" id="cmtFileInput" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.log,.json,.zip" style="display:none" onchange="handleCmtFileSelect(this.files);this.value='';">
+          <p class="cmt-hint">Press <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly · JPG, PNG, LOG, JSON, ZIP · max 25MB</p>
         </div>
       </form>
     </div>
 
   </div>
 
-  <!-- RIGHT COLUMN -->
+  {{-- RIGHT COLUMN --}}
   <div class="detail-col">
 
-    <!-- Update Status -->
     <div class="card">
-      <div class="card-head">
-        <div class="card-head-left">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          Update Status
-        </div>
-      </div>
+      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Update Status</div></div>
       <div class="card-body">
         <form action="{{ route('tickets.update', $ticket) }}" method="POST">
           @csrf @method('PATCH')
@@ -358,224 +376,173 @@ textarea.form-control{resize:vertical;min-height:80px}
             <option value="resolved" {{ $ticket->status=='resolved'?'selected':'' }}>Resolved</option>
             <option value="closed" {{ $ticket->status=='closed'?'selected':'' }}>Closed</option>
           </select>
-          <button type="submit" class="btn-full">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Save Status
-          </button>
+          <button type="submit" class="btn-full"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Save Status</button>
         </form>
       </div>
     </div>
 
-    <!-- Ticket Details -->
     <div class="card">
-      <div class="card-head">
-        <div class="card-head-left">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          Ticket Details
-        </div>
-      </div>
+      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Ticket Details</div></div>
       <div class="card-body" style="padding-top:6px;padding-bottom:6px">
         <div class="meta-list">
-          <div class="meta-row"><span class="meta-key">System</span><span class="meta-val">{{ $ticket->system ?? '—' }}</span></div>
+          <div class="meta-row"><span class="meta-key">System</span><span class="meta-val">{{ $ticket->system??'—' }}</span></div>
           <div class="meta-row"><span class="meta-key">Priority</span><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></div>
-          <div class="meta-row"><span class="meta-key">Impact</span><span class="pill pill-{{ $ticket->impact ?? 'low' }}">{{ ucfirst($ticket->impact ?? 'low') }}</span></div>
+          <div class="meta-row"><span class="meta-key">Impact</span><span class="pill pill-{{ $ticket->impact??'low' }}">{{ ucfirst($ticket->impact??'low') }}</span></div>
           <div class="meta-row"><span class="meta-key">Status</span><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>
-          <div class="meta-row"><span class="meta-key">Due Date</span><span class="meta-val">{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format('M d, Y') : '—' }}</span></div>
+          <div class="meta-row"><span class="meta-key">Due Date</span><span class="meta-val">{{ $ticket->due_date?\Carbon\Carbon::parse($ticket->due_date)->format('M d, Y'):'—' }}</span></div>
           <div class="meta-row"><span class="meta-key">Created</span><span class="meta-val">{{ $ticket->created_at->format('M d, Y') }}</span></div>
-          <div class="meta-row"><span class="meta-key">Updated</span><span class="meta-val" id="lastUpdated">{{ $ticket->updated_at->diffForHumans() }}</span></div>
+          <div class="meta-row"><span class="meta-key">Updated</span><span class="meta-val">{{ $ticket->updated_at->diffForHumans() }}</span></div>
         </div>
       </div>
     </div>
 
-    <!-- Reported By -->
     <div class="card">
-      <div class="card-head">
-        <div class="card-head-left">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Reported By
-        </div>
-      </div>
+      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Reported By</div></div>
       <div class="card-body">
         <div class="reporter-row">
-          <div class="rep-av">{{ strtoupper(substr($ticket->user->name ?? 'U',0,2)) }}</div>
-          <div>
-            <div class="rep-name">{{ $ticket->user->name ?? 'Unknown' }}</div>
-            <div class="rep-email">{{ $ticket->user->email ?? '' }}</div>
-          </div>
+          <div class="rep-av">{{ strtoupper(substr($ticket->user->name??'U',0,2)) }}</div>
+          <div><div class="rep-name">{{ $ticket->user->name??'Unknown' }}</div><div class="rep-email">{{ $ticket->user->email??'' }}</div></div>
         </div>
-      </div>
-    </div>
-
-    <!-- Attachments -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-head-left">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          Attachments
-        </div>
-        <span id="attachCountLabel" style="font-size:11px;font-weight:700;color:var(--muted-lt)">0 files</span>
-      </div>
-      <div class="card-body">
-        <div id="ticketAttachList" class="attach-list">
-          <p style="font-size:12px;color:var(--muted-lt);text-align:center;padding:16px 0;font-weight:500">No attachments yet</p>
-        </div>
-        <label for="ticketFileInput">
-          <div class="drop-zone" id="dropZone" ondrop="handleTicketDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <p>Drop files or click to upload</p>
-            <span>Images, PDF, Word, Excel</span>
-          </div>
-        </label>
-        <input type="file" id="ticketFileInput" style="display:none" multiple onchange="handleTicketUpload(event)">
       </div>
     </div>
 
   </div>
 </div>
 
-<!-- Edit Modal -->
+{{-- Edit Modal --}}
 <div class="modal-overlay" id="editModal" onclick="closeEditModal()">
   <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-head">
-      <h3>Edit Ticket</h3>
-      <button class="modal-close" onclick="closeEditModal()">✕</button>
-    </div>
+    <div class="modal-head"><h3>Edit Ticket</h3><button class="modal-close" onclick="closeEditModal()">✕</button></div>
     <form action="{{ route('tickets.update', $ticket) }}" method="POST">
       @csrf @method('PATCH')
       <div class="modal-body">
-        <div class="form-group">
-          <label>Title *</label>
-          <input type="text" name="title" class="form-control" value="{{ $ticket->title }}" required>
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea name="description" class="form-control">{{ $ticket->description }}</textarea>
+        <div class="form-group"><label>Title *</label><input type="text" name="title" class="form-control" value="{{ $ticket->title }}" required></div>
+        <div class="form-group"><label>Description</label><textarea name="description" class="form-control">{{ $ticket->description }}</textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>System</label><select name="system" class="form-control">@foreach(['Payment GW','CRM Portal','Auth Core','Cloud Infra'] as $sys)<option {{ $ticket->system===$sys?'selected':'' }}>{{ $sys }}</option>@endforeach</select></div>
+          <div class="form-group"><label>Priority</label><select name="priority" class="form-control">@foreach(['low','medium','high','critical'] as $p)<option value="{{ $p }}" {{ $ticket->priority===$p?'selected':'' }}>{{ ucfirst($p) }}</option>@endforeach</select></div>
         </div>
         <div class="form-row">
-          <div class="form-group">
-            <label>System</label>
-            <select name="system" class="form-control">
-              @foreach(['Payment GW','CRM Portal','Auth Core','Cloud Infra'] as $sys)
-              <option {{ $ticket->system===$sys?'selected':'' }}>{{ $sys }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Priority</label>
-            <select name="priority" class="form-control">
-              @foreach(['low','medium','high','critical'] as $p)
-              <option value="{{ $p }}" {{ $ticket->priority===$p?'selected':'' }}>{{ ucfirst($p) }}</option>
-              @endforeach
-            </select>
-          </div>
+          <div class="form-group"><label>Impact</label><select name="impact" class="form-control">@foreach(['low','medium','high','critical'] as $imp)<option value="{{ $imp }}" {{ ($ticket->impact??'low')===$imp?'selected':'' }}>{{ ucfirst($imp) }}</option>@endforeach</select></div>
+          <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="open" {{ $ticket->status==='open'?'selected':'' }}>Open</option><option value="in_progress" {{ $ticket->status==='in_progress'?'selected':'' }}>In Progress</option><option value="in_review" {{ $ticket->status==='in_review'?'selected':'' }}>In Review</option><option value="resolved" {{ $ticket->status==='resolved'?'selected':'' }}>Resolved</option><option value="closed" {{ $ticket->status==='closed'?'selected':'' }}>Closed</option></select></div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Impact</label>
-            <select name="impact" class="form-control">
-              @foreach(['low','medium','high','critical'] as $imp)
-              <option value="{{ $imp }}" {{ ($ticket->impact??'low')===$imp?'selected':'' }}>{{ ucfirst($imp) }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Status</label>
-            <select name="status" class="form-control">
-              <option value="open" {{ $ticket->status==='open'?'selected':'' }}>Open</option>
-              <option value="in_progress" {{ $ticket->status==='in_progress'?'selected':'' }}>In Progress</option>
-              <option value="in_review" {{ $ticket->status==='in_review'?'selected':'' }}>In Review</option>
-              <option value="resolved" {{ $ticket->status==='resolved'?'selected':'' }}>Resolved</option>
-              <option value="closed" {{ $ticket->status==='closed'?'selected':'' }}>Closed</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group" style="margin-top: 14px;">
-          <label>Due Date</label>
-          <input type="date" name="due_date" class="form-control" value="{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format('Y-m-d') : '' }}">
-        </div>
+        <div class="form-group" style="margin-top:14px"><label>Due Date</label><input type="date" name="due_date" class="form-control" value="{{ $ticket->due_date?\Carbon\Carbon::parse($ticket->due_date)->format('Y-m-d'):'' }}"></div>
       </div>
-      <div class="modal-foot">
-        <button type="button" onclick="closeEditModal()" class="btn-sm">Cancel</button>
-        <button type="submit" class="btn-sm btn-primary">Save Changes</button>
-      </div>
+      <div class="modal-foot"><button type="button" onclick="closeEditModal()" class="btn-sm">Cancel</button><button type="submit" class="btn-sm btn-primary">Save Changes</button></div>
     </form>
   </div>
 </div>
 
-<!-- Delete Modal -->
+{{-- Delete Ticket Modal --}}
 <div class="modal-overlay" id="deleteModal" onclick="closeDeleteModal()">
   <div class="del-modal-box" onclick="event.stopPropagation()">
     <div class="del-modal-body">
-      <div class="del-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-      </div>
+      <div class="del-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></div>
       <h3>Delete Ticket?</h3>
       <p>Ticket <strong>#TK-{{ str_pad($ticket->id,4,'0',STR_PAD_LEFT) }}</strong> will be permanently deleted.<br>This action cannot be undone.</p>
     </div>
     <div class="del-modal-foot">
       <button onclick="closeDeleteModal()" class="btn-sm" style="flex:1;justify-content:center">Cancel</button>
-      <form action="{{ route('tickets.index') }}" method="POST" style="flex:1">
-        @csrf @method('DELETE')
-        <button type="submit" class="btn-sm btn-danger" style="width:100%;justify-content:center">Delete</button>
-      </form>
+      <form action="{{ route('tickets.destroy', $ticket) }}" method="POST" style="flex:1">@csrf @method('DELETE')<button type="submit" class="btn-sm btn-danger" style="width:100%;justify-content:center">Delete</button></form>
     </div>
   </div>
 </div>
 
-<div id="toast">
-  <svg id="toastIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-  <span id="toastMsg"></span>
+{{-- Delete Attachment Modal --}}
+<div class="modal-overlay" id="deleteAttachModal" onclick="closeDeleteAttachModal()">
+  <div class="del-modal-box" onclick="event.stopPropagation()">
+    <div class="del-modal-body">
+      <div class="del-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div>
+      <h3>Delete Attachment?</h3>
+      <p><strong id="deleteAttachName"></strong> will be permanently removed.</p>
+    </div>
+    <div class="del-modal-foot">
+      <button onclick="closeDeleteAttachModal()" class="btn-sm" style="flex:1;justify-content:center">Cancel</button>
+      <form id="deleteAttachForm" method="POST" style="flex:1">@csrf @method('DELETE')<button type="submit" class="btn-sm btn-danger" style="width:100%;justify-content:center">Delete</button></form>
+    </div>
+  </div>
 </div>
 
+<div id="toast"><svg id="toastIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span id="toastMsg"></span></div>
+
 <script>
-// ── Modals ──
 function openEditModal(){document.getElementById('editModal').classList.add('open');}
 function closeEditModal(){document.getElementById('editModal').classList.remove('open');}
 function openDeleteModal(){document.getElementById('deleteModal').classList.add('open');}
 function closeDeleteModal(){document.getElementById('deleteModal').classList.remove('open');}
+function handleCmtKey(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();e.target.closest('form').submit();}}
 
-// ── Comments ──
-let ticketFiles=[];
+// ── Comment file attachments ──
+let cmtFiles=[];
+const cmtAllowed=['jpg','jpeg','png','log','json','zip'];
+const cmtMaxMB=25;
 
-function handleCmtKey(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    e.preventDefault();
-    e.target.closest('form').submit();
-  }
+function handleCmtFileSelect(incoming){
+  [...incoming].forEach(f=>{if(!cmtFiles.find(x=>x.name===f.name))cmtFiles.push(f);});
+  syncCmtFiles();
+}
+function removeCmtFile(name){cmtFiles=cmtFiles.filter(f=>f.name!==name);syncCmtFiles();}
+function syncCmtFiles(){
+  const input=document.getElementById('cmtFileInput');
+  const preview=document.getElementById('cmtFilePreview');
+  const dt=new DataTransfer();
+  cmtFiles.forEach(f=>{const ext=f.name.split('.').pop().toLowerCase();if(cmtAllowed.includes(ext)&&f.size/1024/1024<=cmtMaxMB)dt.items.add(f);});
+  input.files=dt.files;
+  preview.innerHTML=cmtFiles.map(f=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    const valid=cmtAllowed.includes(ext)&&f.size/1024/1024<=cmtMaxMB;
+    return `<span class="cmt-fpill" style="${valid?'':'border-color:#fecaca;color:#dc2626;background:#fef2f2'}">${valid?'📎':'❌'} ${f.name}<button type="button" onclick="removeCmtFile('${f.name.replace(/'/g,"\\'")}')">✕</button></span>`;
+  }).join('');
 }
 
-// ── Ticket attachments ──
-function handleTicketUpload(e){addTicketFiles(Array.from(e.target.files));e.target.value='';}
-function handleTicketDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');addTicketFiles(Array.from(e.dataTransfer.files));}
+// ── Ticket upload drop zone ──
+const allowedExts=['jpg','jpeg','png','log','json','zip'];
+const maxMB=25;
+let pendingFiles=[];
+
+function handleTicketUpload(e){addPending([...e.target.files]);e.target.value='';}
+function handleTicketDrop(e){e.preventDefault();document.getElementById('dropZone').classList.remove('drag-over');addPending([...e.dataTransfer.files]);}
 function handleDragOver(e){e.preventDefault();document.getElementById('dropZone').classList.add('drag-over');}
 function handleDragLeave(){document.getElementById('dropZone').classList.remove('drag-over');}
-function addTicketFiles(files){
-  files.forEach(f=>{if(!ticketFiles.find(t=>t.name===f.name))ticketFiles.push(f);});
-  renderTicketFiles();
-  showToast(files.length+' file(s) uploaded');
-}
-function renderTicketFiles(){
-  const list=document.getElementById('ticketAttachList');
-  document.getElementById('attachCountLabel').textContent=ticketFiles.length+' file'+(ticketFiles.length!==1?'s':'');
-  if(!ticketFiles.length){list.innerHTML='<p style="font-size:12px;color:var(--muted-lt);text-align:center;padding:16px 0;font-weight:500">No attachments yet</p>';return;}
-  list.innerHTML=ticketFiles.map((f,i)=>`<div class="attach-item"><div class="attach-item-left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div><div class="attach-name">${esc(f.name)}</div><div class="attach-sz">${fmtSize(f.size)}</div></div></div><div class="attach-actions"><button class="icon-act" title="Download"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button><button class="icon-act del-act" title="Remove" onclick="removeTicketFile(${i})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>`).join('');
-}
-function removeTicketFile(i){ticketFiles.splice(i,1);renderTicketFiles();}
 
-// ── Timeline ──
-function addTimeline(label,dotClass){
-  const tl=document.getElementById('timeline');
-  const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-  const d=document.createElement('div');
-  d.className='tl-item';
-  d.style.animation='cmtIn .25s ease';
-  d.innerHTML=`<div class="tl-dot ${dotClass}" style="font-size:10px">●</div><div><div class="tl-title">${label}</div><div class="tl-time">Today, ${t}</div></div>`;
-  tl.appendChild(d);
+function addPending(files){
+  files.forEach(f=>{if(!pendingFiles.find(x=>x.name===f.name))pendingFiles.push(f);});
+  renderPending();
+}
+function removePendingFile(name){pendingFiles=pendingFiles.filter(f=>f.name!==name);renderPending();}
+function renderPending(){
+  const input=document.getElementById('ticketFileInput');
+  const listEl=document.getElementById('uploadFileList');
+  const btn=document.getElementById('uploadSubmitBtn');
+  const title=document.getElementById('dropZoneTitle');
+  const dt=new DataTransfer();
+  let out=[];
+  pendingFiles.forEach(f=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    const sizeMB=f.size/1024/1024;
+    const valid=allowedExts.includes(ext)&&sizeMB<=maxMB;
+    if(valid)dt.items.add(f);
+    out.push(`<div style="display:flex;align-items:center;gap:7px;background:${valid?'#f0fdf4':'#fef2f2'};border:1px solid ${valid?'#bbf7d0':'#fecaca'};border-radius:7px;padding:4px 9px;margin-bottom:4px;font-size:11px;font-weight:600;color:${valid?'#15803d':'#dc2626'};">
+      ${valid?'✅':'❌'} <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</span>
+      ${valid?`<span style="color:#94a3b8">${sizeMB.toFixed(2)}MB</span>`:''}
+      <button type="button" onclick="removePendingFile('${f.name.replace(/'/g,"\\'")}');" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;line-height:1;padding:0 2px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#94a3b8'">✕</button>
+    </div>`);
+  });
+  input.files=dt.files;
+  listEl.innerHTML=out.join('');
+  const validCount=dt.files.length;
+  title.textContent=validCount?`${validCount} file(s) ready to upload`:'Upload more files';
+  btn.style.display=validCount?'block':'none';
 }
 
-// ── Helpers ──
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+// ── Delete attachment ──
+function confirmDeleteAttachment(id,name){
+  document.getElementById('deleteAttachName').textContent=name;
+  document.getElementById('deleteAttachForm').action=`/tickets/{{ $ticket->id }}/attachments/${id}`;
+  document.getElementById('deleteAttachModal').classList.add('open');
+}
+function closeDeleteAttachModal(){document.getElementById('deleteAttachModal').classList.remove('open');}
+
 function showToast(msg,ok=true){
   document.getElementById('toastMsg').textContent=msg;
   document.getElementById('toastIcon').setAttribute('stroke',ok?'#4ade80':'#f87171');
