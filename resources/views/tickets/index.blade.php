@@ -7,52 +7,107 @@
 .page-header h1{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--navy)}
 .page-header p{font-size:13px;color:var(--muted);margin-top:4px}
 .hdr-btns{display:flex;gap:8px;align-items:center}
-.btn-sm{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-family:inherit;transition:all .15s;text-decoration:none}
+.btn-sm{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:#475569;font-family:inherit;transition:all .15s;text-decoration:none}
 .btn-sm:hover{background:var(--bg)}
 .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 .btn-primary:hover{background:#1a42c4;color:#fff}
-
-/* FILTER TABS */
+.btn-danger{background:#ef4444;color:#fff;border-color:#ef4444}
+.btn-danger:hover{background:#dc2626;color:#fff}
+/* Filter Panel */
+.filter-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:18px;overflow:hidden;display:none}
+.filter-panel.open{display:block}
+.filter-panel-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
+.filter-panel-head h3{font-size:13px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:7px}
+.filter-panel-body{padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.filter-group .group-label{display:block;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.filter-check{display:flex;align-items:center;gap:8px;margin-bottom:7px;cursor:pointer}
+.filter-check input{width:14px;height:14px;accent-color:var(--blue)}
+.filter-check span{font-size:12.5px;font-weight:500;color:var(--text)}
+.filter-date-lbl{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.filter-date-input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;outline:none;margin-bottom:8px;background:var(--bg)}
+.filter-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border);background:var(--bg)}
+.link-btn{background:none;border:none;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:6px}
+.link-btn:hover{color:var(--blue)}
+/* Tabs */
 .filter-row{display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap}
-.filter-tab{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:inherit;transition:all .15s;text-decoration:none}
+.filter-tab{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-family:inherit;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
 .filter-tab:hover{background:var(--bg);color:var(--text)}
 .filter-tab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
-
-/* TABLE */
+.tab-count{font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;background:rgba(255,255,255,.2)}
+.filter-tab:not(.active) .tab-count{background:var(--bg);color:var(--muted)}
+/* Table */
 .ticket-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-.tt-header{display:grid;grid-template-columns:90px 1fr 150px 110px 100px 40px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
-.tt-row{display:grid;grid-template-columns:90px 1fr 150px 110px 100px 40px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit}
+.tt-header{display:grid;grid-template-columns:90px 1fr 130px 140px 100px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.tt-row{display:grid;grid-template-columns:90px 1fr 130px 140px 100px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
 .tt-row:last-child{border-bottom:none}
-.tt-row:hover{background:#fafbff}
-.tt-id{font-family:'DM Mono',monospace;font-size:11.5px;font-weight:700;color:var(--muted)}
+.tt-row:hover{background:#f7f9ff}
+.tt-id{font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .tt-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt-sub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt-time{font-size:12px;color:var(--muted-lt);font-weight:500}
-.more-btn{border:none;background:none;cursor:pointer;color:var(--muted-lt);font-size:16px;padding:4px 8px;border-radius:6px}
-.more-btn:hover{background:var(--bg);color:var(--text)}
-
-/* PILLS */
+/* Pills */
 .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-.pill-critical{background:#fee2e2;color:var(--red);border:1px solid #fecaca}
-.pill-high{background:#fff7ed;color:var(--orange);border:1px solid #fed7aa}
-.pill-medium{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-lt)}
-.pill-low{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0}
-.pill-open{background:#fff7ed;color:var(--orange);border:1px solid #fed7aa}
-.pill-resolved{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0}
-.pill-in_progress{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-lt)}
+.pill-critical{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}
+.pill-high{background:#fff7ed;color:#f97316;border:1px solid #fed7aa}
+.pill-medium{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
+.pill-low{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+.pill-open{background:#fff7ed;color:#f97316;border:1px solid #fed7aa}
+.pill-resolved{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+.pill-in_progress,.pill-in-progress{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
 .pill-closed{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
-
-/* PAGINATION */
+/* 3-dot */
+.more-wrap{position:relative;display:flex;justify-content:center}
+.more-btn{border:none;background:none;cursor:pointer;color:var(--muted-lt);padding:5px 7px;border-radius:7px;font-size:18px;line-height:1;opacity:0;transition:opacity .12s,background .12s}
+.tt-row:hover .more-btn,.more-btn:focus,.more-btn.active{opacity:1}
+.more-btn:hover{background:var(--bg);color:var(--text)}
+.dropdown-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);width:170px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:600;overflow:hidden;padding:4px}
+.dropdown-menu.open{display:block;animation:dropFade .15s ease}
+@keyframes dropFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.dd-item{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:12.5px;font-weight:600;color:var(--text);text-decoration:none;border-radius:7px;cursor:pointer;border:none;background:none;font-family:inherit;width:100%;text-align:left;transition:background .1s}
+.dd-item:hover{background:var(--bg)}
+.dd-item svg{color:var(--muted);flex-shrink:0}
+.dd-item.danger{color:#ef4444}
+.dd-item.danger:hover{background:#fff5f5}
+.dd-item.danger svg{color:#ef4444}
+.dd-sep{height:1px;background:var(--border);margin:4px 0}
+/* Pagination */
 .pagination-wrap{display:flex;justify-content:flex-end;padding:14px 18px;border-top:1px solid var(--border);gap:4px}
-.page-btn{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);cursor:pointer;text-decoration:none;font-family:inherit}
+.page-btn{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;text-decoration:none;font-family:inherit;transition:all .12s}
 .page-btn:hover{background:var(--bg)}
 .page-btn.active-pg{background:var(--navy);color:#fff;border-color:var(--navy)}
-
-/* EMPTY */
+.page-btn.disabled{opacity:.4;pointer-events:none;cursor:default}
+/* Empty */
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
-.empty-state svg{margin-bottom:14px;opacity:.25}
-.empty-state h3{font-size:16px;font-weight:700;color:var(--text-sub);margin-bottom:6px}
+.empty-state h3{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;margin-top:14px}
 .empty-state p{font-size:13px;margin-bottom:18px}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(3px);z-index:700;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-box{background:var(--surface);border-radius:14px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.18);overflow:hidden;animation:slideUp .2s ease}
+@keyframes slideUp{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:16px;font-weight:800;color:var(--navy)}
+.modal-close{width:30px;height:30px;border:none;background:none;cursor:pointer;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .12s;font-size:18px;line-height:1}
+.modal-close:hover{background:var(--bg);color:var(--text)}
+.modal-body{padding:22px;display:flex;flex-direction:column;gap:16px}
+.form-group label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.form-control{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--surface);color:var(--text);transition:all .15s}
+.form-control:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.form-control.has-error{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.08)}
+textarea.form-control{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.modal-foot{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border);background:var(--bg)}
+/* Delete modal */
+.del-modal-box{background:var(--surface);border-radius:14px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.18);overflow:hidden;animation:slideUp .2s ease}
+.del-icon{width:56px;height:56px;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:#ef4444}
+.del-modal-body{padding:28px 24px 10px;text-align:center}
+.del-modal-body h3{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:8px}
+.del-modal-body p{font-size:13px;color:var(--muted);line-height:1.6}
+.del-modal-foot{display:flex;gap:10px;padding:18px 24px}
+/* Toast */
+#toast{position:fixed;bottom:24px;right:24px;z-index:900;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(16px);opacity:0;pointer-events:none;transition:all .25s ease}
+#toast.show{transform:translateY(0);opacity:1}
 </style>
 @endsection
 
@@ -63,74 +118,312 @@
     <p>Track and resolve all architectural support tickets.</p>
   </div>
   <div class="hdr-btns">
-    <a href="{{ route('tickets.index') }}" class="btn-sm">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+    <button onclick="toggleFilter()" id="filterBtn" class="btn-sm">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
       Filter
-    </a>
-    <a href="{{ route('tickets.create') }}" class="btn-sm btn-primary">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button onclick="openModal('new')" class="btn-sm btn-primary">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       New Ticket
-    </a>
+    </button>
   </div>
 </div>
 
-<!-- FILTER TABS -->
-<div class="filter-row">
-  <a href="{{ route('tickets.index') }}" class="filter-tab {{ !request('status') ? 'active' : '' }}">All Tickets</a>
-  <a href="{{ route('tickets.index', ['status' => 'open']) }}" class="filter-tab {{ request('status') === 'open' ? 'active' : '' }}">Open</a>
-  <a href="{{ route('tickets.index', ['status' => 'in_progress']) }}" class="filter-tab {{ request('status') === 'in_progress' ? 'active' : '' }}">In Progress</a>
-  <a href="{{ route('tickets.index', ['status' => 'resolved']) }}" class="filter-tab {{ request('status') === 'resolved' ? 'active' : '' }}">Resolved</a>
-  <a href="{{ route('tickets.index', ['status' => 'closed']) }}" class="filter-tab {{ request('status') === 'closed' ? 'active' : '' }}">Closed</a>
+<!-- Filter Panel -->
+<div class="filter-panel" id="filterPanel">
+  <div class="filter-panel-head">
+    <h3>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filter Tickets
+    </h3>
+    <button class="link-btn" onclick="clearFilters()">Clear all</button>
+  </div>
+  <div class="filter-panel-body">
+    <div class="filter-group">
+      <span class="group-label">Status</span>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="all" checked><span>All</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="open"><span>Open</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="in_progress"><span>In Progress</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="resolved"><span>Resolved</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="closed"><span>Closed</span></label>
+    </div>
+    <div class="filter-group">
+      <span class="group-label">Priority</span>
+      <label class="filter-check"><input type="checkbox" class="filter-priority" value="all" checked><span>All</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-priority" value="low"><span>Low</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-priority" value="medium"><span>Medium</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-priority" value="high"><span>High</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-priority" value="critical"><span>Critical</span></label>
+    </div>
+    <div class="filter-group">
+      <span class="group-label">System</span>
+      <label class="filter-check"><input type="checkbox" class="filter-system" value="all" checked><span>All Systems</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-system" value="payment-gw"><span>Payment GW</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-system" value="crm-portal"><span>CRM Portal</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-system" value="auth-core"><span>Auth Core</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-system" value="cloud-infra"><span>Cloud Infra</span></label>
+    </div>
+    <div class="filter-group">
+      <span class="group-label">Date Created</span>
+      <label class="filter-date-lbl">From</label>
+      <input type="date" class="filter-date-input">
+      <label class="filter-date-lbl">To</label>
+      <input type="date" class="filter-date-input">
+    </div>
+  </div>
+  <div class="filter-foot">
+    <button class="link-btn" onclick="toggleFilter()">Cancel</button>
+    <button class="btn-sm btn-primary" onclick="applyFilters()">Apply Filters</button>
+  </div>
 </div>
 
-<!-- TICKET TABLE -->
+<!-- Status Tabs -->
+<div class="filter-row">
+  <a href="{{ route('tickets.index') }}" class="filter-tab {{ !request('status') ? 'active' : '' }}">
+    All Tickets <span class="tab-count">{{ $tickets->total() }}</span>
+  </a>
+  <a href="{{ route('tickets.index', ['status'=>'open']) }}" class="filter-tab {{ request('status')==='open' ? 'active' : '' }}">Open</a>
+  <a href="{{ route('tickets.index', ['status'=>'in_progress']) }}" class="filter-tab {{ request('status')==='in_progress' ? 'active' : '' }}">In Progress</a>
+  <a href="{{ route('tickets.index', ['status'=>'resolved']) }}" class="filter-tab {{ request('status')==='resolved' ? 'active' : '' }}">Resolved</a>
+  <a href="{{ route('tickets.index', ['status'=>'closed']) }}" class="filter-tab {{ request('status')==='closed' ? 'active' : '' }}">Closed</a>
+</div>
+
+<!-- Ticket Table -->
 <div class="ticket-table">
   <div class="tt-header">
-    <span>Ticket ID</span>
-    <span>Title</span>
-    <span>Priority</span>
-    <span>Status</span>
-    <span>Created</span>
-    <span></span>
+    <span>Ticket ID</span><span>Title</span><span>Priority</span><span>Status</span><span>Created</span><span></span>
   </div>
 
   @forelse($tickets as $ticket)
-  <a href="{{ route('tickets.show', $ticket) }}" class="tt-row">
+  <div class="tt-row" onclick="window.location='{{ route('tickets.show', $ticket) }}'">
     <div class="tt-id">#TK-{{ str_pad($ticket->id, 4, '0', STR_PAD_LEFT) }}</div>
-    <div class="tt-title-wrap">
+    <div style="min-width:0">
       <div class="tt-name">{{ $ticket->title }}</div>
       <div class="tt-sub">{{ $ticket->system ?? 'No system specified' }}</div>
     </div>
     <div><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></div>
-    <div><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_', ' ', $ticket->status)) }}</span></div>
+    <div><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>
     <div class="tt-time">{{ $ticket->created_at->format('M d') }}</div>
-    <div><button class="more-btn" onclick="event.preventDefault()">⋯</button></div>
-  </a>
+    <div class="more-wrap" onclick="event.stopPropagation()">
+      <button class="more-btn" onclick="toggleDropdown('dd-{{ $ticket->id }}',this)">⋯</button>
+      <div class="dropdown-menu" id="dd-{{ $ticket->id }}">
+        <a href="{{ route('tickets.show', $ticket) }}" class="dd-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          View Details
+        </a>
+        <button class="dd-item" onclick="openModal('edit',{{ $ticket->id }},'{{ addslashes($ticket->title) }}','{{ addslashes($ticket->description) }}','{{ $ticket->system }}','{{ $ticket->priority }}','{{ $ticket->impact }}','{{ $ticket->status }}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit Ticket
+        </button>
+        <button class="dd-item" onclick="duplicateTicket({{ $ticket->id }})">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Duplicate
+        </button>
+        <div class="dd-sep"></div>
+        <button class="dd-item danger" onclick="confirmDelete({{ $ticket->id }},'#TK-{{ str_pad($ticket->id,4,'0',STR_PAD_LEFT) }}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          Delete Ticket
+        </button>
+      </div>
+    </div>
+  </div>
   @empty
   <div class="empty-state">
-    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="margin:0 auto;display:block;opacity:.18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     <h3>No tickets found</h3>
-    <p>{{ request('status') ? 'No ' . request('status') . ' tickets.' : 'You have not created any tickets yet.' }}</p>
-    <a href="{{ route('tickets.create') }}" class="btn-sm btn-primary" style="display:inline-flex;margin:0 auto">+ Create First Ticket</a>
+    <p>{{ request('status') ? 'No '.str_replace('_',' ',request('status')).' tickets.' : 'You have not created any tickets yet.' }}</p>
+    <button onclick="openModal('new')" class="btn-sm btn-primary" style="display:inline-flex;margin:0 auto">+ Create First Ticket</button>
   </div>
   @endforelse
 
   @if($tickets->hasPages())
   <div class="pagination-wrap">
     @if($tickets->onFirstPage())
-      <span class="page-btn" style="opacity:.4">← Prev</span>
+      <span class="page-btn disabled">← Prev</span>
     @else
       <a href="{{ $tickets->previousPageUrl() }}" class="page-btn">← Prev</a>
     @endif
-    @foreach($tickets->getUrlRange(1, $tickets->lastPage()) as $page => $url)
-      <a href="{{ $url }}" class="page-btn {{ $page == $tickets->currentPage() ? 'active-pg' : '' }}">{{ $page }}</a>
+    @foreach($tickets->getUrlRange(1,$tickets->lastPage()) as $page=>$url)
+      <a href="{{ $url }}" class="page-btn {{ $page==$tickets->currentPage()?'active-pg':'' }}">{{ $page }}</a>
     @endforeach
     @if($tickets->hasMorePages())
       <a href="{{ $tickets->nextPageUrl() }}" class="page-btn">Next →</a>
     @else
-      <span class="page-btn" style="opacity:.4">Next →</span>
+      <span class="page-btn disabled">Next →</span>
     @endif
   </div>
   @endif
 </div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="ticketModal" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="modalHeadTitle">New Ticket</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <form id="ticketForm" method="POST" action="{{ route('tickets.store') }}">
+      @csrf
+      <input type="hidden" name="_method" id="formMethod" value="POST">
+      <input type="hidden" id="formTicketId" value="">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Title *</label>
+          <input type="text" name="title" id="fTitle" class="form-control" placeholder="Brief description of the issue" required>
+        </div>
+        <div class="form-group">
+          <label>Description *</label>
+          <textarea name="description" id="fDesc" class="form-control" placeholder="Detailed description..." required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>System</label>
+            <select name="system" id="fSystem" class="form-control">
+              <option>Payment GW</option><option>CRM Portal</option><option>Auth Core</option><option>Cloud Infra</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select name="priority" id="fPriority" class="form-control">
+              <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Impact</label>
+            <select name="impact" id="fImpact" class="form-control">
+              <option value="low" selected>Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option>
+            </select>
+          </div>
+          <div class="form-group" id="statusGroup" style="display:none">
+            <label>Status</label>
+            <select name="status" id="fStatus" class="form-control">
+              <option value="open">Open</option><option value="in_progress">In Progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeModal()" class="btn-sm">Cancel</button>
+        <button type="submit" id="modalSaveBtn" class="btn-sm btn-primary">Create Ticket</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteModal" onclick="closeDeleteModal()">
+  <div class="del-modal-box" onclick="event.stopPropagation()">
+    <div class="del-modal-body">
+      <div class="del-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      </div>
+      <h3>Delete Ticket?</h3>
+      <p>Ticket <strong id="deleteLabel"></strong> will be permanently deleted.<br>This action cannot be undone.</p>
+    </div>
+    <div class="del-modal-foot">
+      <button onclick="closeDeleteModal()" class="btn-sm" style="flex:1;justify-content:center">Cancel</button>
+      <form id="deleteForm" method="POST" style="flex:1">
+        @csrf @method('DELETE')
+        <button type="submit" class="btn-sm btn-danger" style="width:100%;justify-content:center">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+// Dropdown
+function toggleDropdown(id,btn){
+  document.querySelectorAll('.dropdown-menu').forEach(m=>{if(m.id!==id){m.classList.remove('open');}});
+  document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
+  const menu=document.getElementById(id);
+  menu.classList.toggle('open');
+  if(menu.classList.contains('open'))btn.classList.add('active');
+}
+document.addEventListener('click',()=>{
+  document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
+});
+
+// Filter
+function toggleFilter(){document.getElementById('filterPanel').classList.toggle('open');}
+function clearFilters(){document.querySelectorAll('.filter-status,.filter-priority,.filter-system').forEach((el,i)=>el.checked=i===0);}
+function applyFilters(){toggleFilter();showToast('Filters applied');}
+
+// Modal
+let currentMode='new';
+function openModal(mode,id,title,desc,system,priority,impact,status){
+  currentMode=mode;
+  document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
+  const form=document.getElementById('ticketForm');
+  document.getElementById('statusGroup').style.display=mode==='edit'?'block':'none';
+  if(mode==='new'){
+    document.getElementById('modalHeadTitle').textContent='New Ticket';
+    document.getElementById('modalSaveBtn').textContent='Create Ticket';
+    form.action='{{ route("tickets.store") }}';
+    document.getElementById('formMethod').value='POST';
+    document.getElementById('fTitle').value='';
+    document.getElementById('fDesc').value='';
+    document.getElementById('fSystem').value='Payment GW';
+    document.getElementById('fPriority').value='medium';
+    document.getElementById('fImpact').value='low';
+  } else {
+    document.getElementById('modalHeadTitle').textContent='Edit Ticket';
+    document.getElementById('modalSaveBtn').textContent='Save Changes';
+    form.action='/tickets/'+id;
+    document.getElementById('formMethod').value='PATCH';
+    document.getElementById('formTicketId').value=id;
+    document.getElementById('fTitle').value=title||'';
+    document.getElementById('fDesc').value=desc||'';
+    if(system)document.getElementById('fSystem').value=system;
+    if(priority)document.getElementById('fPriority').value=priority;
+    if(impact)document.getElementById('fImpact').value=impact;
+    if(status)document.getElementById('fStatus').value=status;
+  }
+  document.getElementById('ticketModal').classList.add('open');
+}
+function closeModal(){document.getElementById('ticketModal').classList.remove('open');}
+
+// Delete
+function confirmDelete(id,label){
+  document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('deleteLabel').textContent=label;
+  document.getElementById('deleteForm').action='/tickets/'+id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function closeDeleteModal(){document.getElementById('deleteModal').classList.remove('open');}
+
+function duplicateTicket(id){
+  document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
+  showToast('Ticket duplicated');
+}
+
+function showToast(msg,ok=true){
+  document.getElementById('toastMsg').textContent=msg;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Edit needs PATCH — update action dynamically
+document.getElementById('ticketForm').addEventListener('submit',function(){
+  if(currentMode==='edit'){
+    this.action='/tickets/'+document.getElementById('formTicketId').value;
+  }
+});
+
+@if(session('success'))
+document.addEventListener('DOMContentLoaded',()=>showToast('{{ session('success') }}'));
+@endif
+</script>
 @endsection
