@@ -8,20 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('tickets', function (Blueprint $table) {
-            $table->foreignId('company_id')
-                  ->nullable()
-                  ->after('id')
-                  ->constrained()
-                  ->cascadeOnDelete();
-        });
+        if (!Schema::hasColumn('users', 'company_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->foreignId('company_id')
+                      ->nullable()
+                      ->after('id')
+                      ->constrained()
+                      ->cascadeOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('tickets', function (Blueprint $table) {
-            $table->dropForeign(['company_id']);
-            $table->dropColumn('company_id');
-        });
+        if (Schema::hasColumn('users', 'company_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropForeign(['company_id']);
+                $table->dropColumn('company_id');
+            });
+        }
     }
 };
