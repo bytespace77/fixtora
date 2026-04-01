@@ -20,6 +20,21 @@ class Ticket extends Model
         'impact',
         'status',
         'due_date',
+        'assigned_developer_id',
+        'assigned_date',
+        'assigned_by',
+        'sla_level',
+        'estimated_delivery_date',
+        'actual_delivery_date',
+        'qc_test_date',
+    ];
+
+    protected $casts = [
+        'due_date' => 'date',
+        'assigned_date' => 'datetime',
+        'estimated_delivery_date' => 'datetime',
+        'actual_delivery_date' => 'datetime',
+        'qc_test_date' => 'datetime',
     ];
 
     // Auto-filter by company — superadmin sees ALL
@@ -28,8 +43,8 @@ class Ticket extends Model
         static::addGlobalScope('company', function ($query) {
             if (Auth::check()) {
                 $user = Auth::user();
-                // ✅ Superadmin bypasses company filter and sees all records
-                if ($user->email === 'superadmin@gmail.com') {
+                // Superadmin and developer role can view cross-company data
+                if ($user->hasGlobalDataAccess()) {
                     return;
                 }
                 if ($user->company_id) {
@@ -68,5 +83,15 @@ class Ticket extends Model
     public function attachments()
     {
         return $this->hasMany(TicketAttachment::class);
+    }
+
+    public function assignedDeveloper()
+    {
+        return $this->belongsTo(User::class, 'assigned_developer_id');
+    }
+
+    public function assignedBy()
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
     }
 }

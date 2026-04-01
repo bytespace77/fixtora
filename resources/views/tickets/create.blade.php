@@ -109,7 +109,7 @@ textarea.form-input:focus{border:none;box-shadow:none}
       </div>
 
       <div class="field-row">
-        @if(auth()->user()->hasPermission('select_system'))
+        @if(auth()->user()->isSuperAdmin())
         <div class="field-group">
           <label class="lbl" for="system">System (Company)</label>
           <select id="system" name="system" class="form-input {{ $errors->has('system') ? 'is-invalid' : '' }}">
@@ -122,8 +122,19 @@ textarea.form-input:focus{border:none;box-shadow:none}
         </div>
         @else
         <div class="field-group">
-          <label class="lbl" for="system">System (Company)</label>
-          <input type="text" class="form-input" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
+          <label class="lbl" for="system">System</label>
+          @if(!empty($companySystems))
+            <select id="system" name="system" class="form-input {{ $errors->has('system') ? 'is-invalid' : '' }}">
+              <option value="">Select System</option>
+              @foreach($companySystems as $sys)
+                <option value="{{ $sys }}" {{ old('system') == $sys ? 'selected' : '' }}>{{ $sys }}</option>
+              @endforeach
+            </select>
+            @error('system')<div class="error-msg">{{ $message }}</div>@enderror
+          @else
+            <input type="text" class="form-input" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
+            <input type="hidden" name="system" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" />
+          @endif
         </div>
         @endif
         <div class="field-group">

@@ -11,7 +11,8 @@ class TicketComment extends Model
         'user_id',
         'body',
         'role',
-        'type'
+        'type',
+        'target_role',
     ];
 
     public function ticket()

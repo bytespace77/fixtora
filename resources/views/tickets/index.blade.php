@@ -37,13 +37,19 @@
 .filter-tab:not(.active) .tab-count{background:var(--bg);color:var(--muted)}
 /* Table */
 .ticket-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:visible;box-shadow:var(--shadow)}
-.tt-header{display:grid;grid-template-columns:90px 1fr 130px 140px 100px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
-.tt-row{display:grid;grid-template-columns:90px 1fr 130px 140px 100px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
+@if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))
+.tt-header{display:grid;grid-template-columns:90px 1fr 160px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
+.tt-row{display:grid;grid-template-columns:90px 1fr 160px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
+@else
+.tt-header{display:grid;grid-template-columns:90px 1fr 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
+.tt-row{display:grid;grid-template-columns:90px 1fr 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
+@endif
 .tt-row:last-child{border-bottom:none}
 .tt-row:hover{background:#f7f9ff}
 .tt-id{font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .tt-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt-sub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt-sys{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt-time{font-size:12px;color:var(--muted-lt);font-weight:500}
 /* Pills */
 .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
@@ -160,12 +166,12 @@ textarea.form-control{resize:vertical;min-height:80px}
       <label class="filter-check"><input type="checkbox" class="filter-priority" value="critical"><span>Critical</span></label>
     </div>
     <div class="filter-group">
-      <span class="group-label">System</span>
+      <span class="group-label">System (Company)</span>
       <label class="filter-check"><input type="checkbox" class="filter-system" value="all" checked><span>All Systems</span></label>
-      <label class="filter-check"><input type="checkbox" class="filter-system" value="payment-gw"><span>Payment GW</span></label>
-      <label class="filter-check"><input type="checkbox" class="filter-system" value="crm-portal"><span>CRM Portal</span></label>
-      <label class="filter-check"><input type="checkbox" class="filter-system" value="auth-core"><span>Auth Core</span></label>
-      <label class="filter-check"><input type="checkbox" class="filter-system" value="cloud-infra"><span>Cloud Infra</span></label>
+      @php $filterCompanies = \App\Models\Company::where('is_active', true)->orderBy('name')->pluck('name'); @endphp
+      @foreach($filterCompanies as $fc)
+      <label class="filter-check"><input type="checkbox" class="filter-system" value="{{ $fc }}"><span>{{ $fc }}</span></label>
+      @endforeach
     </div>
     <div class="filter-group">
       <span class="group-label">Date Created</span>
@@ -196,16 +202,18 @@ textarea.form-control{resize:vertical;min-height:80px}
 <!-- Ticket Table -->
 <div class="ticket-table">
   <div class="tt-header">
-    <span>Ticket ID</span><span>Title</span><span>Priority</span><span>Status</span><span>Created</span><span></span>
+    <span>Ticket ID</span><span>Title</span>@if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))<span>Company Name</span>@endif<span>Priority</span><span>Status</span><span>Created</span><span></span>
   </div>
 
   @forelse($tickets as $ticket)
   <div class="tt-row" onclick="window.location='{{ route('tickets.show', $ticket) }}'">
     <div class="tt-id">#TK-{{ str_pad($ticket->id, 4, '0', STR_PAD_LEFT) }}</div>
     <div style="min-width:0">
-      <div class="tt-name">{{ $ticket->title }}</div>
-      <div class="tt-sub">{{ $ticket->system ?? 'No system specified' }}</div>
+      <div class="tt-name" style="margin-bottom:0">{{ $ticket->title }}</div>
     </div>
+    @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))
+    <div class="tt-sys" title="{{ $ticket->system }}">{{ $ticket->system ?? '—' }}</div>
+    @endif
     <div><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></div>
     <div><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>
     <div class="tt-time">{{ $ticket->created_at->format('M d') }}</div>
@@ -285,12 +293,33 @@ textarea.form-control{resize:vertical;min-height:80px}
           <textarea name="description" id="fDesc" class="form-control" placeholder="Detailed description..." required></textarea>
         </div>
         <div class="form-row">
+          @if(auth()->user()->isSuperAdmin())
+          @php $modalCompanies = \App\Models\Company::where('is_active', true)->orderBy('name')->pluck('name'); @endphp
           <div class="form-group">
-            <label>System</label>
+            <label>System (Company)</label>
             <select name="system" id="fSystem" class="form-control">
-              <option>Payment GW</option><option>CRM Portal</option><option>Auth Core</option><option>Cloud Infra</option>
+              <option value="">Select Company</option>
+              @foreach($modalCompanies as $sys)
+              <option value="{{ $sys }}">{{ $sys }}</option>
+              @endforeach
             </select>
           </div>
+          @else
+          <div class="form-group">
+            <label>System</label>
+            @if(!empty($companySystems))
+              <select name="system" id="fSystem" class="form-control">
+                <option value="">Select System</option>
+                @foreach($companySystems as $sys)
+                  <option value="{{ $sys }}">{{ $sys }}</option>
+                @endforeach
+              </select>
+            @else
+              <input type="text" id="fSystemText" class="form-control" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
+              <input type="hidden" name="system" id="fSystem" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" />
+            @endif
+          </div>
+          @endif
           <div class="form-group">
             <label>Priority</label>
             <select name="priority" id="fPriority" class="form-control">
@@ -395,7 +424,16 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
     document.getElementById('formMethod').value='POST';
     document.getElementById('fTitle').value='';
     document.getElementById('fDesc').value='';
-    document.getElementById('fSystem').value='Payment GW';
+    if(document.getElementById('fSystem')) {
+      if(document.getElementById('fSystem').tagName === 'SELECT') {
+        document.getElementById('fSystem').value='';
+      } else {
+        document.getElementById('fSystem').value='{{ auth()->user()->company->name ?? "Unknown Company" }}';
+      }
+    }
+    if(document.getElementById('fSystemText')) {
+      document.getElementById('fSystemText').value='{{ auth()->user()->company->name ?? "Unknown Company" }}';
+    }
     document.getElementById('fPriority').value='medium';
     document.getElementById('fImpact').value='low';
     document.getElementById('fStatus').value='open';
@@ -413,7 +451,10 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
     document.getElementById('formTicketId').value=id;
     document.getElementById('fTitle').value=title||'';
     document.getElementById('fDesc').value=desc||'';
-    if(system)document.getElementById('fSystem').value=system;
+    if(system){
+      if(document.getElementById('fSystem')) document.getElementById('fSystem').value=system;
+      if(document.getElementById('fSystemText')) document.getElementById('fSystemText').value=system;
+    }
     if(priority)document.getElementById('fPriority').value=priority;
     if(impact)document.getElementById('fImpact').value=impact;
     if(status)document.getElementById('fStatus').value=status;

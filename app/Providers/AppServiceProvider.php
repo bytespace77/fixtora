@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Task;
 use App\Models\Ticket;
+use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
@@ -43,7 +44,17 @@ class AppServiceProvider extends ServiceProvider
 
     private function buildNotificationsFeed()
     {
-        $ticketItems = Ticket::latest()
+        $user = Auth::user();
+        $hasGlobalDataAccess = $user && $user->hasGlobalDataAccess();
+        $companyId = $user?->company_id;
+        $viewerRole = $this->resolveNotificationRole($user);
+
+        $ticketQuery = Ticket::query()->latest();
+        if (!$hasGlobalDataAccess) {
+            $ticketQuery->where('company_id', $companyId ?: 0);
+        }
+
+        $ticketItems = $ticketQuery
             ->take(20)
             ->get()
             ->map(function (Ticket $ticket) {
@@ -61,21 +72,47 @@ class AppServiceProvider extends ServiceProvider
                 ];
             });
 
-        $commentItems = \App\Models\TicketComment::with('ticket')
-            ->latest()
+        $commentQuery = \App\Models\TicketComment::with('ticket')->latest();
+        if (!$hasGlobalDataAccess) {
+            $commentQuery->whereHas('ticket', function ($q) use ($companyId) {
+                $q->where('company_id', $companyId ?: 0);
+            });
+        }
+
+        $commentItems = $commentQuery
             ->take(20)
             ->get()
+            ->filter(function (\App\Models\TicketComment $comment) use ($hasGlobalDataAccess, $viewerRole) {
+                if ($hasGlobalDataAccess) {
+                    return true;
+                }
+
+                // Workflow notifications are audience-specific.
+                if ($comment->type === 'workflow_notification') {
+                    return ($comment->target_role ?? '') === $viewerRole;
+                }
+
+                return true;
+            })
             ->map(function (\App\Models\TicketComment $comment) {
                 $isNew = $comment->created_at && $comment->created_at->greaterThan(now()->subDay());
 
-                if ($comment->type === 'status_change') {
+                if ($comment->type === 'workflow_notification') {
+                    $target = strtoupper((string) ($comment->target_role ?? 'TEAM'));
+                    $title = $target . ' Notification: #' . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
+                    $desc = $comment->body;
+                    $typeColor = 'orange';
+                    $category = 'Workflow';
+                } elseif ($comment->type === 'status_change') {
                     $title = 'Status Update: #' . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
                     $desc = $comment->body;
                     $typeColor = 'orange';
+                    $category = 'System';
                 } else {
                     $title = 'New Comment: #' . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
                     $desc = \Illuminate\Support\Str::limit($comment->body, 50);
                     $typeColor = 'blue';
+                    $category = 'Discussion';
                 }
 
                 return [
@@ -85,13 +122,19 @@ class AppServiceProvider extends ServiceProvider
                     'time_human' => $this->humanTime($comment->created_at),
                     'is_new' => $isNew,
                     'type' => $typeColor,
-                    'category' => $comment->type === 'status_change' ? 'System' : 'Discussion',
+                    'category' => $category,
                     'url' => route('tickets.show', $comment->ticket_id),
                 ];
             });
 
-        $taskItems = Task::with('ticket')
-            ->latest()
+        $taskQuery = Task::with('ticket')->latest();
+        if (!$hasGlobalDataAccess) {
+            $taskQuery->whereHas('ticket', function ($q) use ($companyId) {
+                $q->where('company_id', $companyId ?: 0);
+            });
+        }
+
+        $taskItems = $taskQuery
             ->take(20)
             ->get()
             ->map(function (Task $task) {
@@ -138,6 +181,27 @@ class AppServiceProvider extends ServiceProvider
     private function humanTime($time): string
     {
         return $time instanceof CarbonInterface ? $time->diffForHumans() : 'just now';
+    }
+
+    private function resolveNotificationRole(?User $user): string
+    {
+        if (!$user) {
+            return 'client';
+        }
+
+        $roleName = strtolower(trim((string) optional($user->userRole)->name));
+        $accountRole = strtolower(trim((string) $user->role));
+
+        if ($roleName === 'developer' || $accountRole === 'developer') {
+            return 'developer';
+        }
+
+        if (in_array($roleName, ['qc', 'quality control', 'quality assurance', 'tester'], true) ||
+            in_array($accountRole, ['qc', 'tester'], true)) {
+            return 'qc';
+        }
+
+        return 'client';
     }
 }
 

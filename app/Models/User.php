@@ -50,6 +50,19 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    // Global data access users bypass company scoping in core modules.
+    public function hasGlobalDataAccess(): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        $roleName = strtolower(trim((string) optional($this->userRole)->name));
+        $accountRole = strtolower(trim((string) $this->role));
+
+        return $roleName === 'developer' || $accountRole === 'developer';
+    }
+
     // A user belongs to one assigned role
     public function userRole()
     {

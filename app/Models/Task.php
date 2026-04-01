@@ -34,8 +34,8 @@ class Task extends Model
         static::addGlobalScope('company', function ($query) {
             if (Auth::check()) {
                 $user = Auth::user();
-                // ✅ Superadmin bypasses company filter and sees all records
-                if ($user->email === 'superadmin@gmail.com') {
+                // Superadmin and developer role can view cross-company data
+                if ($user->hasGlobalDataAccess()) {
                     return;
                 }
                 if ($user->company_id) {

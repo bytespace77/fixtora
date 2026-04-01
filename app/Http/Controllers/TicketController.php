@@ -7,6 +7,7 @@ use App\Models\TicketComment;
 use App\Models\TicketAttachment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class TicketController extends Controller
 {
@@ -24,14 +25,22 @@ class TicketController extends Controller
             $query->where('status', $request->status);
         }
         $tickets = $query->paginate(10)->withQueryString();
-        return view('tickets.index', compact('tickets'));
+        $companySystems = auth()->user()->company?->systems ?? [];
+
+        return view('tickets.index', compact('tickets', 'companySystems'));
     }
 
     public function create()
     {
         abort_unless(auth()->user()->hasPermission('create_tickets'), 403, 'You do not have permission to create tickets.');
 
-        return view('tickets.create');
+        $companies = auth()->user()->isSuperAdmin()
+            ? \App\Models\Company::where('is_active', true)->pluck('name')
+            : [];
+
+        $companySystems = auth()->user()->company?->systems ?? [];
+
+        return view('tickets.create', compact('companies', 'companySystems'));
     }
 
     public function store(Request $request)
@@ -52,6 +61,18 @@ class TicketController extends Controller
 
         $validated['user_id'] = auth()->id();
         unset($validated['attachments']);
+
+        // Company assignment rules:
+        // - Normal users: always their own company
+        // - SuperAdmin: can select a company by name in the System field (legacy behavior)
+        $validated['company_id'] = auth()->user()->company_id;
+        if (auth()->user()->isSuperAdmin()) {
+            $company = \App\Models\Company::where('name', $validated['system'])->first();
+            if ($company) {
+                $validated['company_id'] = $company->id;
+            }
+        }
+
         $ticket = Ticket::create($validated);
 
         if ($request->hasFile('attachments')) {
@@ -88,32 +109,205 @@ class TicketController extends Controller
             'comments.user',
             'comments.attachments',
             'attachments' => fn($q) => $q->whereNull('comment_id'),
+            'assignedDeveloper',
+            'assignedBy'
         ]);
 
-        return view('tickets.show', compact('ticket'));
+        $developers = collect();
+        if (auth()->user()->hasPermission('assign_developer')) {
+            $developerQuery = \App\Models\User::with('userRole')
+                ->whereHas('userRole', function ($q) {
+                    $q->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
+                })
+                ->orderBy('name');
+
+            // SuperAdmin can assign any developer role user across companies.
+            if (!auth()->user()->isSuperAdmin()) {
+                $developerQuery->where('company_id', $ticket->company_id);
+            }
+
+            $developers = $developerQuery->get();
+        }
+
+        return view('tickets.show', compact('ticket', 'developers'));
     }
 
     public function update(Request $request, Ticket $ticket)
     {
-        abort_unless(auth()->user()->hasPermission('edit_tickets'), 403, 'You do not have permission to edit tickets.');
+        $user = auth()->user();
+        $canEditTicket = $user->hasPermission('edit_tickets');
+        $isAssignedDeveloper = (int) $ticket->assigned_developer_id === (int) $user->id;
+        $estimateOnlyKeys = ['_token', '_method', 'estimated_delivery_date'];
+        $requestKeys = array_keys($request->all());
+        $isEstimateOnlyRequest = empty(array_diff($requestKeys, $estimateOnlyKeys));
 
-        $validated = $request->validate([
-            'title'       => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|required|string',
-            'system'      => 'sometimes|nullable|string',
-            'priority'    => 'sometimes|required|in:low,medium,high,critical',
-            'impact'      => 'sometimes|required|in:low,medium,high,critical',
-            'status'      => 'sometimes|required|in:open,in_progress,in_review,resolved,closed',
-            'due_date'    => 'nullable|date',
-        ]);
+        abort_unless(
+            $canEditTicket || ($isAssignedDeveloper && $isEstimateOnlyRequest),
+            403,
+            'You do not have permission to update this ticket.'
+        );
+
+        $rules = [
+            'estimated_delivery_date' => 'sometimes|nullable|date',
+        ];
+
+        if ($canEditTicket) {
+            $rules = array_merge($rules, [
+                'title'       => 'sometimes|required|string|max:255',
+                'description' => 'sometimes|required|string',
+                'system'      => 'sometimes|nullable|string',
+                'priority'    => 'sometimes|required|in:low,medium,high,critical',
+                'impact'      => 'sometimes|required|in:low,medium,high,critical',
+                'status'      => 'sometimes|required|in:open,in_progress,in_review,resolved,closed',
+                'due_date'    => 'sometimes|nullable|date',
+                'assigned_developer_id' => 'sometimes|nullable|exists:users,id',
+                'sla_level'             => 'sometimes|nullable|in:Low,Medium,High,Critical',
+                'actual_delivery_date'  => 'sometimes|nullable|date',
+                'qc_test_date'          => 'sometimes|nullable|date',
+            ]);
+        }
+
+        $validated = $request->validate($rules);
+
+        if (!$canEditTicket) {
+            $validated = array_intersect_key($validated, array_flip(['estimated_delivery_date']));
+        }
+
+        if (array_key_exists('assigned_developer_id', $validated) || array_key_exists('sla_level', $validated)) {
+            abort_unless($user->isSuperAdmin(), 403, 'Only superadmin can assign developer and SLA.');
+
+            $selectedDeveloper = $validated['assigned_developer_id'] ?? $ticket->assigned_developer_id;
+            $selectedSla = $validated['sla_level'] ?? $ticket->sla_level;
+            if (empty($selectedDeveloper) || empty($selectedSla)) {
+                throw ValidationException::withMessages([
+                    'assigned_developer_id' => 'Assigned developer and SLA are required.',
+                    'sla_level' => 'Assigned developer and SLA are required.',
+                ]);
+            }
+
+            if ((int) $selectedDeveloper !== (int) $ticket->assigned_developer_id || $selectedSla !== $ticket->sla_level) {
+                $validated['assigned_by'] = $user->id;
+                $validated['assigned_date'] = now();
+
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $user->id,
+                    'body'      => 'New assignment: ticket #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT) . ' with SLA ' . $selectedSla . '.',
+                    'role'      => 'system',
+                    'type'      => 'workflow_notification',
+                    'target_role' => 'developer',
+                ]);
+            }
+        }
 
         $oldStatus = $ticket->status;
+
+        if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
+            $allowedTransitions = [
+                'open' => ['in_progress'],
+                'in_progress' => ['in_review'],
+                'in_review' => ['resolved'],
+                'resolved' => ['closed', 'in_progress'],
+                'closed' => ['in_progress'],
+            ];
+
+            if (!in_array($validated['status'], $allowedTransitions[$oldStatus] ?? [], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Invalid workflow transition.',
+                ]);
+            }
+
+            if ($validated['status'] === 'in_progress') {
+                $developerId = $validated['assigned_developer_id'] ?? $ticket->assigned_developer_id;
+                $sla = $validated['sla_level'] ?? $ticket->sla_level;
+                if (empty($developerId) || empty($sla)) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Assign developer and SLA first.',
+                    ]);
+                }
+            }
+
+            if ($validated['status'] === 'in_review') {
+                $estimate = $validated['estimated_delivery_date'] ?? $ticket->estimated_delivery_date;
+                if (empty($estimate)) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Developer must update estimated delivery first.',
+                    ]);
+                }
+                $validated['actual_delivery_date'] = $validated['actual_delivery_date'] ?? now();
+
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $user->id,
+                    'body'      => 'Developer delivered fix and notified QC for testing.',
+                    'role'      => 'system',
+                    'type'      => 'status_change',
+                ]);
+
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $user->id,
+                    'body'      => 'Developer delivered fix for ticket #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT) . '. QC testing is required.',
+                    'role'      => 'system',
+                    'type'      => 'workflow_notification',
+                    'target_role' => 'qc',
+                ]);
+            }
+
+            if ($validated['status'] === 'resolved') {
+                $validated['qc_test_date'] = $validated['qc_test_date'] ?? now();
+
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $user->id,
+                    'body'      => 'QC confirmed test results and notified client.',
+                    'role'      => 'system',
+                    'type'      => 'status_change',
+                ]);
+
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $user->id,
+                    'body'      => 'QC passed ticket #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT) . '. Client confirmation is required.',
+                    'role'      => 'system',
+                    'type'      => 'workflow_notification',
+                    'target_role' => 'client',
+                ]);
+            }
+
+            if ($validated['status'] === 'in_progress' && in_array($oldStatus, ['resolved', 'closed'], true)) {
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $user->id,
+                    'body'      => 'Client reported issue during testing. Ticket sent back to developer.',
+                    'role'      => 'system',
+                    'type'      => 'status_change',
+                ]);
+
+                TicketComment::create([
+                    'ticket_id' => $ticket->id,
+                    'user_id'   => $user->id,
+                    'body'      => 'Client updated ticket #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT) . '. Developer action is required.',
+                    'role'      => 'system',
+                    'type'      => 'workflow_notification',
+                    'target_role' => 'developer',
+                ]);
+            }
+        }
+
+        if (!empty($validated['system'])) {
+            $company = \App\Models\Company::where('name', $validated['system'])->first();
+            if ($company) {
+                $validated['company_id'] = $company->id;
+            }
+        }
+
         $ticket->update($validated);
 
         if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
             TicketComment::create([
                 'ticket_id' => $ticket->id,
-                'user_id'   => auth()->id(),
+                'user_id'   => $user->id,
                 'body'      => 'Status changed to ' . ucfirst(str_replace('_', ' ', $validated['status'])),
                 'role'      => 'system',
                 'type'      => 'status_change',
