@@ -123,10 +123,12 @@ textarea.form-control{resize:vertical;min-height:80px}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
       Filter
     </button>
+    @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('create_tickets'))
     <button onclick="openModal('new')" class="btn-sm btn-primary">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       New Ticket
     </button>
+    @endif
   </div>
 </div>
 
@@ -210,19 +212,25 @@ textarea.form-control{resize:vertical;min-height:80px}
     <div class="more-wrap" onclick="event.stopPropagation()">
       <button class="more-btn" onclick="toggleDropdown('dd-{{ $ticket->id }}',this)">⋯</button>
       <div class="dropdown-menu" id="dd-{{ $ticket->id }}">
+        @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_tickets'))
         <a href="{{ route('tickets.show', $ticket) }}" class="dd-item">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
           View Details
         </a>
+        @endif
+        @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('edit_tickets'))
         <button class="dd-item" onclick="openModal('edit',{{ $ticket->id }},'{{ addslashes($ticket->title) }}','{{ addslashes($ticket->description) }}','{{ $ticket->system }}','{{ $ticket->priority }}','{{ $ticket->impact }}','{{ $ticket->status }}','{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format("Y-m-d") : "" }}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Ticket
         </button>
+        @endif
+        @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('delete_tickets'))
         <div class="dd-sep"></div>
         <button class="dd-item danger" onclick="confirmDelete({{ $ticket->id }},'#TK-{{ str_pad($ticket->id,4,'0',STR_PAD_LEFT) }}')">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
           Delete Ticket
         </button>
+        @endif
       </div>
     </div>
   </div>
@@ -231,7 +239,9 @@ textarea.form-control{resize:vertical;min-height:80px}
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="margin:0 auto;display:block;opacity:.18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     <h3>No tickets found</h3>
     <p>{{ request('status') ? 'No '.str_replace('_',' ',request('status')).' tickets.' : 'You have not created any tickets yet.' }}</p>
+    @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('create_tickets'))
     <button onclick="openModal('new')" class="btn-sm btn-primary" style="display:inline-flex;margin:0 auto">+ Create First Ticket</button>
+    @endif
   </div>
   @endforelse
 

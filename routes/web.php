@@ -9,6 +9,7 @@ use App\Http\Controllers\ProfileController; // ✅ Step 17
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\IntegrationRequestController;
+use App\Http\Controllers\RoleController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -68,6 +69,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Scheduling (calendar + upcoming tasks by due date)
     Route::get('/scheduling', [SchedulingController::class, 'index'])->name('scheduling.index');
+
+    // Roles & Permissions
+    Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+    Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');
+    Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
+    Route::patch('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+    Route::post('/roles/{role}/permissions', [RoleController::class, 'savePermissions'])->name('roles.permissions');
+    Route::post('/roles/{role}/association', [RoleController::class, 'saveAssociation'])->name('roles.association');
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
 
     // Integrations
     Route::get('/integrations/custom-request', [IntegrationRequestController::class, 'create'])

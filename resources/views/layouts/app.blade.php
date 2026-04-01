@@ -473,6 +473,7 @@ html, body {
     </a>
 
     <nav class="sb-nav">
+      {{-- Dashboard: always visible --}}
       <a href="{{ route('home') }}" class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -481,6 +482,8 @@ html, body {
         Dashboard
       </a>
 
+      {{-- Tickets --}}
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('list_tickets') || Auth::user()->hasPermission('create_tickets'))
       <a href="{{ route('tickets.index') }}" class="nav-item {{ request()->routeIs('tickets.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -491,7 +494,10 @@ html, body {
         @php $unreadCount = \App\Models\Ticket::where('is_read', false)->count(); @endphp
         @if($unreadCount > 0)<span class="nav-badge">{{ $unreadCount }}</span>@endif
       </a>
+      @endif
 
+      {{-- Tasks --}}
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('list_tasks') || Auth::user()->hasPermission('create_tasks'))
       <a href="{{ route('tasks.index') }}" class="nav-item {{ request()->routeIs('tasks.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <polyline points="9 11 12 14 22 4"/>
@@ -499,14 +505,22 @@ html, body {
         </svg>
         Tasks
       </a>
+      @endif
 
+
+
+      {{-- SLA Monitor --}}
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_sla_monitor'))
       <a href="{{ route('sla-monitor.index') }}" class="nav-item {{ request()->routeIs('sla-monitor.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
         </svg>
         SLA Monitor
       </a>
+      @endif
 
+      {{-- Reports --}}
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_reports'))
       <a href="{{ route('reports.index') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <line x1="18" y1="20" x2="18" y2="10"/>
@@ -515,7 +529,9 @@ html, body {
         </svg>
         Reports
       </a>
+      @endif
 
+      {{-- Notifications: always visible --}}
       <a href="{{ route('notifications.index') }}" class="nav-item {{ request()->routeIs('notifications.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -524,6 +540,8 @@ html, body {
         Notifications
       </a>
 
+      {{-- Scheduling --}}
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_scheduling'))
       <a href="{{ url('/scheduling') }}" class="nav-item {{ request()->routeIs('scheduling.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <rect x="3" y="4" width="18" height="18" rx="2"/>
@@ -533,6 +551,20 @@ html, body {
         </svg>
         Scheduling
       </a>
+      @endif
+
+      {{-- User Roles: superadmin only --}}
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_roles'))
+      <a href="{{ route('roles.index') }}" class="nav-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        User Roles
+      </a>
+      @endif
     </nav>
 
     <div class="sb-bottom">

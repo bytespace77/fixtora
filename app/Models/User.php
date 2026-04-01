@@ -16,12 +16,13 @@ class User extends Authenticatable
         'password',
         'company_id',
         'role',         // ← Task 36: added
+        'role_id',
     ];
 
     protected $hidden = ['password', 'remember_token'];
 
     // Task 39: eager-load company so every auth check is N+1 free
-    protected $with = ['company'];
+    protected $with = ['company', 'userRole'];
 
     protected function casts(): array
     {
@@ -47,5 +48,51 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    // A user belongs to one assigned role
+    public function userRole()
+    {
+        return $this->belongsTo(\App\Models\Role::class, 'role_id');
+    }
+
+    // Check if user has a specific permission via their assigned role
+    // superadmin always has all permissions
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        $role = $this->userRole;
+        if (!$role) return false;
+        return in_array($permission, $role->permissions ?? []);
+    }
+
+    // Check if user can access a section (any permission in that group)
+    public function canAccess(string $section): bool
+    {
+        if ($this->isSuperAdmin()) return true;
+        $role = $this->userRole;
+        if (!$role) return false;
+        $perms = $role->permissions ?? [];
+
+        // Map section names to permission keywords
+        $map = [
+            'ticket'      => ['ticket'],
+            'task'        => ['task'],
+            'report'      => ['report', 'view_analytics'],
+            'sla'         => ['view_sla_monitor'],
+            'scheduling'  => ['view_scheduling'],
+            'user'        => ['user', 'role'],
+            'integration' => ['integration', 'custom_request'],
+            'settings'    => ['settings', 'profile'],
+            'dashboard'   => ['dashboard'],
+        ];
+
+        $keywords = $map[$section] ?? [$section];
+        foreach ($perms as $perm) {
+            foreach ($keywords as $keyword) {
+                if (str_contains($perm, $keyword)) return true;
+            }
+        }
+        return false;
     }
 }
