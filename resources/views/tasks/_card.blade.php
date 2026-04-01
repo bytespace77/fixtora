@@ -6,7 +6,7 @@
   $ticketId = '#TK-' . str_pad($task->id, 4, '0', STR_PAD_LEFT);
   $isDone   = $task->status === 'done';
 
-  $taskJson = htmlspecialchars(json_encode([
+  $taskData = [
     'id'          => $task->id,
     'title'       => $task->title,
     'description' => $task->description ?? '',
@@ -15,7 +15,7 @@
     'assigned_to' => $task->assigned_to ?? '',
     'due_date'    => $task->due_date ? $task->due_date->format('Y-m-d') : '',
     'progress'    => $task->progress ?? 0,
-  ]), ENT_QUOTES, 'UTF-8');
+  ];
 @endphp
 
 {{--
@@ -26,7 +26,7 @@
 <div class="k-card {{ $isDone ? 'done-card' : '' }}"
      data-id="{{ $task->id }}"
      data-status="{{ $task->status }}"
-     data-task="{{ $taskJson }}">
+     data-task='@json($taskData)'>
 
   <div class="k-card-meta">
     <span class="ticket-id">{{ $ticketId }}</span>

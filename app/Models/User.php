@@ -78,7 +78,7 @@ class User extends Authenticatable
         $map = [
             'ticket'      => ['ticket'],
             'task'        => ['task'],
-            'report'      => ['report', 'view_analytics'],
+            'report'      => ['report', 'view_reports'],
             'sla'         => ['view_sla_monitor'],
             'scheduling'  => ['view_scheduling'],
             'user'        => ['user', 'role'],

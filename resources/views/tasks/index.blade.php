@@ -620,12 +620,12 @@ function escHtml(s) {
 function cardHtml(t) {
   const isDone   = t.status === 'done';
   const ticketId = `#TK-${String(t.id).padStart(4,'0')}`;
-  const taskJson = escHtml(JSON.stringify({
+  const taskJson = JSON.stringify({
     id: t.id, title: t.title, description: t.description ?? '',
     priority: t.priority, status: t.status,
     assigned_to: t.assigned_to ?? '', due_date: t.due_date ?? '',
     progress: t.progress ?? 0
-  }));
+  }).replace(/'/g, '&#39;');
   const badge = isDone
     ? `<span style="font-size:9.5px;font-weight:700;color:var(--green)">● RESOLVED</span>`
     : `<span class="priority-badge pb-${t.priority}">${t.priority.toUpperCase()}</span>`;
@@ -636,7 +636,7 @@ function cardHtml(t) {
     ? `<div class="k-progress"><div class="progress-bg"><div class="progress-fill" style="width:${t.progress??0}%"></div></div></div>` : '';
 
   return `
-  <div class="k-card${isDone?' done-card':''}" data-id="${t.id}" data-status="${t.status}" data-task="${taskJson}">
+  <div class="k-card${isDone?' done-card':''}" data-id="${t.id}" data-status="${t.status}" data-task='${taskJson}'>
     <div class="k-card-meta"><span class="ticket-id">${ticketId}</span>${badge}</div>
     <div class="k-title">${escHtml(t.title)}</div>
     ${t.description ? `<div class="k-desc">${escHtml(t.description)}</div>` : ''}
@@ -697,7 +697,6 @@ async function submitEdit(e) {
   e.preventDefault();
   const id = document.getElementById('edit-id').value;
   const payload = {
-    _method:     'PATCH',
     title:       document.getElementById('edit-title').value,
     description: document.getElementById('edit-description').value,
     priority:    document.getElementById('edit-priority').value,
@@ -707,7 +706,7 @@ async function submitEdit(e) {
     progress:    document.getElementById('edit-progress').value,
   };
   const res  = await fetch(`/tasks/${id}`, {
-    method:  'POST',
+    method:  'PATCH',
     headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body:    JSON.stringify(payload)
   });

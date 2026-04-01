@@ -33,7 +33,6 @@ class Role extends Model
                 'add_comments',         // Add comments on tickets
                 'delete_comments',      // Delete comments on tickets
                 'upload_attachments',   // Upload attachments to tickets
-                'delete_attachments',   // Delete attachments from tickets
             ],
 
             // ── Tasks ──────────────────────────────────────────────
@@ -52,7 +51,6 @@ class Role extends Model
             // ── Reports ────────────────────────────────────────────
             'Reports' => [
                 'view_reports',         // View reports page
-                'view_analytics',       // View analytics charts
                 'export_reports',       // Export reports
             ],
 

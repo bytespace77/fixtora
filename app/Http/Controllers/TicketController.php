@@ -190,7 +190,7 @@ class TicketController extends Controller
     // Delete a single attachment
     public function deleteAttachment(Ticket $ticket, TicketAttachment $attachment)
     {
-        abort_unless(auth()->user()->hasPermission('delete_attachments'), 403, 'You do not have permission to delete attachments.');
+        abort_unless(auth()->user()->isSuperAdmin(), 403, 'Only superadmins can delete attachments.');
         abort_if($attachment->ticket_id !== $ticket->id, 403);
         Storage::disk('public')->delete($attachment->stored_path);
         $attachment->delete();
