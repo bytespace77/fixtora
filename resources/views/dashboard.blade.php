@@ -93,8 +93,10 @@
 .updates-title { font-size:14px; font-weight:700; color:var(--text); }
 .view-all { font-size:12px; font-weight:600; color:var(--blue); text-decoration:none; }
 .view-all:hover { text-decoration:underline; }
-.update-item { display:flex; gap:12px; padding:10px 0; }
+.update-item { display:flex; gap:12px; padding:10px 0; text-decoration:none; color:inherit; border-radius:8px; transition:background .12s; cursor:pointer; }
 .update-item:not(:last-child) { border-bottom:1px solid var(--border); }
+.update-item:hover { background:var(--blue-bg); padding-left:6px; padding-right:6px; margin-left:-6px; margin-right:-6px; }
+.update-item:hover .update-title-text { color:var(--blue); }
 .update-icon { width:34px; height:34px; border-radius:8px; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px; }
 .update-body { flex:1; min-width:0; }
 .update-title-text { font-size:12.5px; font-weight:700; color:var(--text); margin-bottom:2px; }
@@ -186,14 +188,14 @@
   </div>
 </div>
 
-<!-- Stats -->
-<div class="stats-row">
+<!-- Stats — ✅ Task 5: 4 cards (active, resolved, critical, total) scoped per company -->
+<div class="stats-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
   <div class="stat-card">
     <div class="stat-top">
       <div class="stat-icon blue">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>
       </div>
-      <span class="stat-badge badge-green">{{ $stats['active'] }} total</span>
+      <span class="stat-badge badge-green">Open</span>
     </div>
     <div class="stat-label">Active Tickets</div>
     <div class="stat-value">{{ $stats['active'] }}</div>
@@ -223,6 +225,19 @@
     <div class="stat-value">{{ $stats['critical'] }}</div>
     <div class="stat-sub">{{ $stats['critical'] === 0 ? 'No critical issues' : 'Requires immediate action' }}</div>
   </div>
+
+  {{-- ✅ Task 5: Total tickets stat — scoped per company via Ticket global scope --}}
+  <div class="stat-card">
+    <div class="stat-top">
+      <div class="stat-icon blue" style="background:#f3f4f6;color:#374151">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
+      <span class="stat-badge" style="background:#f3f4f6;color:#374151">All Time</span>
+    </div>
+    <div class="stat-label">Total Tickets</div>
+    <div class="stat-value">{{ $stats['total'] }}</div>
+    <div class="stat-sub">All tickets in your company</div>
+  </div>
 </div>
 
 <!-- Middle row -->
@@ -243,25 +258,25 @@
   <div class="updates-card">
     <div class="updates-header">
       <span class="updates-title">System Updates</span>
-      <a href="#" class="view-all">View All</a>
+      <a href="{{ route('tickets.index') }}" class="view-all">View All</a>
     </div>
     @php
       $updates = [];
       if ($stats['critical'] > 0) {
-          $updates[] = ['icon'=>'🔴','title'=>'Critical Tickets Open','desc'=>$stats['critical'].' ticket(s) marked critical still open.','time'=>'NOW','alert'=>true];
+          $updates[] = ['icon'=>'🔴','title'=>'Critical Tickets Open','desc'=>$stats['critical'].' ticket(s) marked critical still open.','time'=>'NOW','alert'=>true,'link'=>route('tickets.index').'?priority=critical'];
       }
-      $updates[] = ['icon'=>'📋','title'=>'Queue Updated','desc'=>$queueTickets->count().' ticket(s) in priority queue.','time'=>'JUST NOW','alert'=>false];
-      $updates[] = ['icon'=>'✅','title'=>'Resolved This Period','desc'=>$stats['resolved'].' ticket(s) resolved in selected range.','time'=>'PERIOD','alert'=>false];
+      $updates[] = ['icon'=>'📋','title'=>'Queue Updated','desc'=>$queueTickets->count().' ticket(s) in priority queue.','time'=>'JUST NOW','alert'=>false,'link'=>route('tickets.index')];
+      $updates[] = ['icon'=>'✅','title'=>'Resolved This Period','desc'=>$stats['resolved'].' ticket(s) resolved in selected range.','time'=>'PERIOD','alert'=>false,'link'=>route('tickets.index').'?status=resolved'];
     @endphp
     @foreach($updates as $u)
-    <div class="update-item">
+    <a href="{{ $u['link'] }}" class="update-item">
       <div class="update-icon">{{ $u['icon'] }}</div>
       <div class="update-body">
         <div class="update-title-text">{{ $u['title'] }}</div>
         <div class="update-desc">{{ $u['desc'] }}</div>
         <div class="update-time {{ $u['alert'] ? 'alert' : '' }}">{{ $u['time'] }}</div>
       </div>
-    </div>
+    </a>
     @endforeach
   </div>
 </div>

@@ -23,12 +23,15 @@ class HomeController extends Controller
         [$from, $to] = $this->parseRange($range, $custom);
 
         // ── Stats ─────────────────────────────────────────────────────────
+        // ✅ Task 5: All counts are automatically scoped per company via
+        //            Ticket model's global 'company' scope (superadmin sees all).
         $stats = [
             'active'   => Ticket::whereNotIn('status', ['resolved', 'closed'])->count(),
             'resolved' => Ticket::where('status', 'resolved')
                                  ->whereBetween('updated_at', [$from, $to])->count(),
             'critical' => Ticket::where('priority', 'critical')
                                  ->whereNotIn('status', ['resolved', 'closed'])->count(),
+            'total'    => Ticket::count(), // ✅ Task 5: total tickets (scoped per company)
         ];
 
         // ── Chart data ────────────────────────────────────────────────────
