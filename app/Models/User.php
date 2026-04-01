@@ -14,10 +14,14 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'company_id',   // ← added
+        'company_id',
+        'role',         // ← Task 36: added
     ];
 
     protected $hidden = ['password', 'remember_token'];
+
+    // Task 39: eager-load company so every auth check is N+1 free
+    protected $with = ['company'];
 
     protected function casts(): array
     {
@@ -31,5 +35,17 @@ class User extends Authenticatable
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    // Helper: is this user a super-admin?
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
+    }
+
+    // Helper: is this user the company admin?
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 }

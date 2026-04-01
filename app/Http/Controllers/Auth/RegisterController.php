@@ -33,18 +33,19 @@ class RegisterController extends Controller
 
     protected function create(array $data)
     {
-        // Create the company first
+        // Task 36: Create the company first
         $company = Company::create([
             'name' => $data['company_name'],
             'slug' => Str::slug($data['company_name']) . '-' . Str::random(4),
         ]);
 
-        // Create the user and link to company
+        // Task 36: Create the user linked to company, role = admin (first user = company admin)
         return User::create([
             'name'       => $data['name'],
             'email'      => $data['email'],
             'password'   => Hash::make($data['password']),
             'company_id' => $company->id,
+            'role'       => 'user',    // ← all self-registered users are 'user', only superadmin is seeded manually
         ]);
     }
 }
