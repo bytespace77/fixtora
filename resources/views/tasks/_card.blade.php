@@ -15,6 +15,7 @@
     'assigned_to' => $task->assigned_to ?? '',
     'due_date'    => $task->due_date ? $task->due_date->format('Y-m-d') : '',
     'progress'    => $task->progress ?? 0,
+    'ticket_id'   => $task->ticket_id ?? '',
   ];
 @endphp
 
@@ -29,7 +30,14 @@
      data-task='@json($taskData)'>
 
   <div class="k-card-meta">
-    <span class="ticket-id">{{ $ticketId }}</span>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span class="ticket-id">{{ $ticketId }}</span>
+      @if($task->ticket)
+        <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="{{ $task->ticket->title }}">
+          #TIC-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
+        </a>
+      @endif
+    </div>
     @if($isDone)
       <span style="font-size:9.5px;font-weight:700;color:var(--green)">● RESOLVED</span>
     @else

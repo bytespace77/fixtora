@@ -116,13 +116,13 @@ textarea.form-control{resize:vertical;min-height:80px}
 
 @section('content')
 
-{{-- ── Breadcrumb ──────────────────────────────────────────────── --}}
-<div class="breadcrumb">
-  <span>PATH</span><span class="sep">/</span>
-  <span>Projects</span><span class="sep">/</span>
-  <span>Internal Support</span><span class="sep">/</span>
-  <span class="current">Task Board</span>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+{{-- ── Board Header ────────────────────────────────────────────── --}}
+<div class="board-header-row">
+  <div>
+    <div class="board-title">Team Sprint: Current Tasks</div>
+    <div class="board-desc">Managing internal architectural support tickets and resource allocation.</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
     <div class="avatar-stack">
       @foreach($users->take(3) as $u)
         <div class="av-stack-item" style="background:{{ ['#2d6a4f','#7b2d8b','#c05621','#1d4ed8','#0d9488'][($u->id % 5)] }}">
@@ -133,20 +133,6 @@ textarea.form-control{resize:vertical;min-height:80px}
         <div class="av-stack-item av-more">+{{ $users->count() - 3 }}</div>
       @endif
     </div>
-    <button class="filter-btn" id="toggleViewBtn" onclick="toggleView()">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      List View
-    </button>
-  </div>
-</div>
-
-{{-- ── Board Header ────────────────────────────────────────────── --}}
-<div class="board-header-row">
-  <div>
-    <div class="board-title">Team Sprint: Current Tasks</div>
-    <div class="board-desc">Managing internal architectural support tickets and resource allocation.</div>
-  </div>
-  <div style="display:flex;align-items:center;gap:8px">
     <div class="view-toggle">
       <button class="vt-btn active" id="boardViewBtn" onclick="setView('board')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -237,7 +223,14 @@ textarea.form-control{resize:vertical;min-height:80px}
       @foreach($todo->concat($doing)->concat($done) as $task)
       <tr id="list-row-{{ $task->id }}">
         <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">#TK-{{ str_pad($task->id,4,'0',STR_PAD_LEFT) }}</td>
-        <td style="font-weight:600;max-width:260px">{{ $task->title }}</td>
+        <td style="font-weight:600;max-width:260px">
+          {{ $task->title }}
+          @if($task->ticket)
+            <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="{{ $task->ticket->title }}">
+              #TIC-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
+            </a>
+          @endif
+        </td>
         <td><span class="priority-badge pb-{{ $task->priority }}">{{ strtoupper($task->priority) }}</span></td>
         <td>
           <select class="form-control" style="padding:4px 8px;font-size:12px;width:auto"
@@ -360,9 +353,21 @@ textarea.form-control{resize:vertical;min-height:80px}
             </select>
           </div>
           <div class="form-group">
+            <label>Ticket (Optional)</label>
+            <select name="ticket_id" class="form-control">
+              <option value="">No Ticket</option>
+              @foreach($tickets as $t)
+                <option value="{{ $t->id }}">#TIC-{{ str_pad($t->id,4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
+              @endforeach
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label>Due Date</label>
             <input type="date" name="due_date" class="form-control">
           </div>
+          <div class="form-group"></div>
         </div>
         <div class="form-group" id="progressGroup" style="display:none">
           <label>Progress: <span id="progressVal">0</span>%</label>
@@ -426,9 +431,21 @@ textarea.form-control{resize:vertical;min-height:80px}
             </select>
           </div>
           <div class="form-group">
+            <label>Ticket (Optional)</label>
+            <select id="edit-ticket_id" class="form-control">
+              <option value="">No Ticket</option>
+              @foreach($tickets as $t)
+                <option value="{{ $t->id }}">#TIC-{{ str_pad($t->id,4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
+              @endforeach
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label>Due Date</label>
             <input type="date" id="edit-due_date" class="form-control">
           </div>
+          <div class="form-group"></div>
         </div>
         <div class="form-group" id="editProgressGroup" style="display:none">
           <label>Progress: <span id="editProgressVal">0</span>%</label>
@@ -624,7 +641,7 @@ function cardHtml(t) {
     id: t.id, title: t.title, description: t.description ?? '',
     priority: t.priority, status: t.status,
     assigned_to: t.assigned_to ?? '', due_date: t.due_date ?? '',
-    progress: t.progress ?? 0
+    progress: t.progress ?? 0, ticket_id: t.ticket_id ?? ''
   }).replace(/'/g, '&#39;');
   const badge = isDone
     ? `<span style="font-size:9.5px;font-weight:700;color:var(--green)">● RESOLVED</span>`
@@ -637,7 +654,13 @@ function cardHtml(t) {
 
   return `
   <div class="k-card${isDone?' done-card':''}" data-id="${t.id}" data-status="${t.status}" data-task='${taskJson}'>
-    <div class="k-card-meta"><span class="ticket-id">${ticketId}</span>${badge}</div>
+    <div class="k-card-meta">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span class="ticket-id">${ticketId}</span>
+        ${t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="${escHtml(t.ticket.title)}">#TIC-${String(t.ticket_id).padStart(4,'0')}</a>` : ''}
+      </div>
+      ${badge}
+    </div>
     <div class="k-title">${escHtml(t.title)}</div>
     ${t.description ? `<div class="k-desc">${escHtml(t.description)}</div>` : ''}
     ${progressHtml}
@@ -663,10 +686,58 @@ function cardHtml(t) {
     </div>
   </div>`;
 }
+
+function listRowHtml(t) {
+  const ticketId = `#TK-${String(t.id).padStart(4,'0')}`;
+  const badge = `<span class="priority-badge pb-${t.priority}">${t.priority.toUpperCase()}</span>`;
+  const assigneeHtml = t.assignee
+    ? `<div style="display:flex;align-items:center;gap:6px"><div class="k-av" style="background:${COLORS[t.assignee.id%5]}">${t.assignee.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div><span style="font-size:12px">${escHtml(t.assignee.name)}</span></div>`
+    : `<span style="color:var(--muted-lt);font-size:12px">Unassigned</span>`;
+  
+  let dueDateHtml = '—';
+  if (t.due_date) {
+      const d = new Date(t.due_date);
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      dueDateHtml = `${months[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}, ${d.getFullYear()}`;
+  }
+
+  const ticketHtml = t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="${escHtml(t.ticket.title)}">#TIC-${String(t.ticket_id).padStart(4,'0')}</a>` : '';
+
+  return `
+      <tr id="list-row-${t.id}">
+        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">${ticketId}</td>
+        <td style="font-weight:600;max-width:260px">
+          ${escHtml(t.title)}
+          ${ticketHtml}
+        </td>
+        <td>${badge}</td>
+        <td>
+          <select class="form-control" style="padding:4px 8px;font-size:12px;width:auto" onchange="quickStatusUpdate(${t.id}, this.value)">
+            <option value="todo" ${t.status==='todo'?'selected':''}>To Do</option>
+            <option value="doing" ${t.status==='doing'?'selected':''}>Doing</option>
+            <option value="done" ${t.status==='done'?'selected':''}>Done</option>
+          </select>
+        </td>
+        <td>${assigneeHtml}</td>
+        <td style="font-size:12px;color:var(--muted)">${dueDateHtml}</td>
+        <td>
+          @if(auth()->user()->hasPermission('delete_tasks'))
+          <button class="k-action-btn" onclick="deleteTask(${t.id})" title="Delete" style="color:var(--red);border:1px solid #fee2e2;padding:4px 8px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+          @endif
+        </td>
+      </tr>
+  `;
+}
+
 function appendCard(task) {
   const container = document.getElementById(`cards-${task.status}`);
-  if (container) container.insertAdjacentHTML('beforeend', cardHtml(task));
+  if (container) container.insertAdjacentHTML('afterbegin', cardHtml(task));
   updateCount(task.status);
+  
+  const listBody = document.getElementById('listBody');
+  if (listBody) listBody.insertAdjacentHTML('afterbegin', listRowHtml(task));
 }
 
 /* ── Edit Modal ──────────────────────────────────────────────── */
@@ -677,6 +748,7 @@ function openEditModal(task) {
   document.getElementById('edit-priority').value    = task.priority;
   document.getElementById('edit-status').value      = task.status;
   document.getElementById('edit-assigned_to').value = task.assigned_to ?? '';
+  document.getElementById('edit-ticket_id').value   = task.ticket_id ?? '';
   document.getElementById('edit-due_date').value    = task.due_date ?? '';
   const prog = task.progress ?? 0;
   document.getElementById('edit-progress').value         = prog;
@@ -702,6 +774,7 @@ async function submitEdit(e) {
     priority:    document.getElementById('edit-priority').value,
     status:      document.getElementById('edit-status').value,
     assigned_to: document.getElementById('edit-assigned_to').value,
+    ticket_id:   document.getElementById('edit-ticket_id').value,
     due_date:    document.getElementById('edit-due_date').value,
     progress:    document.getElementById('edit-progress').value,
   };

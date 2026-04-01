@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\User;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 
 class TaskController extends Controller
@@ -55,8 +56,11 @@ class TaskController extends Controller
                         ->limit(5)
                         ->get();
 
+        // Fetch tickets to link to tasks
+        $tickets = Ticket::orderByDesc('id')->get(['id', 'title']);
+
         return view('tasks.index', compact(
-            'todo', 'doing', 'done', 'users', 'velocity', 'slaRate', 'deadlines'
+            'todo', 'doing', 'done', 'users', 'velocity', 'slaRate', 'deadlines', 'tickets'
         ));
     }
 
@@ -108,6 +112,7 @@ class TaskController extends Controller
             'priority'    => 'sometimes|required|in:low,medium,high,urgent',
             'status'      => 'sometimes|required|in:todo,doing,done',
             'assigned_to' => 'nullable|exists:users,id',
+            'ticket_id'   => 'nullable|exists:tickets,id',
             'due_date'    => 'nullable|date',
             'progress'    => 'nullable|integer|min:0|max:100',
         ]);
@@ -118,6 +123,9 @@ class TaskController extends Controller
         }
         if (isset($validated['due_date']) && $validated['due_date'] === '') {
             $validated['due_date'] = null;
+        }
+        if (isset($validated['ticket_id']) && $validated['ticket_id'] === '') {
+            $validated['ticket_id'] = null;
         }
 
         $task->update($validated);

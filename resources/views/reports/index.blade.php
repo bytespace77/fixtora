@@ -8,9 +8,32 @@
 .reports-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-bottom:18px; }
 .reports-head h1 { font-size:22px; font-weight:800; letter-spacing:-.5px; color:var(--navy); margin-bottom:4px; }
 .reports-head .subtitle { color:var(--muted); font-size:13px; margin:0; }
-.reports-filters { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-.flt-btn { border:1px solid var(--border); background:var(--surface); color:var(--text-2); border-radius:8px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer; }
-.flt-btn.primary { background:var(--blue-2); color:#fff; border-color:var(--blue-2); }
+/* Page header / Actions */
+.header-actions { display:flex; gap:10px; margin-top:4px; align-items:center; flex-wrap:wrap; }
+
+/* Range picker */
+.range-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid var(--border-2); border-radius:7px; font-size:12.5px; font-weight:600; color:var(--text-2); background:var(--surface); cursor:pointer; font-family:inherit; transition:all .12s; }
+.range-btn:hover, .range-btn.active { background:var(--bg); border-color:var(--blue); color:var(--blue); }
+.range-dropdown { display:none; position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow-md); z-index:300; min-width:180px; padding:6px; }
+.range-dropdown.open { display:block; }
+.range-option { padding:8px 12px; border-radius:7px; font-size:13px; font-weight:500; cursor:pointer; color:var(--text-2); transition:background .1s; }
+.range-option:hover { background:var(--blue-bg); color:var(--blue); }
+.range-option.selected { background:var(--blue-bg); color:var(--blue); font-weight:600; }
+.range-divider { height:1px; background:var(--border); margin:4px 0; }
+.range-custom { padding:8px 12px; }
+.range-custom label { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.4px; text-transform:uppercase; display:block; margin-bottom:5px; }
+.range-custom input { width:100%; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:12px; font-family:inherit; outline:none; }
+.range-custom input:focus { border-color:var(--blue); }
+.range-custom-apply { margin-top:8px; width:100%; padding:7px; background:var(--navy); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+
+/* Export */
+.export-wrap { position:relative; }
+.export-btn { display:flex; align-items:center; gap:6px; padding:8px 16px; background:var(--blue); color:#fff; border:none; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; transition:background .12s; }
+.export-btn:hover { background:var(--blue-2); }
+.export-dropdown { display:none; position:absolute; top:calc(100% + 6px); right:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow-md); z-index:300; min-width:160px; padding:6px; }
+.export-dropdown.open { display:block; }
+.export-option { display:flex; align-items:center; gap:9px; padding:9px 12px; border-radius:7px; font-size:13px; font-weight:500; cursor:pointer; color:var(--text-2); text-decoration:none; transition:background .1s; }
+.export-option:hover { background:var(--blue-bg); color:var(--blue); }
 
 .stats-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-bottom:14px; }
 .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px 22px; box-shadow:var(--shadow); text-align:left; }
@@ -73,10 +96,49 @@
             <h1>Reports & Analytics</h1>
             <p class="subtitle">Real-time performance overview for the last 30 days</p>
         </div>
-        <div class="reports-filters">
-            <button class="flt-btn">Last 30 Days</button>
-            <button class="flt-btn">All Systems</button>
-            <button class="flt-btn primary">Apply</button>
+        <div class="header-actions">
+            <!-- Date range picker -->
+            <div style="position:relative">
+              <button class="range-btn" id="rangeBtn" onclick="toggleDropdown('rangeMenu','rangeBtn')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                @php $rangeLabels = ['24h'=>'Last 24 Hours','7d'=>'Last 7 Days','30d'=>'Last 30 Days','90d'=>'Last 90 Days']; @endphp
+                {{ $rangeLabels[$range] ?? 'Custom Range' }}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="range-dropdown" id="rangeMenu">
+                @foreach(['24h'=>'Last 24 Hours','7d'=>'Last 7 Days','30d'=>'Last 30 Days','90d'=>'Last 90 Days'] as $k=>$v)
+                  <div class="range-option {{ $range === $k ? 'selected' : '' }}" onclick="applyRange('{{ $k }}')">{{ $v }}</div>
+                @endforeach
+                <div class="range-divider"></div>
+                <div class="range-custom">
+                  <label>Custom range</label>
+                  <input type="date" id="customFrom" value="{{ $from->format('Y-m-d') }}"/>
+                  <input type="date" id="customTo"   value="{{ $to->format('Y-m-d') }}" style="margin-top:5px"/>
+                  <button class="range-custom-apply" onclick="applyCustomRange()">Apply</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Export -->
+            @if(auth()->user()->hasPermission('export_reports') || auth()->user()->hasPermission('view_reports'))
+            <div class="export-wrap">
+              <button class="export-btn" id="exportBtn" onclick="toggleDropdown('exportMenu','exportBtn')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Report
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="export-dropdown" id="exportMenu">
+                <a class="export-option" href="{{ route('reports.index') }}?range={{ $range }}&export=pdf" target="_blank">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Export as PDF
+                </a>
+                <a class="export-option" href="{{ route('reports.index') }}?range={{ $range }}&export=excel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                  Export as Excel (CSV)
+                </a>
+              </div>
+            </div>
+            @endif
         </div>
     </div>
 
@@ -235,10 +297,23 @@
       },
       options: {
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#fff',
+            titleColor: '#111827',
+            bodyColor: '#6b7280',
+            borderColor: '#e5e7ef',
+            borderWidth: 1,
+            padding: 10,
+            boxPadding: 4,
+            usePointStyle: true
+          }
+        },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#6b7280' } },
-          y: { grid: { color: '#eef2f7' }, ticks: { color: '#6b7280' }, beginAtZero: true }
+          x: { grid: { display: false }, ticks: { color: '#6b7280', maxRotation: 0 } },
+          y: { grid: { color: '#eef2f7' }, ticks: { color: '#6b7280', stepSize: 1, callback: v => Number.isInteger(v)?v:'' }, beginAtZero: true }
         }
       }
     });
@@ -264,5 +339,33 @@
     });
   }
 })();
+
+// Filter and Export Interactivity Functions
+function toggleDropdown(menuId, btnId) {
+  const menu = document.getElementById(menuId);
+  const isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.range-dropdown,.export-dropdown').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.range-btn,.export-btn').forEach(b => b.classList.remove('active'));
+  if (!isOpen) {
+    menu.classList.add('open');
+    document.getElementById(btnId).classList.add('active');
+  }
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.header-actions')) {
+    document.querySelectorAll('.range-dropdown,.export-dropdown').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.range-btn,.export-btn').forEach(b => b.classList.remove('active'));
+  }
+});
+
+function applyRange(r) { window.location.href = '{{ route('reports.index') }}?range=' + r; }
+
+function applyCustomRange() {
+  const from = document.getElementById('customFrom').value;
+  const to   = document.getElementById('customTo').value;
+  if (!from || !to) { alert('Please select both dates.'); return; }
+  window.location.href = '{{ route('reports.index') }}?range=custom&custom=' + from + ',' + to;
+}
 </script>
 @endsection

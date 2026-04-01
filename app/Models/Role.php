@@ -33,6 +33,7 @@ class Role extends Model
                 'add_comments',         // Add comments on tickets
                 'delete_comments',      // Delete comments on tickets
                 'upload_attachments',   // Upload attachments to tickets
+                'select_system',        // Select system override for tickets
             ],
 
             // ── Tasks ──────────────────────────────────────────────

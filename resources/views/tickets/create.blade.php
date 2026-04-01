@@ -109,20 +109,23 @@ textarea.form-input:focus{border:none;box-shadow:none}
       </div>
 
       <div class="field-row">
+        @if(auth()->user()->hasPermission('select_system'))
         <div class="field-group">
-          <label class="lbl" for="system">Affected System</label>
+          <label class="lbl" for="system">System (Company)</label>
           <select id="system" name="system" class="form-input {{ $errors->has('system') ? 'is-invalid' : '' }}">
-            <option value="">Select System</option>
-            <option value="CRM Portal" {{ old('system') == 'CRM Portal' ? 'selected' : '' }}>CRM Portal</option>
-            <option value="Payment GW" {{ old('system') == 'Payment GW' ? 'selected' : '' }}>Payment GW</option>
-            <option value="API v2" {{ old('system') == 'API v2' ? 'selected' : '' }}>API v2</option>
-            <option value="Auth Service" {{ old('system') == 'Auth Service' ? 'selected' : '' }}>Auth Service</option>
-            <option value="Database" {{ old('system') == 'Database' ? 'selected' : '' }}>Database</option>
-            <option value="Network" {{ old('system') == 'Network' ? 'selected' : '' }}>Network</option>
-            <option value="Other" {{ old('system') == 'Other' ? 'selected' : '' }}>Other</option>
+            <option value="">Select Company System</option>
+            @foreach($companies as $companyName)
+            <option value="{{ $companyName }}" {{ old('system') == $companyName ? 'selected' : '' }}>{{ $companyName }}</option>
+            @endforeach
           </select>
           @error('system')<div class="error-msg">{{ $message }}</div>@enderror
         </div>
+        @else
+        <div class="field-group">
+          <label class="lbl" for="system">System (Company)</label>
+          <input type="text" class="form-input" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
+        </div>
+        @endif
         <div class="field-group">
           <label class="lbl" for="priority">Priority</label>
           <select id="priority" name="priority" class="form-input {{ $errors->has('priority') ? 'is-invalid' : '' }}">

@@ -445,7 +445,12 @@ textarea.form-control{resize:vertical;min-height:80px}
         <div class="form-group"><label>Title *</label><input type="text" name="title" class="form-control" value="{{ $ticket->title }}" required></div>
         <div class="form-group"><label>Description</label><textarea name="description" class="form-control">{{ $ticket->description }}</textarea></div>
         <div class="form-row">
-          <div class="form-group"><label>System</label><select name="system" class="form-control">@foreach(['Payment GW','CRM Portal','Auth Core','Cloud Infra'] as $sys)<option {{ $ticket->system===$sys?'selected':'' }}>{{ $sys }}</option>@endforeach</select></div>
+          @if(auth()->user()->hasPermission('select_system'))
+          @php $companies = \App\Models\Company::orderBy('name')->pluck('name'); @endphp
+          <div class="form-group"><label>System (Company)</label><select name="system" class="form-control">@foreach($companies as $sys)<option value="{{ $sys }}" {{ $ticket->system===$sys?'selected':'' }}>{{ $sys }}</option>@endforeach</select></div>
+          @else
+          <div class="form-group"><label>System (Company)</label><input type="text" class="form-control" value="{{ $ticket->system }}" disabled /></div>
+          @endif
           <div class="form-group"><label>Priority</label><select name="priority" class="form-control">@foreach(['low','medium','high','critical'] as $p)<option value="{{ $p }}" {{ $ticket->priority===$p?'selected':'' }}>{{ ucfirst($p) }}</option>@endforeach</select></div>
         </div>
         <div class="form-row">

@@ -49,6 +49,7 @@ class SchedulingController extends Controller
                 'date' => Carbon::parse($t->due_date)->format('Y-m-d'),
                 'sort_date' => Carbon::parse($t->due_date)->startOfDay(),
                 'status' => $t->status ?? 'todo',
+                'priority' => $t->priority ?? 'medium',
                 'link' => route('tasks.index'),
             ]);
         }
@@ -61,6 +62,7 @@ class SchedulingController extends Controller
                 'date' => Carbon::parse($t->due_date)->format('Y-m-d'),
                 'sort_date' => Carbon::parse($t->due_date)->startOfDay(),
                 'status' => $t->status ?? 'open',
+                'priority' => $t->priority ?? 'medium',
                 'link' => route('tickets.show', $t->id),
             ]);
         }

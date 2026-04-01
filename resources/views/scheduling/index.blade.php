@@ -46,11 +46,22 @@
 .cal-cell.today{background:var(--blue-bg);box-shadow:inset 0 0 0 1px rgba(37,99,235,.15)}
 .cal-day-num{font-weight:800;color:var(--text);font-size:12px;margin-bottom:4px}
 .cal-cell.muted .cal-day-num{color:var(--muted-lt);font-weight:600}
-.cal-pill{font-size:9px;font-weight:700;padding:3px 6px;border-radius:6px;margin-top:3px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;border:1px solid transparent;text-decoration:none}
-.cal-pill.ticket-pill{background:#fdf4ff;color:#c026d3;border-color:#fae8ff}
-.cal-pill.todo{background:var(--blue-bg);color:var(--blue-2);border-color:#bfdbfe}
-.cal-pill.doing{background:var(--orange-bg);color:var(--orange);border-color:#fed7aa}
-.cal-pill.done{background:var(--green-bg);color:var(--green);border-color:#bbf7d0}
+.cal-pill{display:flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:4px 6px;border-radius:6px;margin-top:4px;line-height:1.25;border:1px solid transparent;text-decoration:none;transition:transform 0.15s, opacity 0.15s;}
+.cal-pill:hover{transform:translateY(-1px);opacity:0.9;}
+.cal-pill-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Ticket Statuses (Solid) */
+.cal-pill.tkt-open { background: var(--orange); color: #fff; box-shadow: 0 2px 4px rgba(234, 88, 12, 0.2); }
+.cal-pill.tkt-in_progress { background: var(--blue); color: #fff; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+.cal-pill.tkt-in_review { background: #9333ea; color: #fff; box-shadow: 0 2px 4px rgba(147, 51, 234, 0.2); }
+.cal-pill.tkt-resolved { background: var(--green); color: #fff; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
+.cal-pill.tkt-closed { background: var(--muted); color: #fff; }
+
+/* Task Statuses (Pale - Based on Priority) */
+.cal-pill.tsk-low { background: var(--green-bg); color: var(--green); border-color: #bbf7d0; }
+.cal-pill.tsk-medium { background: var(--orange-bg); color: var(--orange); border-color: #fed7aa; }
+.cal-pill.tsk-high { background: #fee2e2; color: var(--red); border-color: #fca5a5; }
+.cal-pill.tsk-urgent { background: #fce7f3; color: #be185d; border-color: #fbcfe8; }
 
 .side-hdr{padding:16px 18px;border-bottom:1px solid var(--border)}
 .side-title{font-size:14px;font-weight:700;color:var(--navy)}
@@ -64,10 +75,18 @@
 .sch-main{flex:1;min-width:0}
 .sch-t{font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3}
 .sch-meta{font-size:11px;color:var(--muted);margin-top:4px}
-.pill-s{display:inline-block;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:2px 7px;border-radius:999px;margin-top:6px}
-.pill-s.todo{background:var(--blue-bg);color:var(--blue-2)}
-.pill-s.doing{background:var(--orange-bg);color:var(--orange)}
-.pill-s.done{background:var(--green-bg);color:var(--green)}
+.pill-s{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:3px 8px;border-radius:999px;margin-top:6px}
+/* Side pills Ticket */
+.pill-s.tkt-open { background: var(--orange); color: #fff; }
+.pill-s.tkt-in_progress { background: var(--blue); color: #fff; }
+.pill-s.tkt-in_review { background: #9333ea; color: #fff; }
+.pill-s.tkt-resolved { background: var(--green); color: #fff; }
+.pill-s.tkt-closed { background: var(--muted); color: #fff; }
+/* Side pills Task */
+.pill-s.tsk-low { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+.pill-s.tsk-medium { background: var(--orange-bg); color: var(--orange); border: 1px solid #fed7aa; }
+.pill-s.tsk-high { background: #fee2e2; color: var(--red); border: 1px solid #fca5a5; }
+.pill-s.tsk-urgent { background: #fce7f3; color: #be185d; border: 1px solid #fbcfe8; }
 
 .empty-msg{text-align:center;padding:28px 16px;color:var(--muted);font-size:13px;font-weight:600}
 
@@ -119,9 +138,9 @@
 <div class="sch-mid">
   <div class="card-box">
     <div class="cal-head">
-      <div class="cal-legend" style="justify-content:flex-start">
-        <span><span class="dot ticket"></span>Ticket</span>
-        <span><span class="dot todo"></span>Task</span>
+      <div class="cal-legend" style="justify-content:flex-start; gap: 16px;">
+        <span><span class="dot" style="background:var(--orange)"></span>Ticket (Solid Pill)</span>
+        <span><span class="dot" style="background:var(--blue-bg); border:1px solid #bfdbfe;"></span>Task (Pale Pill)</span>
       </div>
       <div class="cal-nav">
         <a href="{{ route('scheduling.index', ['month' => $prevMonth]) }}" class="btn-nav">‹</a>
@@ -140,15 +159,21 @@
             <div class="cal-cell {{ !$cell['inMonth'] ? 'muted' : '' }} {{ !empty($cell['isToday']) ? 'today' : '' }}">
               <div class="cal-day-num">{{ $cell['day'] }}</div>
               @foreach($cell['items']->take(3) as $item)
-                @if($item->type === 'ticket')
-                  <a href="{{ $item->link }}" class="cal-pill ticket-pill" title="{{ $item->title }}">{{ Str::limit($item->title, 22) }}</a>
-                @else
-                  @php
-                    $st = $item->status ?? 'todo';
-                    $cls = $st === 'doing' ? 'doing' : ($st === 'done' ? 'done' : 'todo');
-                  @endphp
-                  <a href="{{ $item->link }}" class="cal-pill {{ $cls }}" title="{{ $item->title }}">{{ Str::limit($item->title, 22) }}</a>
-                @endif
+                @php
+                  $st = $item->status ?? '';
+                  $pr = $item->priority ?? 'medium';
+                  $isTicket = $item->type === 'ticket';
+                  $cls = $isTicket ? 'tkt-' . $st : 'tsk-' . $pr;
+                  // Icons
+                  $icon = $isTicket 
+                    ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.6 3 12"></polyline><polyline points="21 12 16.5 14.6 16.5 19.79"></polyline><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
+                    : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>';
+                  
+                  $titleText = $isTicket ? preg_replace('/^Tkt:\s*/', '', $item->title) : $item->title;
+                @endphp
+                <a href="{{ $item->link }}" class="cal-pill {{ $cls }}" title="{{ $item->title }}">
+                  {!! $icon !!} <span class="cal-pill-text">{{ Str::limit($titleText, 20) }}</span>
+                </a>
               @endforeach
               @if($cell['items']->count() > 3)
                 <div style="font-size:9px;font-weight:700;color:var(--muted);margin-top:4px">+{{ $cell['items']->count() - 3 }} more</div>
@@ -197,9 +222,15 @@
               @endif
             </div>
             @if($item->type === 'ticket')
-              <span class="pill-s" style="background:#fdf4ff;color:#c026d3;border:1px solid #fae8ff">{{ ucfirst(str_replace('_',' ',$st)) }}</span>
+              <span class="pill-s tkt-{{ $item->status ?? 'open' }}">
+                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.6 3 12"></polyline><polyline points="21 12 16.5 14.6 16.5 19.79"></polyline><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                 {{ ucfirst(str_replace('_',' ',$item->status ?? 'open')) }}
+              </span>
             @else
-              <span class="pill-s {{ $pill }}">{{ ucfirst($st) }}</span>
+              <span class="pill-s tsk-{{ $item->priority ?? 'medium' }}">
+                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                 {{ ucfirst($item->priority ?? 'medium') }} Task
+              </span>
             @endif
           </div>
         </a>
