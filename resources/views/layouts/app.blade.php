@@ -473,7 +473,8 @@ html, body {
     </a>
 
     <nav class="sb-nav">
-      {{-- Dashboard: always visible --}}
+      {{-- Dashboard --}}
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_dashboard'))
       <a href="{{ route('home') }}" class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -481,6 +482,7 @@ html, body {
         </svg>
         Dashboard
       </a>
+      @endif
 
       {{-- Tickets --}}
       @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('list_tickets') || Auth::user()->hasPermission('create_tickets'))
@@ -568,12 +570,14 @@ html, body {
     </nav>
 
     <div class="sb-bottom">
+      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('create_tickets'))
       <a href="{{ route('tickets.create') }}" class="new-ticket-btn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
         New Ticket
       </a>
+      @endif
 
       <div class="sb-util-links">
         <a href="{{ route('settings.index') }}" class="sb-util-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">

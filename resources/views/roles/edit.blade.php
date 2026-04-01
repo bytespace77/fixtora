@@ -36,6 +36,7 @@
       <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin-bottom:20px; box-shadow:var(--shadow-sm);">
         <h2 style="font-size:14px; font-weight:700; margin-bottom:16px; color:var(--text);">Users in role</h2>
 
+        @if(auth()->user()->hasPermission('assign_users_to_role'))
         <form action="{{ route('roles.association', $role) }}" method="POST">
           @csrf
 
@@ -91,6 +92,7 @@
             </a>
           </div>
         </form>
+        @endif
       </div>
 
       {{-- Permissions --}}
@@ -108,6 +110,7 @@
           @endforeach
         </div>
 
+        @if(auth()->user()->hasPermission('assign_permissions'))
         <form action="{{ route('roles.permissions', $role) }}" method="POST">
           @csrf
 
@@ -151,6 +154,7 @@
             </a>
           </div>
         </form>
+        @endif
       </div>
 
     </div>{{-- end left --}}
@@ -159,6 +163,7 @@
     <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow-sm);">
       <h2 style="font-size:14px; font-weight:700; margin-bottom:16px; color:var(--text);">Edit user role</h2>
 
+      @if(auth()->user()->hasPermission('edit_roles'))
       <form action="{{ route('roles.update', $role) }}" method="POST">
         @csrf @method('PATCH')
 
@@ -181,6 +186,7 @@
           Save changes
         </button>
       </form>
+      @endif
     </div>
 
   </div>

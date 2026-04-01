@@ -16,6 +16,8 @@ class HomeController extends Controller
 
     public function index(Request $request)
     {
+        abort_unless(auth()->user()->hasPermission('view_dashboard'), 403, 'You do not have permission to view the dashboard.');
+
         // ── Date range filter ─────────────────────────────────────────────
         $range  = $request->input('range', '7d');   // 24h | 7d | 30d | 90d
         $custom = $request->input('custom');         // YYYY-MM-DD,YYYY-MM-DD
@@ -63,6 +65,7 @@ class HomeController extends Controller
 
         // ── Export ────────────────────────────────────────────────────────
         if ($request->has('export')) {
+            abort_unless(auth()->user()->hasPermission('export_dashboard'), 403, 'You do not have permission to export reports.');
             return $this->handleExport($request->input('export'), $from, $to, $stats);
         }
 

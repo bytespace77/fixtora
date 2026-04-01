@@ -9,11 +9,15 @@ class IntegrationRequestController extends Controller
 {
     public function create()
     {
+        abort_unless(auth()->user()->hasPermission('view_integrations'), 403, 'You do not have permission to view integrations.');
+
         return view('integrations.custom-request');
     }
 
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->hasPermission('submit_custom_request'), 403, 'You do not have permission to submit integration requests.');
+
         $validated = $request->validate([
             'requested_integration' => ['required', 'string', 'max:255'],
             'contact_name' => ['required', 'string', 'max:255'],

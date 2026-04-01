@@ -16,6 +16,8 @@ class ReportController extends Controller
 
     public function index()
     {
+        abort_unless(auth()->user()->hasPermission('view_reports'), 403, 'You do not have permission to view reports.');
+
         $totalTickets = Ticket::count();
 
         // Avg Resolution Time in Hours

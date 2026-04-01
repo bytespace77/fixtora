@@ -18,6 +18,8 @@ class TaskController extends Controller
      */
     public function index()
     {
+        abort_unless(auth()->user()->hasPermission('list_tasks'), 403, 'You do not have permission to view tasks.');
+
         $todo  = Task::with(['assignee', 'ticket'])->todo()->latest()->get();
         $doing = Task::with(['assignee', 'ticket'])->doing()->latest()->get();
         $done  = Task::with(['assignee', 'ticket'])->done()->latest()->get();
@@ -63,6 +65,8 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->hasPermission('create_tasks'), 403, 'You do not have permission to create tasks.');
+
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -96,6 +100,8 @@ class TaskController extends Controller
             return $this->destroy($task);
         }
 
+        abort_unless(auth()->user()->hasPermission('edit_tasks'), 403, 'You do not have permission to edit tasks.');
+
         $validated = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
@@ -128,6 +134,8 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
+        abort_unless(auth()->user()->hasPermission('delete_tasks'), 403, 'You do not have permission to delete tasks.');
+
         $task->delete();
 
         if (request()->expectsJson()) {

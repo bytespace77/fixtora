@@ -11,6 +11,8 @@ class RoleController extends Controller
     // List all roles
     public function index()
     {
+        abort_unless(auth()->user()->hasPermission('view_roles'), 403, 'You do not have permission to view roles.');
+
         $roles = Role::withCount('users')->orderBy('name')->get();
         return view('roles.index', compact('roles'));
     }
@@ -18,6 +20,8 @@ class RoleController extends Controller
     // Show create form
     public function create()
     {
+        abort_unless(auth()->user()->hasPermission('create_roles'), 403, 'You do not have permission to create roles.');
+
         $permissions = Role::allPermissions();
         return view('roles.create', compact('permissions'));
     }
@@ -25,6 +29,8 @@ class RoleController extends Controller
     // Store new role
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->hasPermission('create_roles'), 403, 'You do not have permission to create roles.');
+
         $request->validate([
             'name'        => 'required|string|max:100|unique:roles,name',
             'description' => 'nullable|string|max:255',
@@ -43,6 +49,8 @@ class RoleController extends Controller
     // Show edit form (permissions + user assignment)
     public function edit(Role $role)
     {
+        abort_unless(auth()->user()->hasPermission('edit_roles'), 403, 'You do not have permission to edit roles.');
+
         $permissions    = Role::allPermissions();
         $assignedUsers  = $role->users()->orderBy('name')->get();
         $unassignedUsers = User::whereNull('role_id')
@@ -55,6 +63,8 @@ class RoleController extends Controller
     // Update role name/description
     public function update(Request $request, Role $role)
     {
+        abort_unless(auth()->user()->hasPermission('edit_roles'), 403, 'You do not have permission to edit roles.');
+
         $request->validate([
             'name'        => 'required|string|max:100|unique:roles,name,' . $role->id,
             'description' => 'nullable|string|max:255',
@@ -71,6 +81,8 @@ class RoleController extends Controller
     // Save permissions for a role
     public function savePermissions(Request $request, Role $role)
     {
+        abort_unless(auth()->user()->hasPermission('assign_permissions'), 403, 'You do not have permission to assign permissions.');
+
         $request->validate([
             'permissions' => 'nullable|array',
         ]);
@@ -83,6 +95,8 @@ class RoleController extends Controller
     // Save user assignments for a role
     public function saveAssociation(Request $request, Role $role)
     {
+        abort_unless(auth()->user()->hasPermission('assign_users_to_role'), 403, 'You do not have permission to assign users to roles.');
+
         $request->validate([
             'assigned_users' => 'nullable|array',
             'assigned_users.*' => 'exists:users,id',
@@ -101,6 +115,8 @@ class RoleController extends Controller
     // Delete a role
     public function destroy(Role $role)
     {
+        abort_unless(auth()->user()->hasPermission('delete_roles'), 403, 'You do not have permission to delete roles.');
+
         // Unassign users before deleting
         $role->users()->update(['role_id' => null]);
         $role->delete();

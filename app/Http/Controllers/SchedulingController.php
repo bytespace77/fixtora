@@ -14,6 +14,8 @@ class SchedulingController extends Controller
 
     public function index(\Illuminate\Http\Request $request)
     {
+        abort_unless(auth()->user()->hasPermission('view_scheduling'), 403, 'You do not have permission to view scheduling.');
+
         $monthParam = $request->input('month');
         if ($monthParam && preg_match('/^\d{4}-\d{2}$/', $monthParam)) {
             $month = Carbon::createFromFormat('Y-m-d', $monthParam . '-01')->startOfDay();

@@ -180,12 +180,16 @@ textarea.form-control{resize:vertical;min-height:80px}
     </div>
   </div>
   <div class="hdr-btns">
+    @if(auth()->user()->hasPermission('edit_tickets'))
     <button onclick="openEditModal()" class="btn-sm">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
     </button>
+    @endif
+    @if(auth()->user()->hasPermission('delete_tickets'))
     <button onclick="openDeleteModal()" class="btn-sm btn-danger-outline">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>Delete
     </button>
+    @endif
     <a href="{{ route('tickets.index') }}" class="btn-sm">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>Back
     </a>
@@ -288,7 +292,7 @@ textarea.form-control{resize:vertical;min-height:80px}
                   <span class="cmt-name">{{ $comment->user->name??($comment->role==='superadmin'?'Superadmin':'User') }}</span>
                   <span class="cmt-role-badge {{ $comment->role==='superadmin'?'badge-admin':'badge-user' }}">{{ $comment->role==='superadmin'?'Admin':'User' }}</span>
                   <span class="cmt-time">{{ $comment->created_at->diffForHumans() }}</span>
-                  @if($comment->user_id === auth()->id())
+                  @if($comment->user_id === auth()->id() && auth()->user()->hasPermission('delete_comments'))
                   <button class="cmt-del-pill" onclick="confirmDeleteComment({{ $comment->id }},'{{ addslashes(Str::limit($comment->body,40)) }}')" title="Delete comment">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     Delete
@@ -321,6 +325,7 @@ textarea.form-control{resize:vertical;min-height:80px}
       </div>
 
       {{-- Comment input with file attach --}}
+      @if(auth()->user()->hasPermission('add_comments'))
       <form id="cmtForm" action="{{ route('tickets.comments.store', $ticket) }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="cmt-input-wrap">
@@ -332,9 +337,12 @@ textarea.form-control{resize:vertical;min-height:80px}
             </div>
           </div>
           <div class="cmt-editor">
-            <textarea name="body" id="cmtInput" class="cmt-textarea" rows="3" placeholder="Write a comment… attach files with the 📎 button or drag &amp; drop below" required onkeydown="handleCmtKey(event)"></textarea>
+            <textarea name="body" id="cmtInput" class="cmt-textarea" rows="3"
+              placeholder="{{ auth()->user()->hasPermission('upload_attachments') ? 'Write a comment… attach files with the 📎 button or drag & drop below' : 'Write a comment…' }}"
+              required onkeydown="handleCmtKey(event)"></textarea>
             <div id="cmtFilePreview" class="cmt-file-preview"></div>
             {{-- Drag-and-drop zone for comment attachments --}}
+            @if(auth()->user()->hasPermission('upload_attachments'))
             <div id="cmtDropZone" class="cmt-drop-zone"
                  ondrop="handleCmtDrop(event)" ondragover="handleCmtDragOver(event)" ondragleave="handleCmtDragLeave(event)"
                  onclick="document.getElementById('cmtFileInput').click()">
@@ -342,6 +350,7 @@ textarea.form-control{resize:vertical;min-height:80px}
               <span id="cmtDropLabel">Attach files — click or drag &amp; drop here</span>
               <span class="cmt-drop-hint">JPG, PNG, LOG, JSON, ZIP · max 25MB</span>
             </div>
+            @endif
             <div class="cmt-toolbar">
               <div class="toolbar-left" style="font-size:11px;color:var(--muted-lt)">
                 <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly
@@ -360,9 +369,12 @@ textarea.form-control{resize:vertical;min-height:80px}
               </div>
             </div>
           </div>
+          @if(auth()->user()->hasPermission('upload_attachments'))
           <input type="file" id="cmtFileInput" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.log,.json,.zip" style="display:none" onchange="handleCmtFileSelect(this.files);">
+          @endif
         </div>
       </form>
+      @endif
     </div>
 
   </div>
@@ -373,6 +385,7 @@ textarea.form-control{resize:vertical;min-height:80px}
     <div class="card">
       <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Update Status</div></div>
       <div class="card-body">
+        @if(auth()->user()->hasPermission('edit_tickets'))
         <form action="{{ route('tickets.update', $ticket) }}" method="POST">
           @csrf @method('PATCH')
           <select name="status" class="status-select">
@@ -384,6 +397,9 @@ textarea.form-control{resize:vertical;min-height:80px}
           </select>
           <button type="submit" class="btn-full"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Save Status</button>
         </form>
+        @else
+        <p style="font-size:13px;color:var(--muted)">You do not have permission to update the status.</p>
+        @endif
       </div>
     </div>
 

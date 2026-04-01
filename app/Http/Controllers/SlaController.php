@@ -14,6 +14,8 @@ class SlaController extends Controller
 
     public function index()
     {
+        abort_unless(auth()->user()->hasPermission('view_sla_monitor'), 403, 'You do not have permission to view the SLA monitor.');
+
         $total    = Ticket::count();
         $resolved = Ticket::where('status', 'resolved')->count();
 

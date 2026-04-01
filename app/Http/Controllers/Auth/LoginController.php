@@ -42,7 +42,27 @@ class LoginController extends Controller
         ]);
 
         // Route to the user's company workspace
-        return redirect()->intended('/home');
+        $user = auth()->user();
+        if ($user->isSuperAdmin() || $user->hasPermission('view_dashboard')) {
+            return redirect()->intended('/home');
+        }
+        // Find first permitted section
+        $fallbacks = [
+            'list_tickets'    => '/tickets',
+            'create_tickets'  => '/tickets',
+            'list_tasks'      => '/tasks',
+            'view_reports'    => '/reports',
+            'view_sla_monitor'=> '/sla-monitor',
+            'view_scheduling' => '/scheduling',
+            'view_roles'      => '/roles',
+            'view_integrations'=> '/integrations/custom-request',
+        ];
+        foreach ($fallbacks as $permission => $route) {
+            if ($user->hasPermission($permission)) {
+                return redirect($route);
+            }
+        }
+        return redirect('/profile');
     }
 
     protected function loggedOut(Request $request)

@@ -17,6 +17,8 @@ class TicketController extends Controller
 
     public function index(Request $request)
     {
+        abort_unless(auth()->user()->hasPermission('list_tickets'), 403, 'You do not have permission to view tickets.');
+
         $query = Ticket::with('user')->latest();
         if ($request->status) {
             $query->where('status', $request->status);
@@ -27,11 +29,15 @@ class TicketController extends Controller
 
     public function create()
     {
+        abort_unless(auth()->user()->hasPermission('create_tickets'), 403, 'You do not have permission to create tickets.');
+
         return view('tickets.create');
     }
 
     public function store(Request $request)
     {
+        abort_unless(auth()->user()->hasPermission('create_tickets'), 403, 'You do not have permission to create tickets.');
+
         $validated = $request->validate([
             'title'         => 'required|string|max:255',
             'description'   => 'required|string',
@@ -68,6 +74,8 @@ class TicketController extends Controller
 
     public function show(Ticket $ticket)
     {
+        abort_unless(auth()->user()->hasPermission('view_tickets'), 403, 'You do not have permission to view this ticket.');
+
         if (!$ticket->is_read) {
             $ticket->timestamps = false;
             $ticket->is_read = true;
@@ -87,6 +95,8 @@ class TicketController extends Controller
 
     public function update(Request $request, Ticket $ticket)
     {
+        abort_unless(auth()->user()->hasPermission('edit_tickets'), 403, 'You do not have permission to edit tickets.');
+
         $validated = $request->validate([
             'title'       => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
@@ -115,6 +125,8 @@ class TicketController extends Controller
 
     public function addComment(Request $request, Ticket $ticket)
     {
+        abort_unless(auth()->user()->hasPermission('add_comments'), 403, 'You do not have permission to add comments.');
+
         $request->validate([
             'body'          => 'required|string',
             'role'          => 'required|in:superadmin,user',
@@ -152,6 +164,8 @@ class TicketController extends Controller
     // Upload new attachment to an existing ticket (no comment)
     public function uploadAttachment(Request $request, Ticket $ticket)
     {
+        abort_unless(auth()->user()->hasPermission('upload_attachments'), 403, 'You do not have permission to upload attachments.');
+
         $request->validate([
             'attachments'   => 'required|array|max:10',
             'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
@@ -176,6 +190,7 @@ class TicketController extends Controller
     // Delete a single attachment
     public function deleteAttachment(Ticket $ticket, TicketAttachment $attachment)
     {
+        abort_unless(auth()->user()->hasPermission('delete_attachments'), 403, 'You do not have permission to delete attachments.');
         abort_if($attachment->ticket_id !== $ticket->id, 403);
         Storage::disk('public')->delete($attachment->stored_path);
         $attachment->delete();
@@ -184,6 +199,8 @@ class TicketController extends Controller
 
     public function destroy(Ticket $ticket)
     {
+        abort_unless(auth()->user()->hasPermission('delete_tickets'), 403, 'You do not have permission to delete tickets.');
+
         Storage::disk('public')->deleteDirectory("ticket-attachments/{$ticket->id}");
         $ticket->delete();
         return redirect()->route('tickets.index')->with('success', 'Ticket deleted!');
@@ -192,6 +209,7 @@ class TicketController extends Controller
     // Delete a single comment (and its attachments) — only the comment's author may delete
     public function deleteComment(Ticket $ticket, \App\Models\TicketComment $comment)
     {
+        abort_unless(auth()->user()->hasPermission('delete_comments'), 403, 'You do not have permission to delete comments.');
         abort_if($comment->ticket_id !== $ticket->id, 403);
         abort_if($comment->user_id !== auth()->id(), 403);
         // Delete any files attached to this comment

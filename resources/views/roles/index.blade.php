@@ -11,10 +11,12 @@
       <h1 style="font-size:20px; font-weight:700; color:var(--text); margin-bottom:3px;">User Roles</h1>
       <p style="font-size:13px; color:var(--muted);">Create roles and assign permissions to control access.</p>
     </div>
+    @if(auth()->user()->hasPermission('create_roles'))
     <a href="{{ route('roles.create') }}" style="display:inline-flex; align-items:center; gap:6px; background:var(--navy); color:#fff; padding:9px 16px; border-radius:var(--radius-sm); font-size:13px; font-weight:600; text-decoration:none;">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       New Role
     </a>
+    @endif
   </div>
 
   {{-- Flash --}}
@@ -49,10 +51,13 @@
               <span style="background:var(--blue-bg); color:var(--blue); font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px;">{{ $role->users_count }}</span>
             </td>
             <td style="padding:13px 16px; text-align:right;">
+              @if(auth()->user()->hasPermission('edit_roles'))
               <a href="{{ route('roles.edit', $role) }}" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--blue); font-weight:600; text-decoration:none; padding:5px 12px; border:1px solid var(--border); border-radius:var(--radius-sm);">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Edit
               </a>
+              @endif
+              @if(auth()->user()->hasPermission('delete_roles'))
               <form action="{{ route('roles.destroy', $role) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete role {{ $role->name }}? Users will be unassigned.')">
                 @csrf @method('DELETE')
                 <button type="submit" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--red); font-weight:600; background:none; border:1px solid var(--border); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer; margin-left:6px;">
@@ -60,6 +65,7 @@
                   Delete
                 </button>
               </form>
+              @endif
             </td>
           </tr>
           @endforeach
