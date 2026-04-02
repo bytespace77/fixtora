@@ -362,7 +362,7 @@ textarea.form-control{resize:vertical;min-height:80px}
       </div>
       <div class="modal-foot">
         <button type="button" onclick="closeModal()" class="btn-sm">Cancel</button>
-        <button type="submit" id="modalSaveBtn" class="btn-sm btn-primary">Create Ticket</button>
+        <button type="button" id="modalSaveBtn" class="btn-sm btn-primary" onclick="submitTicketForm()">Create Ticket</button>
       </div>
     </form>
   </div>
@@ -507,12 +507,62 @@ function showToast(msg,ok=true){
   t._t=setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// Edit needs PATCH — update action dynamically
-document.getElementById('ticketForm').addEventListener('submit',function(){
-  if(currentMode==='edit'){
-    this.action='/tickets/'+document.getElementById('formTicketId').value;
+// Submit via FormData+fetch so files from modalFiles array are reliably sent
+function submitTicketForm() {
+  const form = document.getElementById('ticketForm');
+
+  // Basic HTML5 validation
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+
+  const btn = document.getElementById('modalSaveBtn');
+  btn.disabled = true;
+  btn.textContent = currentMode === 'new' ? 'Creating…' : 'Saving…';
+
+  const fd = new FormData(form);
+  const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+  if (currentMode === 'new') {
+    // Remove any file input value that was set via DataTransfer (unreliable)
+    fd.delete('attachments[]');
+    // Append files directly from the modalFiles JS array (reliable)
+    modalFiles.forEach(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (modalAllowed.includes(ext) && f.size / 1024 / 1024 <= modalMaxMB) {
+        fd.append('attachments[]', f);
+      }
+    });
+    fd.set('_method', 'POST');
+    var action = '{{ route("tickets.store") }}';
+  } else {
+    fd.set('_method', 'PATCH');
+    var action = '/tickets/' + document.getElementById('formTicketId').value;
   }
-});
+
+  fetch(action, {
+    method: 'POST',
+    body: fd,
+    headers: {
+      'X-CSRF-TOKEN': csrf,
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  }).then(r => {
+    if (r.redirected) {
+      window.location.href = r.url;
+    } else if (r.ok) {
+      window.location.reload();
+    } else {
+      return r.text().then(text => {
+        showToast('Error: please check all fields', false);
+        btn.disabled = false;
+        btn.textContent = currentMode === 'new' ? 'Create Ticket' : 'Save Changes';
+      });
+    }
+  }).catch(() => {
+    showToast('Upload failed — please try again', false);
+    btn.disabled = false;
+    btn.textContent = currentMode === 'new' ? 'Create Ticket' : 'Save Changes';
+  });
+}
 
 // Modal file upload — with removable pills
 let modalFiles = [];
