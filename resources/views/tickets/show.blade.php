@@ -307,14 +307,32 @@ textarea.form-control{resize:vertical;min-height:80px}
       <div class="card-body" style="padding-bottom:0">
         <div class="comment-list">
           @forelse($ticket->comments as $comment)
+            @php
+              $cmtUser     = $comment->user;
+              $cmtUserRole = $cmtUser?->userRole?->name ?? null;
+              $cmtSysRole  = $cmtUser?->role ?? $comment->role ?? 'user';
+              if ($cmtSysRole === 'superadmin') {
+                  $cmtRoleLabel  = 'Superadmin';
+                  $cmtBadgeClass = 'badge-admin';
+                  $cmtAvColor    = '#0f1f38';
+              } elseif ($cmtUserRole) {
+                  $cmtRoleLabel  = ucfirst($cmtUserRole);
+                  $cmtBadgeClass = 'badge-user';
+                  $cmtAvColor    = '#2563eb';
+              } else {
+                  $cmtRoleLabel  = 'User';
+                  $cmtBadgeClass = 'badge-user';
+                  $cmtAvColor    = '#2563eb';
+              }
+            @endphp
             <div class="comment-item">
-              <div class="cmt-av" style="background:{{ $comment->role==='superadmin'?'#0f1f38':'#2563eb' }}">
-                {{ strtoupper(substr($comment->user->name??'U',0,2)) }}
+              <div class="cmt-av" style="background:{{ $cmtAvColor }}">
+                {{ strtoupper(substr($cmtUser->name??'U',0,2)) }}
               </div>
               <div class="cmt-bubble">
                 <div class="cmt-meta">
-                  <span class="cmt-name">{{ $comment->user->name??($comment->role==='superadmin'?'Superadmin':'User') }}</span>
-                  <span class="cmt-role-badge {{ $comment->role==='superadmin'?'badge-admin':'badge-user' }}">{{ $comment->role==='superadmin'?'Admin':'User' }}</span>
+                  <span class="cmt-name">{{ $cmtUser->name??'Unknown' }}</span>
+                  <span class="cmt-role-badge {{ $cmtBadgeClass }}">{{ $cmtRoleLabel }}</span>
                   <span class="cmt-time">{{ $comment->created_at->diffForHumans() }}</span>
                   @if($comment->user_id === auth()->id() && auth()->user()->hasPermission('delete_comments'))
                   <button class="cmt-del-pill" onclick="confirmDeleteComment({{ $comment->id }},'{{ addslashes(Str::limit($comment->body,40)) }}')" title="Delete comment">
@@ -383,7 +401,7 @@ textarea.form-control{resize:vertical;min-height:80px}
                 <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly
               </div>
               <div class="toolbar-right">
-                <input type="hidden" name="role" value="superadmin">
+                <input type="hidden" name="role" value="{{ auth()->user()->role }}">
                 <button type="submit" class="send-btn" id="cmtSendBtn">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send
                 </button>
