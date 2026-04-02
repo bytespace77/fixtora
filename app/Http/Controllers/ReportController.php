@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Task;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -75,25 +76,105 @@ class ReportController extends Controller
         
         $distribution = [$backend + $others, $frontend, $api];
 
-        // Team Performance (Using Users to mock Agents)
-        $users = User::take(5)->get();
-        $agents = $users->map(function($u) use ($from, $to) {
-            $resolvedCount = Ticket::where('user_id', $u->id)
-                ->whereIn('status', ['resolved', 'closed'])
-                ->whereBetween('updated_at', [$from, $to])
-                ->count();
-            return [
-                'name' => $u->name,
-                'role' => 'Support Agent',
-                'initials' => strtoupper(substr($u->name, 0, 2)),
-                'color' => '#' . str_pad(dechex(crc32($u->name) & 0xFFFFFF), 6, '0', STR_PAD_LEFT),
-                'resolved' => $resolvedCount,
-                'avg_response' => rand(1, 4) . 'h ' . rand(10, 50) . 'm',
-                'load' => rand(10, 70),
-                'csat' => '4.' . rand(5, 9),
-                'status' => 'online'
+        // Team Performance — superadmin only, grouped by role
+        $isSuperAdmin = auth()->user()->isSuperAdmin();
+        $agentsByRole = [];
+
+        if ($isSuperAdmin) {
+            // Helper: real stats for an array of user IDs, sourced from tasks
+            $buildStats = function (array $userIds) use ($from, $to): array {
+                if (empty($userIds)) {
+                    return ['resolved' => 0, 'avg_response' => '—', 'load' => 0];
+                }
+
+                // Resolved: tasks assigned to these users with status 'done' within the date range
+                // withoutGlobalScopes() prevents the Task scope from re-filtering by Auth::user()
+                $doneTasks = Task::withoutGlobalScopes()
+                    ->whereIn('assigned_to', $userIds)
+                    ->where('status', 'done')
+                    ->whereBetween('updated_at', [$from, $to])
+                    ->get(['assigned_date', 'actual_delivery_date', 'created_at', 'updated_at']);
+
+                $resolvedCount = $doneTasks->count();
+
+                // Avg Response: assigned_date → actual_delivery_date (fall back to created_at / updated_at)
+                if ($resolvedCount > 0) {
+                    $totalMins = $doneTasks->sum(function ($t) {
+                        $start = $t->assigned_date   ? Carbon::parse($t->assigned_date)          : $t->created_at;
+                        $end   = $t->actual_delivery_date ? Carbon::parse($t->actual_delivery_date) : $t->updated_at;
+                        return max(0, $start->diffInMinutes($end));
+                    });
+                    $avgMins = intval($totalMins / $resolvedCount);
+                    $h = intdiv($avgMins, 60);
+                    $m = $avgMins % 60;
+                    $avgResponse = $h > 0 ? "{$h}h {$m}m" : "{$m}m";
+                } else {
+                    $avgResponse = '—';
+                }
+
+                // Load: tasks currently active (not yet done)
+                $openCount = Task::withoutGlobalScopes()
+                    ->whereIn('assigned_to', $userIds)
+                    ->whereIn('status', ['todo', 'doing'])
+                    ->count();
+                $loadPct = min(100, $openCount * 5);
+
+                return ['resolved' => $resolvedCount, 'avg_response' => $avgResponse, 'load' => $loadPct];
+            };
+
+            $roleConfig = [
+                'superadmin' => ['label' => 'Super Admin', 'color' => '#1e3a6e'],
+                'developer'  => ['label' => 'Developer',   'color' => '#2a7a5e'],
+                'admin'      => ['label' => 'Admin',        'color' => '#5a3e8a'],
             ];
-        })->toArray();
+
+            // Superadmin row first (current user)
+            $superUser = auth()->user();
+            $s = $buildStats([$superUser->id]);
+            $agentsByRole['Super Admin'][] = [
+                'name'         => $superUser->name,
+                'initials'     => strtoupper(substr($superUser->name, 0, 2)),
+                'color'        => '#1e3a6e',
+                'resolved'     => $s['resolved'],
+                'avg_response' => $s['avg_response'],
+                'load'         => $s['load'],
+            ];
+
+            // All staff — match by the `role` string column OR by the linked custom role name
+            $staffUsers = User::where(function ($q) {
+                    $q->whereIn('role', ['developer', 'admin'])
+                      ->orWhereHas('userRole', fn($r) => $r->whereRaw('LOWER(name) IN (?,?)', ['developer', 'admin']));
+                })
+                ->with('userRole')
+                ->orderBy('name')
+                ->get();
+
+            foreach ($staffUsers as $u) {
+                // Prefer the linked custom role name; fall back to the role string column
+                $rawRole   = strtolower(trim((string) (optional($u->userRole)->name ?: $u->role)));
+                $cfg       = $roleConfig[$rawRole] ?? ['label' => ucfirst($rawRole), 'color' => '#3b6ea8'];
+                $roleLabel = $cfg['label'];
+                $s = $buildStats([$u->id]);
+                $agentsByRole[$roleLabel][] = [
+                    'name'         => $u->name,
+                    'initials'     => strtoupper(substr($u->name, 0, 2)),
+                    'color'        => $cfg['color'],
+                    'resolved'     => $s['resolved'],
+                    'avg_response' => $s['avg_response'],
+                    'load'         => $s['load'],
+                ];
+            }
+
+            // Ensure consistent role order: Developer before Admin
+            $roleOrder = ['Developer', 'Admin'];
+            uksort($agentsByRole, function ($a, $b) use ($roleOrder) {
+                $posA = array_search($a, $roleOrder);
+                $posB = array_search($b, $roleOrder);
+                $posA = $posA === false ? 99 : $posA;
+                $posB = $posB === false ? 99 : $posB;
+                return $posA <=> $posB;
+            });
+        }
 
         // ── Export ────────────────────────────────────────────────────────
         if ($request->has('export')) {
@@ -108,7 +189,8 @@ class ReportController extends Controller
 
         return view('reports.index', compact(
             'totalTickets', 'avgResolution', 'slaCompliance', 'csat',
-            'labels', 'newTrend', 'closedTrend', 'distribution', 'agents',
+            'labels', 'newTrend', 'closedTrend', 'distribution',
+            'isSuperAdmin', 'agentsByRole',
             'range', 'from', 'to'
         ));
     }

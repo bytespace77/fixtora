@@ -76,6 +76,9 @@
 .away { color:var(--orange); }
 .csat { color:#059669; background:#ecfdf5; border-radius:999px; padding:3px 8px; font-size:11px; font-weight:800; display:inline-block; }
 .empty-msg { text-align:center; padding:26px 10px; color:var(--muted); font-size:13px; font-weight:600; }
+.role-group-row td { padding:8px 18px 6px; background:var(--bg); border-bottom:1px solid var(--border); border-top:1px solid var(--border); }
+.role-group-label { display:inline-flex; align-items:center; gap:7px; font-size:10.5px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:var(--navy); }
+.role-group-dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; }
 
 @media (max-width: 1120px) {
   .stats-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
@@ -205,63 +208,70 @@
         </div>
     </div>
 
+    @if($isSuperAdmin)
     <div class="team-panel">
         <div class="team-head">
             <div>
                 <h3>Team Performance</h3>
-                <p>Live metrics for active support agents</p>
+                <p>Metrics grouped by role for all staff</p>
             </div>
-            <a href="#">View All Agents</a>
         </div>
         <table class="team-table">
             <thead>
                 <tr>
-                    <th>Agent Name</th>
+                    <th>Name</th>
                     <th>Resolved</th>
                     <th>Avg Response</th>
                     <th>Load</th>
                     <th>CSAT</th>
-                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($agents as $a)
-                <tr>
-                    <td>
-                        <div class="agent-cell">
-                            <div class="agent-avatar" style="background:{{ $a['color'] ?? 'var(--blue)' }}">{{ $a['initials'] ?? 'Ag' }}</div>
-                            <div>
+                @php
+                    $roleColors = [
+                        'Super Admin' => '#1e3a6e',
+                        'Developer'   => '#2a7a5e',
+                        'Admin'       => '#5a3e8a',
+                    ];
+                @endphp
+                @forelse($agentsByRole as $roleLabel => $members)
+                    {{-- Role header row --}}
+                    <tr class="role-group-row">
+                        <td colspan="5">
+                            <span class="role-group-label">
+                                <span class="role-group-dot" style="background:{{ $roleColors[$roleLabel] ?? '#6b7280' }}"></span>
+                                {{ $roleLabel }}
+                            </span>
+                        </td>
+                    </tr>
+                    {{-- Member rows --}}
+                    @foreach($members as $a)
+                    <tr>
+                        <td>
+                            <div class="agent-cell">
+                                <div class="agent-avatar" style="background:{{ $a['color'] }}">{{ $a['initials'] }}</div>
                                 <div class="agent-name">{{ $a['name'] }}</div>
-                                <div class="agent-role">{{ $a['role'] }}</div>
                             </div>
-                        </div>
-                    </td>
-                    <td style="font-weight:700">{{ $a['resolved'] }}</td>
-                    <td>{{ $a['avg_response'] }}</td>
-                    <td>
-                        <div class="load-wrap"><div class="load-fill" style="width:{{ $a['load'] }}%"></div></div>
-                    </td>
-                    <td><span class="csat">{{ $a['csat'] }}</span></td>
-                    <td>
-                        @if (($a['status'] ?? '') === 'online')
-                            <span class="status-badge online">● ONLINE</span>
-                        @else
-                            <span class="status-badge away">● AWAY</span>
-                        @endif
-                    </td>
-                </tr>
+                        </td>
+                        <td style="font-weight:700">{{ $a['resolved'] }}</td>
+                        <td>{{ $a['avg_response'] }}</td>
+                        <td>
+                            <div class="load-wrap"><div class="load-fill" style="width:{{ $a['load'] }}%"></div></div>
+                        </td>
+                        <td><span class="csat">—</span></td>
+                    </tr>
+                    @endforeach
                 @empty
-                <tr>
-                    <td colspan="6">
-                        <div class="empty-msg">
-                            No team performance data yet.
-                        </div>
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-msg">No team performance data yet.</div>
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+    @endif
 </div>
 @endsection
 
