@@ -16,18 +16,25 @@ class SlaController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('view_sla_monitor'), 403, 'You do not have permission to view the SLA monitor.');
 
+        // -----------------------------------------------------------------------
+        // Task 18: SLA Compliance Rate — % resolved tickets vs total
+        // -----------------------------------------------------------------------
         $total    = Ticket::count();
         $resolved = Ticket::where('status', 'resolved')->count();
 
         // Overall compliance = resolved / total * 100
         $compliance = $total > 0 ? round(($resolved / $total) * 100) : 0;
 
-        // Active breaches = critical tickets still open
+        // -----------------------------------------------------------------------
+        // Task 19: Active Breach Count — critical-priority open tickets
+        // -----------------------------------------------------------------------
         $criticalOpen = Ticket::where('priority', 'critical')
                               ->where('status', 'open')
                               ->count();
 
-        // Average resolution time in hours — use PHP instead of DB-specific SQL
+        // -----------------------------------------------------------------------
+        // Task 20: Average Resolution Time — mean hours from creation to resolution
+        // -----------------------------------------------------------------------
         $resolvedTickets = Ticket::where('status', 'resolved')
                                  ->select('created_at', 'updated_at')
                                  ->get();
@@ -40,23 +47,30 @@ class SlaController extends Controller
             $avgResolutionHrs = round($totalHrs / $resolvedTickets->count());
         }
 
-        // At-risk = open tickets ordered by priority then age (PHP sort, no FIELD())
+        // -----------------------------------------------------------------------
+        // Task 21: At-Risk Tickets List — top-5 open sorted by priority then age
+        // -----------------------------------------------------------------------
         $priorityOrder = ['critical' => 0, 'high' => 1, 'medium' => 2, 'low' => 3];
+
         $atRisk = Ticket::where('status', 'open')
-            ->orderBy('created_at')
+            ->orderBy('created_at')           // oldest first (longest waiting)
             ->get()
-            ->sortBy(fn($t) => $priorityOrder[$t->priority] ?? 9)
+            ->sortBy(fn($t) => $priorityOrder[$t->priority] ?? 9)  // critical first
             ->take(5)
             ->values();
 
-        // All open tickets for compliance table
+        // -----------------------------------------------------------------------
+        // Task 22: Compliance Table — all open/in-progress tickets with priority & age
+        // -----------------------------------------------------------------------
         $allOpen = Ticket::whereIn('status', ['open', 'in_progress', 'in_review'])
             ->orderBy('created_at')
             ->get()
             ->sortBy(fn($t) => $priorityOrder[$t->priority] ?? 9)
             ->values();
 
-        // Quarterly SLA % — last 4 quarters
+        // -----------------------------------------------------------------------
+        // Task 18: Quarterly SLA % Trend — last 4 quarters for chart
+        // -----------------------------------------------------------------------
         $quarterly = [];
         for ($i = 3; $i >= 0; $i--) {
             $start     = Carbon::now()->startOfQuarter()->subQuarters($i);
@@ -73,7 +87,7 @@ class SlaController extends Controller
         }
 
         return view('sla-monitor.index', compact(
-            'compliance', 'criticalOpen', 'resolved',
+            'total', 'compliance', 'criticalOpen', 'resolved',
             'avgResolutionHrs', 'atRisk', 'allOpen', 'quarterly'
         ));
     }

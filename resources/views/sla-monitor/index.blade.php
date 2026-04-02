@@ -27,6 +27,7 @@
 .card-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
 .chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .chart-title{font-size:14px;font-weight:700;color:var(--navy)}
+.chart-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
 .view-all{font-size:11.5px;font-weight:600;color:var(--blue);text-decoration:none}
 .view-all:hover{text-decoration:underline}
 
@@ -41,13 +42,8 @@
 .sla-t-desc{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sla-timer{font-size:13px;font-weight:800;font-family:'DM Mono',monospace;white-space:nowrap;flex-shrink:0}
 
-/* QUARTERLY BARS */
-.quarter-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.quarter-row:last-child{margin-bottom:0}
-.quarter-lbl{font-size:12px;font-weight:700;color:var(--text-sub);width:52px;flex-shrink:0}
-.quarter-bar-wrap{flex:1;height:10px;background:var(--bg);border-radius:20px;overflow:hidden;border:1px solid var(--border)}
-.quarter-bar{height:100%;border-radius:20px;transition:width .6s ease}
-.quarter-pct{font-size:12px;font-weight:800;width:36px;text-align:right;flex-shrink:0}
+/* CHART AREA */
+.chart-canvas-wrap{position:relative;height:200px}
 
 /* COMPLIANCE TABLE */
 .compliance-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
@@ -67,6 +63,12 @@
 .pill-breach{background:#fee2e2;color:var(--red);border:1px solid #fecaca}
 
 .empty-msg{text-align:center;padding:30px;color:var(--muted);font-size:13px;font-weight:600}
+
+/* Compliance table section header */
+.ct-section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ct-section-title h2{font-size:15px;font-weight:800;color:var(--navy)}
+.ct-section-title p{font-size:12px;color:var(--muted);margin-top:2px}
+.ct-count-badge{font-size:11px;font-weight:700;background:var(--blue-bg,#eff6ff);color:var(--blue);border:1px solid var(--blue-lt,#dbeafe);padding:4px 12px;border-radius:20px}
 </style>
 @endsection
 
@@ -85,38 +87,61 @@
   </div>
 </div>
 
-<!-- STAT CARDS -->
+{{-- =====================================================================
+     TASK 18 + 19 + 20: KPI STAT CARDS
+     - Task 18: SLA Compliance Rate (% resolved vs total)
+     - Task 19: Active Breach Count (critical open tickets)
+     - Task 20: Average Resolution Time (mean hours to resolve)
+     ===================================================================== --}}
 <div class="sla-grid">
+
+  {{-- Task 18: SLA Compliance Rate --}}
   <div class="sla-stat">
     <div class="sla-stat-val" style="color:var(--green)">{{ $compliance }}%</div>
-    <div class="sla-stat-lbl">Overall Compliance</div>
-    <div class="sla-stat-change ch-green">↑ Based on resolved tickets</div>
+    <div class="sla-stat-lbl">SLA Compliance Rate</div>
+    <div class="sla-stat-change ch-green">↑ {{ $resolved }} of {{ $total ?? ($resolved + $criticalOpen) }} tickets resolved</div>
   </div>
+
+  {{-- Task 19: Active Breach Count --}}
   <div class="sla-stat">
-    <div class="sla-stat-val" style="color:var(--red)">{{ $criticalOpen }}</div>
+    <div class="sla-stat-val" style="color:{{ $criticalOpen > 0 ? 'var(--red)' : 'var(--green)' }}">{{ $criticalOpen }}</div>
     <div class="sla-stat-lbl">Active Breaches</div>
-    <div class="sla-stat-change ch-red">Critical priority tickets</div>
+    <div class="sla-stat-change {{ $criticalOpen > 0 ? 'ch-red' : 'ch-green' }}">
+      {{ $criticalOpen > 0 ? 'Critical-priority open tickets' : '✓ No critical breaches' }}
+    </div>
   </div>
+
+  {{-- Resolved in SLA --}}
   <div class="sla-stat">
     <div class="sla-stat-val">{{ $resolved }}</div>
-    <div class="sla-stat-lbl">Resolved in SLA</div>
+    <div class="sla-stat-lbl">Resolved Tickets</div>
     <div class="sla-stat-change ch-green">↑ Total resolved tickets</div>
   </div>
+
+  {{-- Task 20: Average Resolution Time --}}
   <div class="sla-stat">
     <div class="sla-stat-val" style="color:var(--orange)">{{ $avgResolutionHrs }}h</div>
     <div class="sla-stat-lbl">Avg Resolution Time</div>
-    <div class="sla-stat-change ch-orange">→ Hours to resolve</div>
+    <div class="sla-stat-change ch-orange">→ Mean hours from open → resolved</div>
   </div>
+
 </div>
 
-<!-- AT-RISK + QUARTERLY -->
+{{-- =====================================================================
+     TASK 21 + TASK 18 (Quarterly Trend Chart)
+     - Task 21: At-Risk Tickets List (top-5 open by priority & age)
+     - Task 18: Quarterly SLA % trend chart (Chart.js bar + line)
+     ===================================================================== --}}
 <div class="sla-mid">
 
-  <!-- At-Risk Tickets -->
+  {{-- Task 21: At-Risk Tickets (top-5 open sorted by priority & age) --}}
   <div class="card-box">
     <div class="chart-hdr">
-      <div class="chart-title">At-Risk Tickets</div>
-      <a href="{{ route('tickets.index', ['status' => 'open']) }}" class="view-all">View All</a>
+      <div>
+        <div class="chart-title">At-Risk Tickets</div>
+        <div class="chart-sub">Top 5 open tickets by priority &amp; age</div>
+      </div>
+      <a href="{{ route('tickets.index', ['status' => 'open']) }}" class="view-all">View All →</a>
     </div>
 
     @forelse($atRisk as $ticket)
@@ -141,8 +166,10 @@
           'high'     => '#f97316',
           default    => '#1e3a6e',
         };
-        $hrs = round($ticket->created_at->diffInMinutes(now()) / 60, 1);
-        $timer = $hrs >= 1 ? round($hrs).'h '.($ticket->created_at->diffInMinutes(now()) % 60).'m' : $ticket->created_at->diffInMinutes(now()).'m';
+        $totalMins = $ticket->created_at->diffInMinutes(now());
+        $hrs       = floor($totalMins / 60);
+        $mins      = $totalMins % 60;
+        $timer     = $hrs >= 1 ? "{$hrs}h {$mins}m" : "{$mins}m";
       @endphp
       <div class="sla-ticket-row" style="border-left-color:{{ $borderColor }}">
         <div>
@@ -165,29 +192,38 @@
     @endforelse
   </div>
 
-  <!-- Quarterly SLA % -->
+  {{-- Task 18: Quarterly SLA % Trend — Chart.js bar chart with compliance line --}}
   <div class="card-box">
     <div class="chart-hdr">
-      <div class="chart-title">Quarterly SLA %</div>
-    </div>
-    @foreach($quarterly as $q)
-      @php
-        $barColor = $q['pct'] >= 95 ? '#16a34a' : ($q['pct'] >= 85 ? '#f97316' : '#dc2626');
-        $pctColor = $q['pct'] >= 95 ? '#15803d' : ($q['pct'] >= 85 ? '#c2410c' : '#dc2626');
-      @endphp
-      <div class="quarter-row">
-        <div class="quarter-lbl">{{ $q['label'] }}</div>
-        <div class="quarter-bar-wrap">
-          <div class="quarter-bar" style="width:{{ $q['pct'] }}%;background:{{ $barColor }}"></div>
-        </div>
-        <div class="quarter-pct" style="color:{{ $pctColor }}">{{ $q['pct'] }}%</div>
+      <div>
+        <div class="chart-title">Quarterly SLA % Trend</div>
+        <div class="chart-sub">% resolved tickets vs total, per quarter</div>
       </div>
-    @endforeach
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="quarterlyChart"></canvas>
+    </div>
+    {{-- Pass quarterly data to JS --}}
+    <script>
+      window._quarterlyLabels = @json(collect($quarterly)->pluck('label'));
+      window._quarterlyPcts   = @json(collect($quarterly)->pluck('pct'));
+    </script>
   </div>
 
 </div>
 
-<!-- COMPLIANCE TABLE -->
+{{-- =====================================================================
+     TASK 22: Compliance Table — all open/in-progress tickets with
+     priority, age, status, and SLA status indicator
+     ===================================================================== --}}
+<div class="ct-section-title">
+  <div>
+    <h2>Compliance Table</h2>
+    <p>All open &amp; in-progress tickets with SLA breach status</p>
+  </div>
+  <span class="ct-count-badge">{{ $allOpen->count() }} tickets</span>
+</div>
+
 <div class="compliance-table">
   <div class="ct-header">
     <span>Ticket</span>
@@ -199,11 +235,12 @@
 
   @forelse($allOpen as $ticket)
     @php
-      $ageHrs = $ticket->created_at->diffInHours(now());
+      $ageHrs   = $ticket->created_at->diffInHours(now());
       $slaLimit = match($ticket->priority) { 'critical' => 4, 'high' => 8, 'medium' => 24, default => 72 };
-      $pct = min(100, round(($ageHrs / $slaLimit) * 100));
+      $pct      = min(100, round(($ageHrs / $slaLimit) * 100));
       $slaStatus = $pct >= 100 ? 'breach' : ($pct >= 75 ? 'warning' : 'ok');
-      $barColor = $slaStatus === 'breach' ? '#dc2626' : ($slaStatus === 'warning' ? '#f97316' : '#16a34a');
+      $barColor  = $slaStatus === 'breach' ? '#dc2626' : ($slaStatus === 'warning' ? '#f97316' : '#16a34a');
+      $ageDisplay = $ageHrs >= 24 ? floor($ageHrs/24).'d '.($ageHrs%24).'h' : $ageHrs.'h';
     @endphp
     <div class="ct-row">
       <div>
@@ -211,10 +248,12 @@
         <div style="font-weight:600;font-size:13px">{{ Str::limit($ticket->title, 40) }}</div>
         <div class="bar-wrap"><div class="bar-fill" style="width:{{ $pct }}%;background:{{ $barColor }}"></div></div>
       </div>
-      <div><span class="pill pill-{{ $ticket->priority === 'low' ? 'ok' : ($ticket->priority === 'medium' ? 'warning' : 'breach') }}">{{ ucfirst($ticket->priority) }}</span></div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--muted)">
-        {{ $ageHrs >= 24 ? floor($ageHrs/24).'d '.($ageHrs%24).'h' : $ageHrs.'h' }}
+      <div>
+        <span class="pill pill-{{ $ticket->priority === 'low' ? 'ok' : ($ticket->priority === 'medium' ? 'warning' : 'breach') }}">
+          {{ ucfirst($ticket->priority) }}
+        </span>
       </div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--muted)">{{ $ageDisplay }}</div>
       <div style="font-size:12.5px;font-weight:600;color:var(--text-sub)">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</div>
       <div>
         <span class="pill pill-{{ $slaStatus }}">
@@ -224,7 +263,94 @@
       </div>
     </div>
   @empty
-    <div class="empty-msg">No open tickets. Everything is resolved!</div>
+    <div class="empty-msg">No open tickets. Everything is resolved! 🎉</div>
   @endforelse
 </div>
+@endsection
+
+@section('scripts')
+<script>
+// -----------------------------------------------------------------------
+// Task 18: Quarterly SLA % Trend — Chart.js bar + target line
+// -----------------------------------------------------------------------
+(function () {
+  const labels = window._quarterlyLabels || [];
+  const pcts   = window._quarterlyPcts   || [];
+
+  // Color bars by threshold
+  const barColors = pcts.map(p =>
+    p >= 95 ? '#16a34a' : p >= 85 ? '#f97316' : '#dc2626'
+  );
+
+  const ctx = document.getElementById('quarterlyChart');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          // Bar dataset — SLA % per quarter
+          type: 'bar',
+          label: 'SLA Compliance %',
+          data: pcts,
+          backgroundColor: barColors,
+          borderRadius: 6,
+          borderSkipped: false,
+          barPercentage: 0.55,
+        },
+        {
+          // Line dataset — 95% SLA target reference
+          type: 'line',
+          label: '95% Target',
+          data: labels.map(() => 95),
+          borderColor: '#2563eb',
+          borderWidth: 2,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          tension: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { font: { size: 11, family: 'Montserrat' }, boxWidth: 12, padding: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.type === 'line'
+              ? `Target: ${ctx.parsed.y}%`
+              : `Compliance: ${ctx.parsed.y}%`
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: 0,
+          max: 100,
+          ticks: {
+            callback: v => v + '%',
+            font: { size: 11 },
+            stepSize: 25,
+          },
+          grid: { color: '#f1f5f9' },
+          border: { display: false },
+        },
+        x: {
+          ticks: { font: { size: 11 } },
+          grid: { display: false },
+          border: { display: false },
+        }
+      }
+    }
+  });
+})();
+</script>
 @endsection
