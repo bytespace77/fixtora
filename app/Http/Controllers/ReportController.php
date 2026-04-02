@@ -27,40 +27,62 @@ class ReportController extends Controller
 
         $totalTickets = Ticket::whereBetween('created_at', [$from, $to])->count();
 
-        // Avg Resolution Time in Hours
+        // Total Tasks in period
+        $totalTasks = Task::withoutGlobalScopes()
+            ->whereBetween('created_at', [$from, $to])
+            ->count();
+
+        // Avg Resolution Time — combined tickets (resolved/closed) + tasks (done)
         $resolvedTickets = Ticket::whereIn('status', ['resolved', 'closed'])
             ->whereBetween('updated_at', [$from, $to])->get();
 
-        if ($resolvedTickets->count() > 0) {
-            $totalHours = $resolvedTickets->sum(function($t) {
-                return $t->created_at->diffInHours($t->updated_at);
+        $doneTasks = Task::withoutGlobalScopes()
+            ->where('status', 'done')
+            ->whereBetween('updated_at', [$from, $to])->get();
+
+        $totalResolved = $resolvedTickets->count() + $doneTasks->count();
+
+        if ($totalResolved > 0) {
+            $ticketHours = $resolvedTickets->sum(fn($t) => $t->created_at->diffInHours($t->updated_at));
+            $taskHours   = $doneTasks->sum(function($t) {
+                $start = $t->assigned_date ? \Carbon\Carbon::parse($t->assigned_date) : $t->created_at;
+                $end   = $t->actual_delivery_date ? \Carbon\Carbon::parse($t->actual_delivery_date) : $t->updated_at;
+                return max(0, $start->diffInHours($end));
             });
-            $avgResolution = round($totalHours / $resolvedTickets->count());
+            $avgResolution = round(($ticketHours + $taskHours) / $totalResolved);
         } else {
             $avgResolution = 0;
         }
 
-        // SLA Compliance Check
-        $slaBoundTickets = Ticket::whereIn('status', ['resolved', 'closed'])
+        // SLA Task Success Rate — Task 24
+        // % tasks completed on time (actual_delivery_date <= due_date) vs total tasks with due_date
+        $slaTotalTasks = Task::withoutGlobalScopes()
             ->whereNotNull('due_date')
-            ->whereBetween('updated_at', [$from, $to])->get();
+            ->whereBetween('created_at', [$from, $to])
+            ->count();
 
-        if ($slaBoundTickets->count() > 0) {
-            $compliant = $slaBoundTickets->filter(function($t) {
-                return $t->updated_at <= Carbon::parse($t->due_date)->endOfDay();
-            })->count();
-            $slaCompliance = round(($compliant / $slaBoundTickets->count()) * 100);
+        if ($slaTotalTasks > 0) {
+            $slaOnTime = Task::withoutGlobalScopes()
+                ->where('status', 'done')
+                ->whereNotNull('due_date')
+                ->whereNotNull('actual_delivery_date')
+                ->whereColumn('actual_delivery_date', '<=', 'due_date')
+                ->whereBetween('created_at', [$from, $to])
+                ->count();
+            $slaCompliance = round(($slaOnTime / $slaTotalTasks) * 100);
         } else {
-            $slaCompliance = 100;
+            $slaCompliance = 0;
         }
 
         $csat = '4.8/5';
 
-        // Trend Data
-        $chartData = $this->buildChartData($from, $to, $range);
-        $labels = $chartData['labels'];
-        $newTrend = $chartData['inflow'];
+        // Trend Data — tickets and tasks
+        $chartData   = $this->buildChartData($from, $to, $range);
+        $labels      = $chartData['labels'];
+        $newTrend    = $chartData['inflow'];
         $closedTrend = $chartData['resolved'];
+        $newTaskTrend  = $chartData['taskInflow'];
+        $doneTaskTrend = $chartData['taskDone'];
 
         // Issue Distribution Map
         $distributionRaw = Ticket::select('system', DB::raw('count(*) as count'))
@@ -188,8 +210,8 @@ class ReportController extends Controller
         }
 
         return view('reports.index', compact(
-            'totalTickets', 'avgResolution', 'slaCompliance', 'csat',
-            'labels', 'newTrend', 'closedTrend', 'distribution',
+            'totalTickets', 'totalTasks', 'avgResolution', 'slaCompliance', 'csat',
+            'labels', 'newTrend', 'closedTrend', 'newTaskTrend', 'doneTaskTrend', 'distribution',
             'isSuperAdmin', 'agentsByRole',
             'range', 'from', 'to'
         ));
@@ -219,6 +241,7 @@ class ReportController extends Controller
 
     private function buildChartData(Carbon $from, Carbon $to, string $range): array
     {
+        // Ticket inflow
         $inflowRaw = Ticket::select(
                 DB::raw('DATE(created_at) as day'),
                 DB::raw('COUNT(*) as cnt')
@@ -228,6 +251,7 @@ class ReportController extends Controller
             ->pluck('cnt', 'day')
             ->toArray();
 
+        // Tickets resolved/closed
         $resolvedRaw = Ticket::select(
                 DB::raw('DATE(updated_at) as day'),
                 DB::raw('COUNT(*) as cnt')
@@ -238,26 +262,47 @@ class ReportController extends Controller
             ->pluck('cnt', 'day')
             ->toArray();
 
-        $labels   = [];
-        $inflow   = [];
-        $resolved = [];
-        $diff     = $from->diffInDays($to);
+        // Tasks created
+        $taskInflowRaw = Task::withoutGlobalScopes()
+            ->select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as cnt'))
+            ->whereBetween('created_at', [$from, $to])
+            ->groupBy('day')
+            ->pluck('cnt', 'day')
+            ->toArray();
+
+        // Tasks done
+        $taskDoneRaw = Task::withoutGlobalScopes()
+            ->select(DB::raw('DATE(updated_at) as day'), DB::raw('COUNT(*) as cnt'))
+            ->where('status', 'done')
+            ->whereBetween('updated_at', [$from, $to])
+            ->groupBy('day')
+            ->pluck('cnt', 'day')
+            ->toArray();
+
+        $labels     = [];
+        $inflow     = [];
+        $resolved   = [];
+        $taskInflow = [];
+        $taskDone   = [];
+        $diff       = $from->diffInDays($to);
 
         $cursor = $from->copy()->startOfDay();
         while ($cursor->lte($to)) {
-            $key = $cursor->toDateString();
+            $key   = $cursor->toDateString();
             $label = $diff <= 7
                 ? strtoupper($cursor->format('D'))
                 : $cursor->format('d M');
 
-            $labels[]   = $label;
-            $inflow[]   = $inflowRaw[$key]  ?? 0;
-            $resolved[] = $resolvedRaw[$key] ?? 0;
+            $labels[]     = $label;
+            $inflow[]     = $inflowRaw[$key]     ?? 0;
+            $resolved[]   = $resolvedRaw[$key]   ?? 0;
+            $taskInflow[] = $taskInflowRaw[$key] ?? 0;
+            $taskDone[]   = $taskDoneRaw[$key]   ?? 0;
 
             $cursor->addDay();
         }
 
-        return compact('labels', 'inflow', 'resolved');
+        return compact('labels', 'inflow', 'resolved', 'taskInflow', 'taskDone');
     }
 
     private function handleExport(string $type, Carbon $from, Carbon $to, array $stats)

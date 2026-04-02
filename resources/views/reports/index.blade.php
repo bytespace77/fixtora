@@ -50,6 +50,8 @@
 .dot-legend span::before { content:''; width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
 .dot-new::before { background:var(--blue-2); }
 .dot-closed::before { background:var(--muted-lt); }
+.dot-task-new::before { background:#16a34a; }
+.dot-task-done::before { background:#86efac; }
 .chart-holder { height:250px; }
 .doughnut-holder { height:210px; display:flex; align-items:center; justify-content:center; }
 .issue-list { margin-top:4px; }
@@ -149,17 +151,17 @@
         <div class="stat-card">
             <div class="stat-label">Total Tickets</div>
             <div class="stat-value">{{ $totalTickets }}</div>
-            <div class="stat-sub">Across all systems</div>
+            <div class="stat-sub">{{ $totalTasks }} tasks this period</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Avg Resolution Time</div>
             <div class="stat-value">{{ $avgResolution }}h</div>
-            <div class="stat-sub">Based on history</div>
+            <div class="stat-sub">Tickets &amp; tasks combined</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">SLA Compliance</div>
+            <div class="stat-label">SLA Task Success Rate</div>
             <div class="stat-value">{{ $slaCompliance }}%</div>
-            <div class="stat-sub">Resolved on time</div>
+            <div class="stat-sub">Tasks completed on time</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Customer CSAT</div>
@@ -173,11 +175,13 @@
             <div class="panel-head">
                 <div>
                     <div class="panel-title">Ticket Volume Trends</div>
-                    <div class="panel-sub">Active resolution spikes over the last 30 days</div>
+                    <div class="panel-sub">Ticket &amp; task volume over the selected period</div>
                 </div>
                 <div class="dot-legend">
-                    <span class="dot-new">New</span>
-                    <span class="dot-closed">Closed</span>
+                    <span class="dot-new">New Tickets</span>
+                    <span class="dot-closed">Closed Tickets</span>
+                    <span class="dot-task-new">New Tasks</span>
+                    <span class="dot-task-done">Done Tasks</span>
                 </div>
             </div>
             <div class="chart-holder">
@@ -286,22 +290,42 @@
         labels: {!! json_encode($labels) !!},
         datasets: [
           {
-            label: 'New',
+            label: 'New Tickets',
             data: {!! json_encode($newTrend) !!},
             borderColor: '#0f3f83',
-            backgroundColor: 'rgba(15,63,131,0.08)',
+            backgroundColor: 'rgba(15,63,131,0.07)',
             tension: 0.42,
             fill: true,
             pointRadius: 0,
-            borderWidth: 3
+            borderWidth: 2.5
           },
           {
-            label: 'Closed',
+            label: 'Closed Tickets',
             data: {!! json_encode($closedTrend) !!},
             borderColor: '#94a3b8',
             tension: 0.35,
             pointRadius: 0,
-            borderWidth: 2
+            borderWidth: 2,
+            borderDash: [4, 3]
+          },
+          {
+            label: 'New Tasks',
+            data: {!! json_encode($newTaskTrend) !!},
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22,163,74,0.06)',
+            tension: 0.42,
+            fill: true,
+            pointRadius: 0,
+            borderWidth: 2.5
+          },
+          {
+            label: 'Done Tasks',
+            data: {!! json_encode($doneTaskTrend) !!},
+            borderColor: '#86efac',
+            tension: 0.35,
+            pointRadius: 0,
+            borderWidth: 2,
+            borderDash: [4, 3]
           }
         ]
       },
