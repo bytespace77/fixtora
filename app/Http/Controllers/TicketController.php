@@ -343,7 +343,6 @@ class TicketController extends Controller
 
         $request->validate([
             'body'          => 'required|string',
-            'role'          => 'required|in:superadmin,user',
             'attachments'   => 'nullable|array|max:10',
             'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
         ]);
@@ -352,7 +351,7 @@ class TicketController extends Controller
             'ticket_id' => $ticket->id,
             'user_id'   => auth()->id(),
             'body'      => $request->body,
-            'role'      => $request->role,
+            'role'      => 'superadmin',
             'type'      => 'comment',
         ]);
 

@@ -360,7 +360,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             <div class="cmt-sender-av">{{ strtoupper(substr(auth()->user()->name??'SA',0,2)) }}</div>
             <div class="cmt-sender-info">
               <span class="name">{{ auth()->user()->name??'Superadmin' }}</span>
-              <span class="role-lbl">replying as admin</span>
+
             </div>
           </div>
           <div class="cmt-editor">
@@ -383,13 +383,7 @@ textarea.form-control{resize:vertical;min-height:80px}
                 <kbd style="background:var(--bg);border:1px solid var(--border);padding:1px 5px;border-radius:4px;font-size:10px">Ctrl+Enter</kbd> to send quickly
               </div>
               <div class="toolbar-right">
-                <div class="role-toggle">
-                  <span>Send as:</span>
-                  <select name="role">
-                    <option value="superadmin">Superadmin</option>
-                    <option value="user">User</option>
-                  </select>
-                </div>
+                <input type="hidden" name="role" value="superadmin">
                 <button type="submit" class="send-btn" id="cmtSendBtn">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send
                 </button>
