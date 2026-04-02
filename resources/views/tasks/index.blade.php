@@ -244,12 +244,14 @@ textarea.form-control{resize:vertical;min-height:80px}
       <tbody id="listBody">
         @foreach($todo->concat($doing)->concat($done) as $task)
         <tr id="list-row-{{ $task->id }}">
-          <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">#TK-{{ str_pad($task->id,4,'0',STR_PAD_LEFT) }}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">
+            #{{ $task->task_company_code ?? 'XX' }}-{{ str_pad((string)($task->task_company_seq ?? 0),4,'0',STR_PAD_LEFT) }}
+          </td>
           <td style="font-weight:600;max-width:260px">
             {{ $task->title }}
             @if($task->ticket)
               <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="{{ $task->ticket->title }}">
-                #TIC-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
+                #{{ $task->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($task->ticket_company_seq ?? 0), 4, '0', STR_PAD_LEFT) }}
               </a>
             @endif
           </td>
@@ -421,7 +423,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             <select name="ticket_id" class="form-control">
               <option value="">No Ticket</option>
               @foreach($tickets as $t)
-                <option value="{{ $t->id }}">#TIC-{{ str_pad($t->id,4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
+                <option value="{{ $t->id }}">#{{ $t->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($t->ticket_company_seq ?? 0),4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
               @endforeach
             </select>
           </div>
@@ -531,7 +533,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             <select id="edit-ticket_id" class="form-control">
               <option value="">No Ticket</option>
               @foreach($tickets as $t)
-                <option value="{{ $t->id }}">#TIC-{{ str_pad($t->id,4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
+                <option value="{{ $t->id }}">#{{ $t->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($t->ticket_company_seq ?? 0),4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
               @endforeach
             </select>
           </div>
@@ -777,12 +779,16 @@ function escHtml(s) {
 }
 function cardHtml(t) {
   const isDone   = t.status === 'done';
-  const ticketId = `#TK-${String(t.id).padStart(4,'0')}`;
+  const ticketId = `#${t.task_company_code || 'XX'}-${String(t.task_company_seq || 0).padStart(4,'0')}`;
   const taskJson = JSON.stringify({
     id: t.id, title: t.title, description: t.description ?? '',
     priority: t.priority, status: t.status,
     assigned_to: t.assigned_to ?? '', due_date: t.due_date ?? '',
     ticket_id: t.ticket_id ?? '',
+    task_company_code: t.task_company_code ?? '',
+    task_company_seq: t.task_company_seq ?? 0,
+    ticket_company_code: t.ticket_company_code ?? '',
+    ticket_company_seq: t.ticket_company_seq ?? 0,
     sla_level: t.sla_level ?? '',
     estimated_delivery_date: t.estimated_delivery_date ?? '',
     actual_delivery_date: t.actual_delivery_date ?? '',
@@ -831,7 +837,7 @@ function cardHtml(t) {
     <div class="k-card-meta">
       <div style="display:flex;align-items:center;gap:6px;">
         <span class="ticket-id">${ticketId}</span>
-        ${t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="${escHtml(t.ticket.title)}">#TIC-${String(t.ticket_id).padStart(4,'0')}</a>` : ''}
+        ${t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="${escHtml(t.ticket.title)}">#${t.ticket_company_code || 'XX'}-${String(t.ticket_company_seq || 0).padStart(4,'0')}</a>` : ''}
       </div>
       ${badge}
     </div>
@@ -862,7 +868,7 @@ function cardHtml(t) {
 }
 
 function listRowHtml(t) {
-  const ticketId = `#TK-${String(t.id).padStart(4,'0')}`;
+  const ticketId = `#${t.task_company_code || 'XX'}-${String(t.task_company_seq || 0).padStart(4,'0')}`;
   const badge = `<span class="priority-badge pb-${t.priority}">${t.priority.toUpperCase()}</span>`;
   const assigneeHtml = t.assignee
     ? `<div style="display:flex;align-items:center;gap:6px"><div class="k-av" style="background:${COLORS[t.assignee.id%5]}">${t.assignee.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div><span style="font-size:12px">${escHtml(t.assignee.name)}</span></div>`
@@ -875,7 +881,7 @@ function listRowHtml(t) {
       dueDateHtml = `${months[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}, ${d.getFullYear()}`;
   }
 
-  const ticketHtml = t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="${escHtml(t.ticket.title)}">#TIC-${String(t.ticket_id).padStart(4,'0')}</a>` : '';
+  const ticketHtml = t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="${escHtml(t.ticket.title)}">#${t.ticket_company_code || 'XX'}-${String(t.ticket_company_seq || 0).padStart(4,'0')}</a>` : '';
 
   return `
       <tr id="list-row-${t.id}">

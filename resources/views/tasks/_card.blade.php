@@ -3,7 +3,7 @@
 --}}
 @php
   $colors   = ['#2563eb','#7c3aed','#0d9488','#ea580c','#16a34a'];
-  $ticketId = '#TK-' . str_pad($task->id, 4, '0', STR_PAD_LEFT);
+  $taskCode = '#' . ($task->task_company_code ?? 'XX') . '-' . str_pad((string)($task->task_company_seq ?? 0), 4, '0', STR_PAD_LEFT);
   $isDone   = $task->status === 'done';
 
   $taskData = [
@@ -16,6 +16,10 @@
     'due_date'    => $task->due_date ? $task->due_date->format('Y-m-d') : '',
     'progress'    => $task->progress ?? 0,
     'ticket_id'   => $task->ticket_id ?? '',
+    'task_company_code' => $task->task_company_code ?? '',
+    'task_company_seq'  => $task->task_company_seq ?? 0,
+    'ticket_company_code' => $task->ticket_company_code ?? '',
+    'ticket_company_seq'  => $task->ticket_company_seq ?? 0,
     'sla_level'               => $task->sla_level ?? '',
     'estimated_delivery_date' => $task->estimated_delivery_date ? $task->estimated_delivery_date->format('Y-m-d\TH:i') : '',
     'actual_delivery_date'    => $task->actual_delivery_date ? $task->actual_delivery_date->format('Y-m-d\TH:i') : '',
@@ -35,10 +39,10 @@
 
   <div class="k-card-meta">
     <div style="display:flex;align-items:center;gap:6px;">
-      <span class="ticket-id">{{ $ticketId }}</span>
+      <span class="ticket-id">{{ $taskCode }}</span>
       @if($task->ticket)
         <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="{{ $task->ticket->title }}">
-          #TIC-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
+          #{{ $task->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($task->ticket_company_seq ?? 0), 4, '0', STR_PAD_LEFT) }}
         </a>
       @endif
     </div>

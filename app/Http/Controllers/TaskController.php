@@ -9,6 +9,100 @@ use Illuminate\Http\Request;
 
 class TaskController extends Controller
 {
+    /**
+     * Build a 2-letter company code for ticket/task display.
+     * Examples:
+     * - "Acme Sdn Bhd" => AC (first letters of first two words)
+     * - "Bakery"       => BK (first two consonants)
+     */
+    private function buildCompanyCode(?string $companyName): string
+    {
+        if (!$companyName) return 'XX';
+
+        $name = trim($companyName);
+        if ($name === '') return 'XX';
+
+        // Keep letters and spaces only.
+        $clean = preg_replace('/[^A-Za-z\\s]/', ' ', $name);
+        $words = array_values(array_filter(preg_split('/\\s+/', trim((string) $clean))));
+
+        if (count($words) >= 2) {
+            $first = strtoupper(substr((string) $words[0], 0, 1));
+            $second = strtoupper(substr((string) $words[1], 0, 1));
+            return $first . $second;
+        }
+
+        $word = strtoupper(substr((string) ($words[0] ?? ''), 0));
+        if ($word === '') return 'XX';
+
+        $vowels = ['A', 'E', 'I', 'O', 'U'];
+        $consonants = '';
+        $len = strlen($word);
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $word[$i];
+            if (ctype_alpha($ch) && !in_array($ch, $vowels, true)) {
+                $consonants .= $ch;
+                if (strlen($consonants) >= 2) break;
+            }
+        }
+
+        if (strlen($consonants) >= 2) {
+            return substr($consonants, 0, 2);
+        }
+
+        // Fallback: first 2 alphabetic characters.
+        $alpha = preg_replace('/[^A-Z]/', '', $word);
+        if (strlen($alpha) >= 2) return substr($alpha, 0, 2);
+        if (strlen($alpha) === 1) return $alpha . 'X';
+        return 'XX';
+    }
+
+    /**
+     * Compute per-company ticket sequence for display (#XX-0001).
+     * Sequence is based on ticket creation order within the company.
+     */
+    private function computeCompanyTicketSeq(Ticket $ticket): int
+    {
+        $companyId = (int) ($ticket->company_id ?? 0);
+        if ($companyId <= 0) return 0;
+        $createdAt = $ticket->created_at;
+        if (!$createdAt) return 0;
+
+        return (int) Ticket::withoutGlobalScope('company')
+            ->where('company_id', $companyId)
+            ->where(function ($q) use ($createdAt, $ticket) {
+                $q->where('created_at', '<', $createdAt)
+                  ->orWhere(function ($q2) use ($createdAt, $ticket) {
+                      $q2->where('created_at', $createdAt)
+                         ->where('id', '<=', (int) $ticket->id);
+                  });
+            })
+            ->count();
+    }
+
+    /**
+     * Compute per-company task sequence for display (#XX-0001).
+     * Sequence is based on task creation order within the company.
+     */
+    private function computeCompanyTaskSeq(Task $task): int
+    {
+        $companyId = (int) ($task->company_id ?? $task->ticket?->company_id ?? 0);
+        if ($companyId <= 0) return 0;
+        $createdAt = $task->created_at;
+        if (!$createdAt) return 0;
+
+        return (int) Task::withoutGlobalScope('company')
+            ->where('company_id', $companyId)
+            ->where(function ($q) use ($createdAt, $task) {
+                $q->where('created_at', '<', $createdAt)
+                  ->orWhere(function ($q2) use ($createdAt, $task) {
+                      $q2->where('created_at', $createdAt)
+                         ->where('id', '<=', (int) $task->id);
+                  });
+            })
+            ->count();
+    }
+
     public function __construct()
     {
         $this->middleware('auth');
@@ -72,9 +166,9 @@ class TaskController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('list_tasks'), 403, 'You do not have permission to view tasks.');
 
-        $todo  = Task::with(['assignee', 'ticket'])->todo()->latest()->get();
-        $doing = Task::with(['assignee', 'ticket'])->doing()->latest()->get();
-        $done  = Task::with(['assignee', 'ticket'])->done()->latest()->get();
+        $todo  = Task::with(['assignee', 'ticket.company', 'company'])->todo()->latest()->get();
+        $doing = Task::with(['assignee', 'ticket.company', 'company'])->doing()->latest()->get();
+        $done  = Task::with(['assignee', 'ticket.company', 'company'])->done()->latest()->get();
 
         // ✅ Step 14: Only show users from the same company in the assignee dropdown (Filtered by Developer role)
         $usersQuery = User::whereHas('userRole', function ($q) {
@@ -106,7 +200,7 @@ class TaskController extends Controller
         $slaRate = $withDue > 0 ? round(($onTime / $withDue) * 100) : 0;
 
         // Upcoming deadlines (next 7 days, not done)
-        $deadlines = Task::with(['assignee', 'ticket'])
+        $deadlines = Task::with(['assignee', 'ticket.company'])
             ->whereNotNull('due_date')
             ->where('status', '!=', 'done')
             ->whereBetween('due_date', [now()->toDateString(), now()->addDays(7)->toDateString()])
@@ -115,7 +209,67 @@ class TaskController extends Controller
             ->get();
 
         // Fetch tickets to link to tasks
-        $tickets = Ticket::orderByDesc('id')->get(['id', 'title']);
+        $tickets = Ticket::with('company')
+            ->orderByDesc('id')
+            ->get(['id', 'title', 'company_id', 'created_at']);
+
+        // Build per-company sequences for tickets and tasks so display becomes #XX-0001.
+        $ticketSeqById = [];
+        $taskSeqById   = [];
+
+        $ticketCompanyIds = $tickets->pluck('company_id')->unique()->filter()->values();
+        foreach ($ticketCompanyIds as $companyId) {
+            $orderedTickets = Ticket::withoutGlobalScope('company')
+                ->where('company_id', (int) $companyId)
+                ->orderBy('created_at', 'asc')
+                ->orderBy('id', 'asc')
+                ->get(['id']);
+
+            foreach ($orderedTickets as $i => $tt) {
+                $ticketSeqById[(int) $tt->id] = $i + 1;
+            }
+        }
+
+        foreach ($tickets as $ticket) {
+            $ticket->ticket_company_code = $this->buildCompanyCode($ticket->company?->name);
+            $ticket->ticket_company_seq  = $ticketSeqById[(int) $ticket->id] ?? 0;
+        }
+
+        $allTasks = $todo->concat($doing)->concat($done);
+
+        // Ensure tasks have company_id (legacy safety).
+        foreach ($allTasks as $t) {
+            if (empty($t->company_id) && $t->ticket?->company_id) {
+                Task::withoutGlobalScope('company')
+                    ->where('id', (int) $t->id)
+                    ->update(['company_id' => (int) $t->ticket->company_id]);
+                $t->company_id = (int) $t->ticket->company_id;
+            }
+        }
+
+        $taskCompanyIds = $allTasks->pluck('company_id')->unique()->filter()->values();
+        foreach ($taskCompanyIds as $companyId) {
+            $orderedTasks = Task::withoutGlobalScope('company')
+                ->where('company_id', (int) $companyId)
+                ->orderBy('created_at', 'asc')
+                ->orderBy('id', 'asc')
+                ->get(['id']);
+
+            foreach ($orderedTasks as $i => $tt) {
+                $taskSeqById[(int) $tt->id] = $i + 1;
+            }
+        }
+
+        foreach ([$todo, $doing, $done] as $bucket) {
+            foreach ($bucket as $t) {
+                $companyName = $t->company?->name ?? $t->ticket?->company?->name;
+                $t->task_company_code = $this->buildCompanyCode($companyName);
+                $t->task_company_seq  = $taskSeqById[(int) $t->id] ?? 0;
+
+                $t->ticket_company_code = $this->buildCompanyCode($t->ticket?->company?->name);
+                $t->ticket_company_seq  = isset($t->ticket_id) && $t->ticket_id ? ($ticketSeqById[(int) $t->ticket_id] ?? 0) : 0;
+            }
+        }
 
         return view('tasks.index', compact(
             'todo', 'doing', 'done', 'users', 'velocity', 'slaRate', 'deadlines', 'tickets'
@@ -156,7 +310,16 @@ class TaskController extends Controller
         $this->syncTicketStatusFromTasks($task);
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'task' => $task->load('assignee', 'ticket')]);
+            $task->load('assignee', 'ticket.company', 'company');
+
+            $task->ticket_company_code = $this->buildCompanyCode($task->ticket?->company?->name);
+            $task->ticket_company_seq  = $task->ticket ? $this->computeCompanyTicketSeq($task->ticket) : 0;
+
+            $companyName = $task->company?->name ?? $task->ticket?->company?->name;
+            $task->task_company_code = $this->buildCompanyCode($companyName);
+            $task->task_company_seq  = $this->computeCompanyTaskSeq($task);
+
+            return response()->json(['success' => true, 'task' => $task]);
         }
 
         return redirect()->route('tasks.index')->with('success', 'Task created!');
@@ -210,7 +373,16 @@ class TaskController extends Controller
         $this->syncTicketStatusFromTasks($task);
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true, 'task' => $task->fresh()->load('assignee')]);
+            $task = $task->fresh()->load('assignee', 'ticket.company', 'company');
+
+            $task->ticket_company_code = $this->buildCompanyCode($task->ticket?->company?->name);
+            $task->ticket_company_seq  = $task->ticket ? $this->computeCompanyTicketSeq($task->ticket) : 0;
+
+            $companyName = $task->company?->name ?? $task->ticket?->company?->name;
+            $task->task_company_code = $this->buildCompanyCode($companyName);
+            $task->task_company_seq  = $this->computeCompanyTaskSeq($task);
+
+            return response()->json(['success' => true, 'task' => $task]);
         }
 
         return redirect()->route('tasks.index')->with('success', 'Task updated!');
