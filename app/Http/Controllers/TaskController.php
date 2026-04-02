@@ -15,6 +15,57 @@ class TaskController extends Controller
     }
 
     /**
+     * Keep ticket status in sync with its related tasks.
+     *
+     * Mapping (based on ALL tasks for the ticket):
+     * - any task `done`  => ticket `resolved`
+     * - else any task `doing` => ticket `in_progress`
+     * - else => ticket `open` (tasks are only `todo`)
+     */
+    private function syncTicketStatusFromTasks(Task $task): void
+    {
+        if (empty($task->ticket_id)) {
+            return;
+        }
+
+        $ticketId  = (int) $task->ticket_id;
+        // Prefer company's id from ticket to handle older data where tasks.company_id might be null.
+        $companyId = $task->company_id ? (int) $task->company_id : null;
+        if (!$companyId) {
+            $ticketForCompany = Ticket::withoutGlobalScope('company')->find($ticketId);
+            $companyId = $ticketForCompany?->company_id ? (int) $ticketForCompany->company_id : null;
+        }
+
+        // Safety: all SLA/task records are multi-tenant; never update cross-company.
+        if (!$companyId) return;
+
+        // Ensure tasks for this ticket have company_id set (for older records after migration).
+        Task::withoutGlobalScope('company')
+            ->where('ticket_id', $ticketId)
+            ->whereNull('company_id')
+            ->update(['company_id' => $companyId]);
+
+        $hasDone = Task::withoutGlobalScope('company')
+            ->where('company_id', $companyId)
+            ->where('ticket_id', $ticketId)
+            ->where('status', 'done')
+            ->exists();
+
+        $hasDoing = Task::withoutGlobalScope('company')
+            ->where('company_id', $companyId)
+            ->where('ticket_id', $ticketId)
+            ->where('status', 'doing')
+            ->exists();
+
+        $newStatus = $hasDone ? 'resolved' : ($hasDoing ? 'in_progress' : 'open');
+
+        Ticket::withoutGlobalScope('company')
+            ->where('company_id', $companyId)
+            ->where('id', $ticketId)
+            ->update(['status' => $newStatus, 'updated_at' => now()]);
+    }
+
+    /**
      * Show the Kanban board.
      */
     public function index()
@@ -101,6 +152,7 @@ class TaskController extends Controller
         }
 
         $task = Task::create($validated);
+        $this->syncTicketStatusFromTasks($task);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'task' => $task->load('assignee', 'ticket')]);
@@ -154,6 +206,7 @@ class TaskController extends Controller
         }
 
         $task->update($validated);
+        $this->syncTicketStatusFromTasks($task);
 
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'task' => $task->fresh()->load('assignee')]);

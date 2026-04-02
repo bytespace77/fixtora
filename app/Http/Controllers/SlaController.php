@@ -102,15 +102,20 @@ class SlaController extends Controller
             return $q;
         };
 
+        // "Open" definition for SLA monitoring UI.
+        // Keep this consistent across KPIs, At-Risk list, and Compliance table.
+        $activeStatuses = ['open', 'in_progress', 'in_review'];
+
         // Task 18: SLA Compliance Rate
         $total      = $base()->count();
         $resolved   = $base()->where('status', 'resolved')->count();
         $compliance = $total > 0 ? round(($resolved / $total) * 100) : 0;
 
         // Task 19: Active Breach Count
-        $criticalOpen = $base()->where('priority', 'critical')
-                               ->where('status', 'open')
-                               ->count();
+        $criticalOpen = $base()
+            ->whereIn('status', $activeStatuses)
+            ->where('priority', 'critical')
+            ->count();
 
         // Task 20: Average Resolution Time
         $resolvedTickets  = $base()->where('status', 'resolved')->select('created_at', 'updated_at')->get();
@@ -121,20 +126,27 @@ class SlaController extends Controller
         }
 
         // Task 21: At-Risk Tickets
-        $priorityOrder = ['critical' => 0, 'high' => 1, 'medium' => 2, 'low' => 3];
-        $atRisk = $base()->where('status', 'open')
+        // Order: priority first (critical -> low), then age (oldest first).
+        $priorityOrderSql = "CASE priority
+            WHEN 'critical' THEN 0
+            WHEN 'high'     THEN 1
+            WHEN 'medium'   THEN 2
+            WHEN 'low'      THEN 3
+            ELSE 9
+        END";
+
+        $atRisk = $base()
+            ->whereIn('status', $activeStatuses)
+            ->orderByRaw($priorityOrderSql)
             ->orderBy('created_at')
-            ->get()
-            ->sortBy(fn($t) => $priorityOrder[$t->priority] ?? 9)
-            ->take(5)
-            ->values();
+            ->limit(5)
+            ->get();
 
         // Task 22: Compliance Table
-        $allOpen = $base()->whereIn('status', ['open', 'in_progress', 'in_review'])
+        $allOpen = $base()->whereIn('status', $activeStatuses)
+            ->orderByRaw($priorityOrderSql)
             ->orderBy('created_at')
-            ->get()
-            ->sortBy(fn($t) => $priorityOrder[$t->priority] ?? 9)
-            ->values();
+            ->get();
 
         // Task 18: Quarterly SLA % Trend chart (always all-time, last 4 quarters)
         $quarterly = [];

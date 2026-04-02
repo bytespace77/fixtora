@@ -191,21 +191,21 @@
 
         <div class="panel">
             <div class="panel-title">Issue Distribution</div>
-            <div class="panel-sub">Resolution by infrastructure type</div>
+            <div class="panel-sub">Tickets by workflow status</div>
             <div class="doughnut-holder">
                 <canvas id="issueDistributionChart"></canvas>
             </div>
             <div class="issue-list">
                 <div class="issue-row">
-                    <div class="issue-left"><span class="issue-dot" style="background:#0f3f83"></span>Backend Infrastructure</div>
+                    <div class="issue-left"><span class="issue-dot" style="background:#0f3f83"></span>Open</div>
                     <div>{{ $distribution[0] }}</div>
                 </div>
                 <div class="issue-row">
-                    <div class="issue-left"><span class="issue-dot" style="background:#3b82f6"></span>Frontend / UI Issues</div>
+                    <div class="issue-left"><span class="issue-dot" style="background:#3b82f6"></span>In Progress</div>
                     <div>{{ $distribution[1] }}</div>
                 </div>
                 <div class="issue-row">
-                    <div class="issue-left"><span class="issue-dot" style="background:#bfdbfe"></span>API Integrations</div>
+                    <div class="issue-left"><span class="issue-dot" style="background:#22c55e"></span>Resolved</div>
                     <div>{{ $distribution[2] }}</div>
                 </div>
             </div>
@@ -358,10 +358,10 @@
     new Chart(issueEl, {
       type: 'doughnut',
       data: {
-        labels: ['Backend Infrastructure', 'Frontend / UI Issues', 'API Integrations'],
+        labels: ['Open', 'In Progress', 'Resolved'],
         datasets: [{
           data: {!! json_encode($distribution) !!},
-          backgroundColor: ['#0f3f83', '#3b82f6', '#bfdbfe'],
+          backgroundColor: ['#0f3f83', '#3b82f6', '#22c55e'],
           borderWidth: 0
         }]
       },

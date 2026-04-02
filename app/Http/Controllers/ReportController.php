@@ -84,19 +84,23 @@ class ReportController extends Controller
         $newTaskTrend  = $chartData['taskInflow'];
         $doneTaskTrend = $chartData['taskDone'];
 
-        // Issue Distribution Map
-        $distributionRaw = Ticket::select('system', DB::raw('count(*) as count'))
+        // Issue Distribution Map (3 buckets)
+        // For your workflow: todo -> open, doing -> in_progress, done -> resolved
+        // Here we map ticket.status into:
+        // - Open
+        // - In Progress
+        // - Resolved (includes 'resolved' + 'closed')
+        $distributionRaw = Ticket::select('status', DB::raw('count(*) as count'))
             ->whereBetween('created_at', [$from, $to])
-            ->groupBy('system')
-            ->pluck('count', 'system')
+            ->groupBy('status')
+            ->pluck('count', 'status')
             ->toArray();
-        
-        $backend = ($distributionRaw['Payment GW'] ?? 0) + ($distributionRaw['Cloud Infra'] ?? 0);
-        $frontend = $distributionRaw['CRM Portal'] ?? 0;
-        $api = $distributionRaw['Auth Core'] ?? 0;
-        $others = array_sum($distributionRaw) - $backend - $frontend - $api;
-        
-        $distribution = [$backend + $others, $frontend, $api];
+
+        $openCount       = (int) ($distributionRaw['open'] ?? 0);
+        $inProgressCount = (int) ($distributionRaw['in_progress'] ?? 0);
+        $resolvedCount   = (int) ($distributionRaw['resolved'] ?? 0) + (int) ($distributionRaw['closed'] ?? 0);
+
+        $distribution = [$openCount, $inProgressCount, $resolvedCount];
 
         // Team Performance — superadmin only, grouped by role
         $isSuperAdmin = auth()->user()->isSuperAdmin();

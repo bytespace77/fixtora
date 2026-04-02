@@ -370,13 +370,14 @@ textarea.form-control{resize:vertical;min-height:80px}
           </div>
         </div>
         
-        @if(auth()->user()->hasGlobalDataAccess())
+        @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
         <div style="margin:20px 0 16px;border-top:1px dashed var(--border);padding-top:16px;display:flex;align-items:center;gap:6px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <strong style="font-size:13px;color:var(--navy)">SLA & Timeline Tracking</strong>
         </div>
 
-        <div class="form-row">
+        <div class="form-row" style="{{ auth()->user()->hasGlobalDataAccess() ? '' : 'grid-template-columns:1fr' }}">
+          @if(auth()->user()->hasGlobalDataAccess())
           <div class="form-group">
             <label>SLA Level</label>
             <select name="sla_level" class="form-control">
@@ -387,21 +388,25 @@ textarea.form-control{resize:vertical;min-height:80px}
               <option value="Critical">Critical</option>
             </select>
           </div>
+          @endif
           <div class="form-group">
             <label>Estimated Delivery</label>
             <input type="datetime-local" name="estimated_delivery_date" class="form-control">
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Actual Delivery</label>
-            <input type="datetime-local" name="actual_delivery_date" class="form-control">
+
+        @if(auth()->user()->hasGlobalDataAccess())
+          <div class="form-row">
+            <div class="form-group">
+              <label>Actual Delivery</label>
+              <input type="datetime-local" name="actual_delivery_date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>QC Test Date</label>
+              <input type="datetime-local" name="qc_test_date" class="form-control">
+            </div>
           </div>
-          <div class="form-group">
-            <label>QC Test Date</label>
-            <input type="datetime-local" name="qc_test_date" class="form-control">
-          </div>
-        </div>
+        @endif
         @endif
       </div>
       <div class="modal-footer">
@@ -477,13 +482,14 @@ textarea.form-control{resize:vertical;min-height:80px}
           </div>
         </div>
 
-        @if(auth()->user()->hasGlobalDataAccess())
+        @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
         <div style="margin:20px 0 16px;border-top:1px dashed var(--border);padding-top:16px;display:flex;align-items:center;gap:6px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <strong style="font-size:13px;color:var(--navy)">SLA & Timeline Tracking</strong>
         </div>
 
-        <div class="form-row">
+        <div class="form-row" style="{{ auth()->user()->hasGlobalDataAccess() ? '' : 'grid-template-columns:1fr' }}">
+          @if(auth()->user()->hasGlobalDataAccess())
           <div class="form-group">
             <label>SLA Level</label>
             <select id="edit-sla_level" class="form-control">
@@ -494,21 +500,25 @@ textarea.form-control{resize:vertical;min-height:80px}
               <option value="Critical">Critical</option>
             </select>
           </div>
+          @endif
           <div class="form-group">
             <label>Estimated Delivery</label>
             <input type="datetime-local" id="edit-estimated_delivery_date" class="form-control">
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Actual Delivery</label>
-            <input type="datetime-local" id="edit-actual_delivery_date" class="form-control">
+
+        @if(auth()->user()->hasGlobalDataAccess())
+          <div class="form-row">
+            <div class="form-group">
+              <label>Actual Delivery</label>
+              <input type="datetime-local" id="edit-actual_delivery_date" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>QC Test Date</label>
+              <input type="datetime-local" id="edit-qc_test_date" class="form-control">
+            </div>
           </div>
-          <div class="form-group">
-            <label>QC Test Date</label>
-            <input type="datetime-local" id="edit-qc_test_date" class="form-control">
-          </div>
-        </div>
+        @endif
         @endif
       </div>
       <div class="modal-footer">
@@ -872,12 +882,16 @@ async function submitEdit(e) {
     payload.assigned_to = assignedEl.value;
   }
   
-  if (document.getElementById('edit-sla_level')) {
-    payload.sla_level               = document.getElementById('edit-sla_level').value;
-    payload.estimated_delivery_date = document.getElementById('edit-estimated_delivery_date').value;
-    payload.actual_delivery_date    = document.getElementById('edit-actual_delivery_date').value;
-    payload.qc_test_date            = document.getElementById('edit-qc_test_date').value;
-  }
+  // SLA/timeline inputs are role-dependent (developer may see only estimated delivery).
+  const slaElEdit = document.getElementById('edit-sla_level');
+  const estElEdit = document.getElementById('edit-estimated_delivery_date');
+  const actElEdit = document.getElementById('edit-actual_delivery_date');
+  const qcElEdit  = document.getElementById('edit-qc_test_date');
+
+  if (slaElEdit) payload.sla_level = slaElEdit.value;
+  if (estElEdit) payload.estimated_delivery_date = estElEdit.value;
+  if (actElEdit) payload.actual_delivery_date = actElEdit.value;
+  if (qcElEdit)  payload.qc_test_date = qcElEdit.value;
   const res  = await fetch(`/tasks/${id}`, {
     method:  'PATCH',
     headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },

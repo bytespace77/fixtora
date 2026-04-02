@@ -143,28 +143,43 @@ class AppServiceProvider extends ServiceProvider
                 ];
             });
 
-        // --- TASKS (Ticket Assigned) ---
-        $taskQuery = Task::with('ticket')->latest();
+        // --- TASKS (Ticket Assigned / Task Updates) ---
+        // IMPORTANT: Do not require a linked ticket for filtering.
+        // Developers may have tasks without ticket_id, and using whereHas('ticket')
+        // would drop those notifications completely.
+        $taskQuery = Task::with('ticket')->orderByDesc('updated_at');
         if (!$hasGlobalDataAccess) {
-            $taskQuery->whereHas('ticket', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId ?: 0);
-            });
+            $taskQuery->where('company_id', $companyId ?: 0);
         }
 
         $taskItems = $taskQuery
             ->take(20)
             ->get()
             ->map(function (Task $task) use ($isDeveloper) {
-                $isNew = $task->created_at && $task->created_at->greaterThan(now()->subDay());
+                // For task notifications, treat BOTH assignment and updates as "new"
+                // (assigned_to changes updated_at, not created_at).
+                $isNew = $task->updated_at && $task->updated_at->greaterThan(now()->subDay());
                 
                 if ($isDeveloper) {
-                    $title = 'Ticket Assigned to You';
-                    $desc = $task->ticket ? 'Linked to ticket #' . str_pad((string) $task->ticket->id, 4, '0', STR_PAD_LEFT) . ' - ' . $task->title : $task->title;
+                    $taskId    = str_pad((string) $task->id, 4, '0', STR_PAD_LEFT);
+                    $ticketId  = $task->ticket ? str_pad((string) $task->ticket->id, 4, '0', STR_PAD_LEFT) : null;
+                    $ticketTxt = $ticketId ? 'Ticket #TK-' . $ticketId : 'No linked ticket';
+                    $title     = $ticketId
+                        ? 'Task for you: #TK-' . $ticketId
+                        : 'New task assigned to you';
+
+                    $desc = $task->ticket
+                        ? $ticketTxt . ' · Task #' . $taskId . ' · ' . ($task->title ?: 'Untitled')
+                        : 'Task #' . $taskId . ' · ' . ($task->title ?: 'Untitled');
                 } else {
                     $taskLabel = $task->title ?: ('Task #' . $task->id);
                     $title = 'Task activity: ' . $taskLabel;
                     $desc = 'Status: ' . strtoupper((string) $task->status) . ($task->ticket ? ' · Linked to ticket #' . str_pad((string) $task->ticket->id, 4, '0', STR_PAD_LEFT) : '');
                 }
+
+                $url = $task->ticket_id
+                    ? route('tickets.show', $task->ticket_id)
+                    : route('tasks.index');
 
                 return [
                     'title' => $title,
@@ -174,7 +189,7 @@ class AppServiceProvider extends ServiceProvider
                     'is_new' => $isNew,
                     'type' => $this->mapTaskType($task->status),
                     'category' => 'Task',
-                    'url' => route('tasks.index'),
+                    'url' => $url,
                 ];
             });
 
