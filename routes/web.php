@@ -47,6 +47,7 @@ Route::middleware(['auth'])->group(function () {
 
     // SLA Monitor
     Route::get('/sla-monitor', [SlaController::class, 'index'])->name('sla-monitor.index');
+    Route::post('/sla-monitor/configure', [SlaController::class, 'configure'])->name('sla-monitor.configure');
 
     // Settings
     Route::get('/settings', function () {
