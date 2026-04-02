@@ -27,8 +27,23 @@ class TicketController extends Controller
     {
         $user = auth()->user();
 
+        // Superadmin can access all companies
         if ($user->isSuperAdmin()) {
-            return; // Superadmin can access all companies
+            return;
+        }
+
+        // Users whose role has been explicitly granted view_tickets (or any ticket
+        // permission) by the superadmin are trusted to see tickets across companies.
+        // The permission check in the calling method already verified they hold the
+        // required permission, so we only enforce company isolation for users whose
+        // role has NO ticket permissions at all (i.e. the role never granted access).
+        $role = $user->userRole;
+        $rolePermissions = $role ? ($role->permissions ?? []) : [];
+        $hasAnyTicketPermission = collect($rolePermissions)
+            ->contains(fn($p) => str_contains($p, 'ticket'));
+
+        if ($hasAnyTicketPermission) {
+            return; // Role was granted ticket access by admin — trust that grant
         }
 
         abort_unless(
@@ -373,7 +388,7 @@ class TicketController extends Controller
             'ticket_id' => $ticket->id,
             'user_id'   => auth()->id(),
             'body'      => $request->body,
-            'role'      => 'superadmin',
+            'role'      => auth()->user()->role ?? 'user',
             'type'      => 'comment',
         ]);
 
