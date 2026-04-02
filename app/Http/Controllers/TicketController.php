@@ -16,6 +16,28 @@ class TicketController extends Controller
         $this->middleware('auth');
     }
 
+    // ─────────────────────────────────────────────────────────
+    // Task 41: Company isolation guard (defense-in-depth).
+    // The Ticket model's global scope already filters list/index
+    // queries. This guard protects individual-record endpoints
+    // (show, update, addComment, uploadAttachment, destroy, etc.)
+    // from direct URL access by users of another company.
+    // ─────────────────────────────────────────────────────────
+    private function authorizeTicketCompany(Ticket $ticket): void
+    {
+        $user = auth()->user();
+
+        if ($user->isSuperAdmin()) {
+            return; // Superadmin can access all companies
+        }
+
+        abort_unless(
+            $ticket->company_id === $user->company_id,
+            403,
+            'You do not have permission to access this ticket.'
+        );
+    }
+
     public function index(Request $request)
     {
         abort_unless(auth()->user()->hasPermission('list_tickets'), 403, 'You do not have permission to view tickets.');
@@ -62,9 +84,6 @@ class TicketController extends Controller
         $validated['user_id'] = auth()->id();
         unset($validated['attachments']);
 
-        // Company assignment rules:
-        // - Normal users: always their own company
-        // - SuperAdmin: can select a company by name in the System field (legacy behavior)
         $validated['company_id'] = auth()->user()->company_id;
         if (auth()->user()->isSuperAdmin()) {
             $company = \App\Models\Company::where('name', $validated['system'])->first();
@@ -96,6 +115,7 @@ class TicketController extends Controller
     public function show(Ticket $ticket)
     {
         abort_unless(auth()->user()->hasPermission('view_tickets'), 403, 'You do not have permission to view this ticket.');
+        $this->authorizeTicketCompany($ticket); // ← Task 41
 
         if (!$ticket->is_read) {
             $ticket->timestamps = false;
@@ -104,7 +124,6 @@ class TicketController extends Controller
             $ticket->timestamps = true;
         }
 
-        // Load comments with their attachments, and ticket-level attachments (no comment_id)
         $ticket->load([
             'comments.user',
             'comments.attachments',
@@ -120,7 +139,6 @@ class TicketController extends Controller
                 })
                 ->orderBy('name');
 
-            // SuperAdmin can assign any developer role user across companies.
             if (!auth()->user()->isSuperAdmin()) {
                 $developerQuery->where('company_id', $ticket->company_id);
             }
@@ -134,6 +152,8 @@ class TicketController extends Controller
     public function update(Request $request, Ticket $ticket)
     {
         $user = auth()->user();
+        $this->authorizeTicketCompany($ticket); // ← Task 41
+
         $canEditTicket = $user->hasPermission('edit_tickets');
         $isAssignedDeveloper = (int) $ticket->assigned_developer_id === (int) $user->id;
         $estimateOnlyKeys = ['_token', '_method', 'estimated_delivery_date'];
@@ -319,6 +339,7 @@ class TicketController extends Controller
     public function addComment(Request $request, Ticket $ticket)
     {
         abort_unless(auth()->user()->hasPermission('add_comments'), 403, 'You do not have permission to add comments.');
+        $this->authorizeTicketCompany($ticket); // ← Task 41
 
         $request->validate([
             'body'          => 'required|string',
@@ -335,7 +356,6 @@ class TicketController extends Controller
             'type'      => 'comment',
         ]);
 
-        // Save any files attached to this comment
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
                 $path = $file->store("ticket-attachments/{$ticket->id}", 'public');
@@ -354,10 +374,10 @@ class TicketController extends Controller
         return redirect()->route('tickets.show', $ticket)->with('success', 'Comment posted!');
     }
 
-    // Upload new attachment to an existing ticket (no comment)
     public function uploadAttachment(Request $request, Ticket $ticket)
     {
         abort_unless(auth()->user()->hasPermission('upload_attachments'), 403, 'You do not have permission to upload attachments.');
+        $this->authorizeTicketCompany($ticket); // ← Task 41
 
         $request->validate([
             'attachments'   => 'required|array|max:10',
@@ -380,7 +400,6 @@ class TicketController extends Controller
         return redirect()->route('tickets.show', $ticket)->with('success', 'File(s) uploaded!');
     }
 
-    // Delete a single attachment
     public function deleteAttachment(Ticket $ticket, TicketAttachment $attachment)
     {
         abort_unless(auth()->user()->isSuperAdmin(), 403, 'Only superadmins can delete attachments.');
@@ -393,19 +412,19 @@ class TicketController extends Controller
     public function destroy(Ticket $ticket)
     {
         abort_unless(auth()->user()->hasPermission('delete_tickets'), 403, 'You do not have permission to delete tickets.');
+        $this->authorizeTicketCompany($ticket); // ← Task 41
 
         Storage::disk('public')->deleteDirectory("ticket-attachments/{$ticket->id}");
         $ticket->delete();
         return redirect()->route('tickets.index')->with('success', 'Ticket deleted!');
     }
 
-    // Delete a single comment (and its attachments) — only the comment's author may delete
     public function deleteComment(Ticket $ticket, \App\Models\TicketComment $comment)
     {
         abort_unless(auth()->user()->hasPermission('delete_comments'), 403, 'You do not have permission to delete comments.');
+        $this->authorizeTicketCompany($ticket); // ← Task 41
         abort_if($comment->ticket_id !== $ticket->id, 403);
         abort_if($comment->user_id !== auth()->id(), 403);
-        // Delete any files attached to this comment
         foreach ($comment->attachments as $att) {
             Storage::disk('public')->delete($att->stored_path);
             $att->delete();
