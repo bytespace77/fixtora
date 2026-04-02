@@ -50,17 +50,16 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
-    // Global data access users bypass company scoping in core modules.
+    /**
+     * Task 41 FIX: Only SuperAdmin has cross-company (global) data access.
+     *
+     * Previously, the "developer" role also bypassed company scoping, which
+     * is a multi-tenancy leak — developers from Company A could see Company B's
+     * tickets and tasks. Now only superadmin sees across all companies.
+     */
     public function hasGlobalDataAccess(): bool
     {
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
-        $roleName = strtolower(trim((string) optional($this->userRole)->name));
-        $accountRole = strtolower(trim((string) $this->role));
-
-        return $roleName === 'developer' || $accountRole === 'developer';
+        return $this->isSuperAdmin();
     }
 
     // A user belongs to one assigned role
