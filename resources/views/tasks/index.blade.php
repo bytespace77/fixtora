@@ -403,11 +403,6 @@ textarea.form-control{resize:vertical;min-height:80px}
           </div>
         </div>
         @endif
-        <div class="form-group" id="progressGroup" style="display:none">
-          <label>Progress: <span id="progressVal">0</span>%</label>
-          <input type="range" name="progress" min="0" max="100" value="0" class="form-control"
-                 style="padding:4px" oninput="document.getElementById('progressVal').textContent=this.value">
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
@@ -515,12 +510,6 @@ textarea.form-control{resize:vertical;min-height:80px}
           </div>
         </div>
         @endif
-        <div class="form-group" id="editProgressGroup" style="display:none">
-          <label>Progress: <span id="editProgressVal">0</span>%</label>
-          <input type="range" id="edit-progress" min="0" max="100" value="0" class="form-control"
-                 style="padding:4px"
-                 oninput="document.getElementById('editProgressVal').textContent=this.value">
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>
@@ -632,20 +621,13 @@ document.querySelectorAll('.kanban-col').forEach(col => {
         card.dataset.task = JSON.stringify(t);
       } catch(err) {}
 
-      // Show/hide progress bar
-      const existingProgress = card.querySelector('.k-progress');
-      if (newStatus === 'doing' && !existingProgress) {
-        const anchor = card.querySelector('.k-desc') || card.querySelector('.k-title');
-        anchor.insertAdjacentHTML('afterend',
-          `<div class="k-progress"><div class="progress-bg"><div class="progress-fill" style="width:0%"></div></div></div>`);
-      } else if (newStatus !== 'doing' && existingProgress) {
-        existingProgress.remove();
-      }
-
       document.getElementById(`cards-${newStatus}`).appendChild(card);
       updateCount(dragFromStatus);
       updateCount(newStatus);
     }
+    
+    const rowSelect = document.querySelector(`#list-row-${dragId} select`);
+    if (rowSelect) rowSelect.value = newStatus;
 
     const id = dragId;
     dragId   = null;
@@ -672,7 +654,6 @@ function toggleView() {
 function openModal(status = 'todo') {
   document.getElementById('taskModal').classList.add('open');
   document.getElementById('modal-status').value = status;
-  document.getElementById('progressGroup').style.display = status === 'doing' ? '' : 'none';
 }
 function closeModal() {
   document.getElementById('taskModal').classList.remove('open');
@@ -680,9 +661,6 @@ function closeModal() {
 }
 document.getElementById('taskModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
-});
-document.getElementById('modal-status').addEventListener('change', function() {
-  document.getElementById('progressGroup').style.display = this.value === 'doing' ? '' : 'none';
 });
 
 async function submitTask(e) {
@@ -709,7 +687,7 @@ function cardHtml(t) {
     id: t.id, title: t.title, description: t.description ?? '',
     priority: t.priority, status: t.status,
     assigned_to: t.assigned_to ?? '', due_date: t.due_date ?? '',
-    progress: t.progress ?? 0, ticket_id: t.ticket_id ?? '',
+    ticket_id: t.ticket_id ?? '',
     sla_level: t.sla_level ?? '',
     estimated_delivery_date: t.estimated_delivery_date ?? '',
     actual_delivery_date: t.actual_delivery_date ?? '',
@@ -721,8 +699,6 @@ function cardHtml(t) {
   const assigneeHtml = t.assignee
     ? `<div class="k-av" style="background:${COLORS[t.assignee.id%5]}">${t.assignee.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div><span class="k-av-name">${escHtml(t.assignee.name)}</span>`
     : `<div class="k-av unassigned"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="pointer-events:none"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><span class="k-av-name" style="color:var(--muted-lt)">Unassigned</span>`;
-  const progressHtml = t.status === 'doing'
-    ? `<div class="k-progress"><div class="progress-bg"><div class="progress-fill" style="width:${t.progress??0}%"></div></div></div>` : '';
 
   const formatSlaDate = (dt) => {
     if (!dt) return '';
@@ -767,7 +743,6 @@ function cardHtml(t) {
     <div class="k-title">${escHtml(t.title)}</div>
     ${t.description ? `<div class="k-desc">${escHtml(t.description)}</div>` : ''}
     ${slaHtml}
-    ${progressHtml}
     <div class="k-footer" style="margin-top:10px">
       <div class="k-assignee">${assigneeHtml}</div>
       <div style="display:flex;align-items:center;gap:4px">
@@ -872,10 +847,6 @@ function openEditModal(task) {
   const qcEl = document.getElementById('edit-qc_test_date');
   if (qcEl) qcEl.value = formatDT(task.qc_test_date);
 
-  const prog = task.progress ?? 0;
-  document.getElementById('edit-progress').value         = prog;
-  document.getElementById('editProgressVal').textContent = prog;
-  document.getElementById('editProgressGroup').style.display = task.status === 'doing' ? '' : 'none';
   document.getElementById('editModal').classList.add('open');
 }
 function closeEditModal() {
@@ -883,9 +854,6 @@ function closeEditModal() {
 }
 document.getElementById('editModal').addEventListener('click', function(e) {
   if (e.target === this) closeEditModal();
-});
-document.getElementById('edit-status').addEventListener('change', function() {
-  document.getElementById('editProgressGroup').style.display = this.value === 'doing' ? '' : 'none';
 });
 async function submitEdit(e) {
   e.preventDefault();
@@ -897,7 +865,6 @@ async function submitEdit(e) {
     status:      document.getElementById('edit-status').value,
     ticket_id:   document.getElementById('edit-ticket_id').value,
     due_date:    document.getElementById('edit-due_date').value,
-    progress:    document.getElementById('edit-progress').value,
   };
   
   const assignedEl = document.getElementById('edit-assigned_to');
@@ -922,6 +889,26 @@ async function submitEdit(e) {
 
 /* ── Quick status (list view) ────────────────────────────────── */
 async function quickStatusUpdate(id, status) {
+  const card = document.querySelector(`.k-card[data-id="${id}"]`);
+  if (card) {
+    const oldStatus = card.dataset.status;
+    if (oldStatus !== status) {
+      card.dataset.status = status;
+      card.classList.toggle('done-card', status === 'done');
+      
+      try {
+        const t = JSON.parse(card.dataset.task);
+        t.status = status;
+        card.dataset.task = JSON.stringify(t);
+      } catch(err) {}
+
+      const container = document.getElementById(`cards-${status}`);
+      if(container) container.appendChild(card);
+      updateCount(oldStatus);
+      updateCount(status);
+    }
+  }
+
   await fetch(`/tasks/${id}`, {
     method:  'POST',
     headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },
