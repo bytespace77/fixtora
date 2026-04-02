@@ -263,33 +263,19 @@ textarea.form-control{resize:vertical;min-height:80px}
             <div class="tl-dot blue">{{ strtoupper(substr($ticket->user->name??'U',0,1)) }}</div>
             <div><div class="tl-title">Ticket Created</div><div class="tl-time">{{ $ticket->created_at->format('M d, Y · H:i') }}</div><div class="tl-desc">Submitted by {{ $ticket->user->name??'Unknown' }}</div></div>
           </div>
-          @if($ticket->assigned_developer_id)
-          <div class="tl-item">
-            <div class="tl-dot orange">A</div>
-            <div>
-              <div class="tl-title">Ticket Assigned + SLA</div>
-              <div class="tl-time">{{ $ticket->assigned_date ? $ticket->assigned_date->format('M d, Y · H:i') : '—' }}</div>
-              <div class="tl-desc">{{ $ticket->assignedDeveloper->name ?? 'Developer' }} · SLA {{ $ticket->sla_level ?? '—' }}</div>
+          @if($ticket->tasks && $ticket->tasks->count() > 0)
+          @foreach($ticket->tasks as $task)
+            @if($task->assigned_to)
+            <div class="tl-item">
+              <div class="tl-dot orange">{{ strtoupper(substr($task->assignee->name??'A',0,1)) }}</div>
+              <div>
+                <div class="tl-title">Task "{{ Str::limit($task->title, 20) }}" Assigned</div>
+                <div class="tl-time">{{ $task->assigned_date ? $task->assigned_date->format('M d, Y · H:i') : '—' }}</div>
+                <div class="tl-desc">{{ $task->assignee->name ?? 'Developer' }} · SLA {{ $task->sla_level ?? '—' }}</div>
+              </div>
             </div>
-          </div>
-          @endif
-          @if($ticket->estimated_delivery_date)
-          <div class="tl-item">
-            <div class="tl-dot blue">E</div>
-            <div><div class="tl-title">Estimated Delivery Updated</div><div class="tl-time">{{ $ticket->estimated_delivery_date->format('M d, Y · H:i') }}</div></div>
-          </div>
-          @endif
-          @if($ticket->actual_delivery_date)
-          <div class="tl-item">
-            <div class="tl-dot green">D</div>
-            <div><div class="tl-title">Developer Delivered Fix</div><div class="tl-time">{{ $ticket->actual_delivery_date->format('M d, Y · H:i') }}</div></div>
-          </div>
-          @endif
-          @if($ticket->qc_test_date)
-          <div class="tl-item">
-            <div class="tl-dot green">Q</div>
-            <div><div class="tl-title">QC Test Results Confirmed</div><div class="tl-time">{{ $ticket->qc_test_date->format('M d, Y · H:i') }}</div></div>
-          </div>
+            @endif
+          @endforeach
           @endif
           @if($ticket->status!=='open')
           <div class="tl-item">
@@ -424,63 +410,29 @@ textarea.form-control{resize:vertical;min-height:80px}
   <div class="detail-col">
 
     <div class="card">
-      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Assignment & SLA</div></div>
-      <div class="card-body">
-        @if(auth()->user()->isSuperAdmin())
-        <form action="{{ route('tickets.update', $ticket) }}" method="POST" class="ticket-side-form">
-          @csrf @method('PATCH')
-          <div class="form-group">
-            <label>Assigned Developer *</label>
-            <select name="assigned_developer_id" class="form-control" required>
-              <option value="">Select developer</option>
-              @forelse($developers as $developer)
-              <option value="{{ $developer->id }}" {{ (int) $ticket->assigned_developer_id === (int) $developer->id ? 'selected' : '' }}>
-                {{ $developer->name }} ({{ $developer->email }})
-              </option>
-              @empty
-              <option value="" disabled>No users with Developer role</option>
-              @endforelse
-            </select>
+      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Related Tasks (SLA & Delivery)</div></div>
+      <div class="card-body" style="padding:0">
+        @forelse($ticket->tasks as $t)
+          <div style="padding:16px;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:13.5px;font-weight:800;color:var(--navy)">{{ $t->title }}</div>
+              <span class="pill pill-{{ $t->status }}">{{ ucfirst(str_replace('_',' ',$t->status)) }}</span>
+            </div>
+            <div class="meta-list" style="margin-top:10px">
+              <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($t->assignee)<div style="width:18px;height:18px;border-radius:4px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">{{ strtoupper(substr($t->assignee->name,0,2)) }}</div>{{ $t->assignee->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
+              <div class="meta-row"><span class="meta-key">SLA</span><span class="meta-val">{{ $t->sla_level ?? '—' }}</span></div>
+              <div class="meta-row"><span class="meta-key">Estimated Delivery</span><span class="meta-val">{{ $t->estimated_delivery_date ? $t->estimated_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
+              <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $t->actual_delivery_date ? $t->actual_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
+              <div class="meta-row"><span class="meta-key">QC Test Date</span><span class="meta-val">{{ $t->qc_test_date ? $t->qc_test_date->format('M d, Y · H:i') : '—' }}</span></div>
+            </div>
           </div>
-          <div class="form-group">
-            <label>SLA Level *</label>
-            <select name="sla_level" class="form-control" required>
-              <option value="">Select SLA</option>
-              @foreach(['Low', 'Medium', 'High', 'Critical'] as $sla)
-              <option value="{{ $sla }}" {{ $ticket->sla_level === $sla ? 'selected' : '' }}>{{ $sla }}</option>
-              @endforeach
-            </select>
+        @empty
+          <div style="padding:24px 20px;text-align:center;color:var(--muted)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 10px;opacity:0.3;display:block"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <div style="font-size:12.5px;font-weight:600">No tasks linked</div>
+            <div style="font-size:11.5px;color:var(--muted-lt);margin-top:2px">SLA & Delivery are now managed in Tasks.</div>
           </div>
-          <button type="submit" class="btn-full"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Save Assignment</button>
-        </form>
-        @else
-        <p class="side-muted">Only SuperAdmin can assign developer and SLA.</p>
-        @endif
-
-        <div class="meta-list side-section">
-          <div class="meta-row"><span class="meta-key">Assigned Developer</span><span class="meta-val">{{ $ticket->assignedDeveloper->name ?? '—' }}</span></div>
-          <div class="meta-row"><span class="meta-key">Assigned Date</span><span class="meta-val">{{ $ticket->assigned_date ? $ticket->assigned_date->format('M d, Y · H:i') : '—' }}</span></div>
-          <div class="meta-row"><span class="meta-key">Assigned By</span><span class="meta-val">{{ $ticket->assignedBy->name ?? '—' }}</span></div>
-          <div class="meta-row"><span class="meta-key">SLA</span><span class="meta-val">{{ $ticket->sla_level ?? '—' }}</span></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>Developer Estimated Delivery</div></div>
-      <div class="card-body">
-        @if((int) auth()->id() === (int) $ticket->assigned_developer_id || auth()->user()->isSuperAdmin())
-        <form action="{{ route('tickets.update', $ticket) }}" method="POST" class="ticket-side-form">
-          @csrf @method('PATCH')
-          <div class="form-group">
-            <label>Estimated Delivery Date & Time</label>
-            <input type="datetime-local" name="estimated_delivery_date" class="form-control" value="{{ $ticket->estimated_delivery_date ? $ticket->estimated_delivery_date->format('Y-m-d\\TH:i') : '' }}">
-          </div>
-          <button type="submit" class="btn-full"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Update Estimate</button>
-        </form>
-        @else
-        <p class="side-muted">Only assigned developer can update estimated delivery.</p>
-        @endif
+        @endforelse
       </div>
     </div>
 
@@ -515,9 +467,7 @@ textarea.form-control{resize:vertical;min-height:80px}
           <div class="meta-row"><span class="meta-key">Status</span><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>
           <div class="meta-row"><span class="meta-key">Due Date</span><span class="meta-val">{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format('M d, Y') : '—' }}</span></div>
           <div class="meta-row"><span class="meta-key">Date of Issue</span><span class="meta-val">{{ $ticket->created_at->format('M d, Y · H:i') }}</span></div>
-          <div class="meta-row"><span class="meta-key">Estimated Delivery</span><span class="meta-val">{{ $ticket->estimated_delivery_date ? $ticket->estimated_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
-          <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $ticket->actual_delivery_date ? $ticket->actual_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
-          <div class="meta-row"><span class="meta-key">QC Test Date</span><span class="meta-val">{{ $ticket->qc_test_date ? $ticket->qc_test_date->format('M d, Y · H:i') : '—' }}</span></div>
+          <!-- Delivery dates have been moved to individual Tasks -->
           <div class="meta-row"><span class="meta-key">Updated</span><span class="meta-val">{{ $ticket->updated_at->diffForHumans() }}</span></div>
         </div>
       </div>

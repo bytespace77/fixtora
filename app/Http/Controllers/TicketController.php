@@ -109,8 +109,7 @@ class TicketController extends Controller
             'comments.user',
             'comments.attachments',
             'attachments' => fn($q) => $q->whereNull('comment_id'),
-            'assignedDeveloper',
-            'assignedBy'
+            'tasks.assignee'
         ]);
 
         $developers = collect();

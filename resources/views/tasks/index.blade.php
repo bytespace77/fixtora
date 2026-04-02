@@ -92,8 +92,8 @@
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-group{margin-bottom:14px}
 .form-group label{display:block;font-size:11.5px;font-weight:700;color:var(--text-sub);margin-bottom:5px;letter-spacing:.2px}
-.form-control{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s}
-.form-control:focus{border-color:#93c5fd}
+.form-control{width:100%;padding:9px 14px;border:1px solid var(--border);border-radius:9px;font-size:13px;font-family:inherit;color:var(--text);background:#fcfcfc;outline:none;transition:all .2s ease;box-shadow:inset 0 1px 2px rgba(0,0,0,0.02)}
+.form-control:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
 .form-control::placeholder{color:var(--muted-lt)}
 textarea.form-control{resize:vertical;min-height:80px}
 .modal-footer{padding:0 22px 20px;display:flex;gap:8px;justify-content:flex-end}
@@ -342,7 +342,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             </select>
           </div>
         </div>
-        <div class="form-row">
+          @if(auth()->user()->isSuperAdmin())
           <div class="form-group">
             <label>Assign To</label>
             <select name="assigned_to" class="form-control">
@@ -352,6 +352,9 @@ textarea.form-control{resize:vertical;min-height:80px}
               @endforeach
             </select>
           </div>
+          @endif
+          
+        <div class="form-row">
           <div class="form-group">
             <label>Ticket (Optional)</label>
             <select name="ticket_id" class="form-control">
@@ -361,14 +364,45 @@ textarea.form-control{resize:vertical;min-height:80px}
               @endforeach
             </select>
           </div>
-        </div>
-        <div class="form-row">
           <div class="form-group">
             <label>Due Date</label>
             <input type="date" name="due_date" class="form-control">
           </div>
-          <div class="form-group"></div>
         </div>
+        
+        @if(auth()->user()->hasGlobalDataAccess())
+        <div style="margin:20px 0 16px;border-top:1px dashed var(--border);padding-top:16px;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <strong style="font-size:13px;color:var(--navy)">SLA & Timeline Tracking</strong>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>SLA Level</label>
+            <select name="sla_level" class="form-control">
+              <option value="">Select SLA</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Estimated Delivery</label>
+            <input type="datetime-local" name="estimated_delivery_date" class="form-control">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Actual Delivery</label>
+            <input type="datetime-local" name="actual_delivery_date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>QC Test Date</label>
+            <input type="datetime-local" name="qc_test_date" class="form-control">
+          </div>
+        </div>
+        @endif
         <div class="form-group" id="progressGroup" style="display:none">
           <label>Progress: <span id="progressVal">0</span>%</label>
           <input type="range" name="progress" min="0" max="100" value="0" class="form-control"
@@ -420,7 +454,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             </select>
           </div>
         </div>
-        <div class="form-row">
+          @if(auth()->user()->isSuperAdmin())
           <div class="form-group">
             <label>Assign To</label>
             <select id="edit-assigned_to" class="form-control">
@@ -430,6 +464,9 @@ textarea.form-control{resize:vertical;min-height:80px}
               @endforeach
             </select>
           </div>
+          @endif
+          
+        <div class="form-row">
           <div class="form-group">
             <label>Ticket (Optional)</label>
             <select id="edit-ticket_id" class="form-control">
@@ -439,14 +476,45 @@ textarea.form-control{resize:vertical;min-height:80px}
               @endforeach
             </select>
           </div>
-        </div>
-        <div class="form-row">
           <div class="form-group">
             <label>Due Date</label>
             <input type="date" id="edit-due_date" class="form-control">
           </div>
-          <div class="form-group"></div>
         </div>
+
+        @if(auth()->user()->hasGlobalDataAccess())
+        <div style="margin:20px 0 16px;border-top:1px dashed var(--border);padding-top:16px;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <strong style="font-size:13px;color:var(--navy)">SLA & Timeline Tracking</strong>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>SLA Level</label>
+            <select id="edit-sla_level" class="form-control">
+              <option value="">Select SLA</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Estimated Delivery</label>
+            <input type="datetime-local" id="edit-estimated_delivery_date" class="form-control">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Actual Delivery</label>
+            <input type="datetime-local" id="edit-actual_delivery_date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>QC Test Date</label>
+            <input type="datetime-local" id="edit-qc_test_date" class="form-control">
+          </div>
+        </div>
+        @endif
         <div class="form-group" id="editProgressGroup" style="display:none">
           <label>Progress: <span id="editProgressVal">0</span>%</label>
           <input type="range" id="edit-progress" min="0" max="100" value="0" class="form-control"
@@ -641,7 +709,11 @@ function cardHtml(t) {
     id: t.id, title: t.title, description: t.description ?? '',
     priority: t.priority, status: t.status,
     assigned_to: t.assigned_to ?? '', due_date: t.due_date ?? '',
-    progress: t.progress ?? 0, ticket_id: t.ticket_id ?? ''
+    progress: t.progress ?? 0, ticket_id: t.ticket_id ?? '',
+    sla_level: t.sla_level ?? '',
+    estimated_delivery_date: t.estimated_delivery_date ?? '',
+    actual_delivery_date: t.actual_delivery_date ?? '',
+    qc_test_date: t.qc_test_date ?? ''
   }).replace(/'/g, '&#39;');
   const badge = isDone
     ? `<span style="font-size:9.5px;font-weight:700;color:var(--green)">● RESOLVED</span>`
@@ -651,6 +723,37 @@ function cardHtml(t) {
     : `<div class="k-av unassigned"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="pointer-events:none"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><span class="k-av-name" style="color:var(--muted-lt)">Unassigned</span>`;
   const progressHtml = t.status === 'doing'
     ? `<div class="k-progress"><div class="progress-bg"><div class="progress-fill" style="width:${t.progress??0}%"></div></div></div>` : '';
+
+  const formatSlaDate = (dt) => {
+    if (!dt) return '';
+    const d = new Date(dt);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let hours = d.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; 
+    const minutes = d.getMinutes() < 10 ? '0' + d.getMinutes() : d.getMinutes();
+    return `${months[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}, ${hours}:${minutes} ${ampm}`;
+  };
+
+  let slaHtml = '';
+  @if(auth()->user()->hasGlobalDataAccess())
+  if (t.sla_level || t.estimated_delivery_date || t.actual_delivery_date) {
+    let rows = '';
+    if (t.sla_level) {
+      rows += `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--muted)">SLA Level</span><span style="font-weight:700;color:var(--navy)">${escHtml(t.sla_level.toString())}</span></div>`;
+    }
+    if (t.estimated_delivery_date) {
+      rows += `<div style="display:flex;justify-content:space-between;margin-bottom:${t.actual_delivery_date ? '4px' : '0'}"><span style="color:var(--muted)">Est. Delivery</span><span style="font-weight:600;color:var(--text)">${formatSlaDate(t.estimated_delivery_date)}</span></div>`;
+    }
+    if (t.actual_delivery_date) {
+      rows += `<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Actual Delivery</span><span style="font-weight:600;color:var(--text)">${formatSlaDate(t.actual_delivery_date)}</span></div>`;
+    }
+    if (rows) {
+      slaHtml = `<div style="background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:10.5px">${rows}</div>`;
+    }
+  }
+  @endif
 
   return `
   <div class="k-card${isDone?' done-card':''}" data-id="${t.id}" data-status="${t.status}" data-task='${taskJson}'>
@@ -663,6 +766,7 @@ function cardHtml(t) {
     </div>
     <div class="k-title">${escHtml(t.title)}</div>
     ${t.description ? `<div class="k-desc">${escHtml(t.description)}</div>` : ''}
+    ${slaHtml}
     ${progressHtml}
     <div class="k-footer" style="margin-top:10px">
       <div class="k-assignee">${assigneeHtml}</div>
@@ -747,9 +851,27 @@ function openEditModal(task) {
   document.getElementById('edit-description').value = task.description ?? '';
   document.getElementById('edit-priority').value    = task.priority;
   document.getElementById('edit-status').value      = task.status;
-  document.getElementById('edit-assigned_to').value = task.assigned_to ?? '';
+  const assignedEl = document.getElementById('edit-assigned_to');
+  if (assignedEl) assignedEl.value = task.assigned_to ?? '';
   document.getElementById('edit-ticket_id').value   = task.ticket_id ?? '';
   document.getElementById('edit-due_date').value    = task.due_date ?? '';
+  const slaEl = document.getElementById('edit-sla_level');
+  if (slaEl) slaEl.value = task.sla_level ?? '';
+  
+  const formatDT = (dt) => {
+    if (!dt) return '';
+    if (dt.includes('T')) return dt.slice(0, 16);
+    return dt.replace(' ', 'T').slice(0, 16);
+  };
+  const estEl = document.getElementById('edit-estimated_delivery_date');
+  if (estEl) estEl.value = formatDT(task.estimated_delivery_date);
+  
+  const actEl = document.getElementById('edit-actual_delivery_date');
+  if (actEl) actEl.value = formatDT(task.actual_delivery_date);
+  
+  const qcEl = document.getElementById('edit-qc_test_date');
+  if (qcEl) qcEl.value = formatDT(task.qc_test_date);
+
   const prog = task.progress ?? 0;
   document.getElementById('edit-progress').value         = prog;
   document.getElementById('editProgressVal').textContent = prog;
@@ -773,11 +895,22 @@ async function submitEdit(e) {
     description: document.getElementById('edit-description').value,
     priority:    document.getElementById('edit-priority').value,
     status:      document.getElementById('edit-status').value,
-    assigned_to: document.getElementById('edit-assigned_to').value,
     ticket_id:   document.getElementById('edit-ticket_id').value,
     due_date:    document.getElementById('edit-due_date').value,
     progress:    document.getElementById('edit-progress').value,
   };
+  
+  const assignedEl = document.getElementById('edit-assigned_to');
+  if (assignedEl) {
+    payload.assigned_to = assignedEl.value;
+  }
+  
+  if (document.getElementById('edit-sla_level')) {
+    payload.sla_level               = document.getElementById('edit-sla_level').value;
+    payload.estimated_delivery_date = document.getElementById('edit-estimated_delivery_date').value;
+    payload.actual_delivery_date    = document.getElementById('edit-actual_delivery_date').value;
+    payload.qc_test_date            = document.getElementById('edit-qc_test_date').value;
+  }
   const res  = await fetch(`/tasks/${id}`, {
     method:  'PATCH',
     headers: { 'X-CSRF-TOKEN': CSRF, 'Content-Type': 'application/json', 'Accept': 'application/json' },

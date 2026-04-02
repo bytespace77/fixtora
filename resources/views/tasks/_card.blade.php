@@ -16,6 +16,10 @@
     'due_date'    => $task->due_date ? $task->due_date->format('Y-m-d') : '',
     'progress'    => $task->progress ?? 0,
     'ticket_id'   => $task->ticket_id ?? '',
+    'sla_level'               => $task->sla_level ?? '',
+    'estimated_delivery_date' => $task->estimated_delivery_date ? $task->estimated_delivery_date->format('Y-m-d\TH:i') : '',
+    'actual_delivery_date'    => $task->actual_delivery_date ? $task->actual_delivery_date->format('Y-m-d\TH:i') : '',
+    'qc_test_date'            => $task->qc_test_date ? $task->qc_test_date->format('Y-m-d\TH:i') : '',
   ];
 @endphp
 
@@ -49,6 +53,29 @@
 
   @if($task->description)
     <div class="k-desc">{{ $task->description }}</div>
+  @endif
+
+  @if(auth()->user()->hasGlobalDataAccess() && ($task->sla_level || $task->estimated_delivery_date || $task->actual_delivery_date))
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:10.5px">
+      @if($task->sla_level)
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:var(--muted)">SLA Level</span>
+          <span style="font-weight:700;color:var(--navy)">{{ $task->sla_level }}</span>
+        </div>
+      @endif
+      @if($task->estimated_delivery_date)
+        <div style="display:flex;justify-content:space-between;margin-bottom:{{ $task->actual_delivery_date ? '4px' : '0' }}">
+          <span style="color:var(--muted)">Est. Delivery</span>
+          <span style="font-weight:600;color:var(--text)">{{ $task->estimated_delivery_date->format('M d, g:i A') }}</span>
+        </div>
+      @endif
+      @if($task->actual_delivery_date)
+        <div style="display:flex;justify-content:space-between">
+          <span style="color:var(--muted)">Actual Delivery</span>
+          <span style="font-weight:600;color:var(--text)">{{ $task->actual_delivery_date->format('M d, g:i A') }}</span>
+        </div>
+      @endif
+    </div>
   @endif
 
   @if($task->status === 'doing')

@@ -21,11 +21,21 @@ class Task extends Model
         'status',
         'progress',
         'due_date',
+        'assigned_date',
+        'assigned_by',
+        'sla_level',
+        'estimated_delivery_date',
+        'actual_delivery_date',
+        'qc_test_date',
     ];
 
     protected $casts = [
         'due_date' => 'date',
         'progress' => 'integer',
+        'assigned_date' => 'datetime',
+        'estimated_delivery_date' => 'datetime',
+        'actual_delivery_date' => 'datetime',
+        'qc_test_date' => 'datetime',
     ];
 
     // Auto-filter by company — superadmin sees ALL
@@ -34,7 +44,13 @@ class Task extends Model
         static::addGlobalScope('company', function ($query) {
             if (Auth::check()) {
                 $user = Auth::user();
-                // Superadmin and developer role can view cross-company data
+                if ($user->isSuperAdmin()) {
+                    return;
+                }
+                if ($user->isDeveloper()) {
+                    $query->where('assigned_to', $user->id);
+                    return;
+                }
                 if ($user->hasGlobalDataAccess()) {
                     return;
                 }
@@ -45,12 +61,19 @@ class Task extends Model
         });
     }
 
-    // Auto-set company_id when creating a task
+    // Auto-set company_id when creating or updating a task
     protected static function boot()
     {
         parent::boot();
-        static::creating(function ($task) {
-            if (Auth::check() && !$task->company_id) {
+        static::saving(function ($task) {
+            if ($task->ticket_id) {
+                $ticket = Ticket::find($task->ticket_id);
+                if ($ticket) {
+                    $task->company_id = $ticket->company_id;
+                }
+            } 
+            
+            if (Auth::check() && empty($task->company_id)) {
                 $task->company_id = Auth::user()->company_id;
             }
         });

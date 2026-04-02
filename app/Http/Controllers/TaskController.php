@@ -25,10 +25,16 @@ class TaskController extends Controller
         $doing = Task::with(['assignee', 'ticket'])->doing()->latest()->get();
         $done  = Task::with(['assignee', 'ticket'])->done()->latest()->get();
 
-        // ✅ Step 14: Only show users from the same company in the assignee dropdown
-        $users = User::where('company_id', auth()->user()->company_id)
-                     ->orderBy('name')
-                     ->get();
+        // ✅ Step 14: Only show users from the same company in the assignee dropdown (Filtered by Developer role)
+        $usersQuery = User::whereHas('userRole', function ($q) {
+                         $q->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
+                     })->orderBy('name');
+
+        if (!auth()->user()->isSuperAdmin()) {
+            $usersQuery->where('company_id', auth()->user()->company_id);
+        }
+
+        $users = $usersQuery->get();
 
         // Workload velocity: tasks completed per day this week (Mon–Sun)
         $velocity = [];
@@ -80,10 +86,19 @@ class TaskController extends Controller
             'ticket_id'   => 'nullable|exists:tickets,id',
             'due_date'    => 'nullable|date',
             'progress'    => 'nullable|integer|min:0|max:100',
+            'sla_level'               => 'nullable|string',
+            'estimated_delivery_date' => 'nullable|date',
+            'actual_delivery_date'    => 'nullable|date',
+            'qc_test_date'            => 'nullable|date',
         ]);
 
         $validated['user_id'] = auth()->id();
         // ✅ Step 14: company_id is auto-set by the Task model's boot() method
+
+        if (!empty($validated['assigned_to'])) {
+            $validated['assigned_date'] = now();
+            $validated['assigned_by'] = auth()->id();
+        }
 
         $task = Task::create($validated);
 
@@ -115,17 +130,27 @@ class TaskController extends Controller
             'ticket_id'   => 'nullable|exists:tickets,id',
             'due_date'    => 'nullable|date',
             'progress'    => 'nullable|integer|min:0|max:100',
+            'sla_level'               => 'nullable|string',
+            'estimated_delivery_date' => 'nullable|date',
+            'actual_delivery_date'    => 'nullable|date',
+            'qc_test_date'            => 'nullable|date',
         ]);
 
         // Convert empty string to null for nullable fields
-        if (isset($validated['assigned_to']) && $validated['assigned_to'] === '') {
-            $validated['assigned_to'] = null;
+        foreach (['assigned_to', 'due_date', 'ticket_id', 'estimated_delivery_date', 'actual_delivery_date', 'qc_test_date'] as $field) {
+            if (array_key_exists($field, $validated) && $validated[$field] === '') {
+                $validated[$field] = null;
+            }
         }
-        if (isset($validated['due_date']) && $validated['due_date'] === '') {
-            $validated['due_date'] = null;
-        }
-        if (isset($validated['ticket_id']) && $validated['ticket_id'] === '') {
-            $validated['ticket_id'] = null;
+
+        if (array_key_exists('assigned_to', $validated)) {
+            if ($validated['assigned_to'] && !$task->assigned_to) {
+                $validated['assigned_date'] = now();
+                $validated['assigned_by'] = auth()->id();
+            } elseif (!$validated['assigned_to']) {
+                $validated['assigned_date'] = null;
+                $validated['assigned_by'] = null;
+            }
         }
 
         $task->update($validated);

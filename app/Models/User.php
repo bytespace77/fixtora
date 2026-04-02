@@ -50,6 +50,14 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    // Helper: is this user a developer?
+    public function isDeveloper(): bool
+    {
+        $roleName = strtolower(trim((string) optional($this->userRole)->name));
+        $accountRole = strtolower(trim((string) $this->role));
+        return $roleName === 'developer' || $accountRole === 'developer';
+    }
+
     // Global data access users bypass company scoping in core modules.
     public function hasGlobalDataAccess(): bool
     {

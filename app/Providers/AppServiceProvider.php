@@ -45,35 +45,53 @@ class AppServiceProvider extends ServiceProvider
     private function buildNotificationsFeed()
     {
         $user = Auth::user();
-        $hasGlobalDataAccess = $user && $user->hasGlobalDataAccess();
-        $companyId = $user?->company_id;
+        if (!$user) return collect();
+
+        $hasGlobalDataAccess = $user->hasGlobalDataAccess();
+        $isDeveloper = $user->isDeveloper();
+        $companyId = $user->company_id;
         $viewerRole = $this->resolveNotificationRole($user);
 
+        // --- TICKETS ---
         $ticketQuery = Ticket::query()->latest();
         if (!$hasGlobalDataAccess) {
             $ticketQuery->where('company_id', $companyId ?: 0);
         }
 
-        $ticketItems = $ticketQuery
-            ->take(20)
-            ->get()
-            ->map(function (Ticket $ticket) {
-                $isNew = $ticket->created_at && $ticket->created_at->greaterThan(now()->subDay());
+        // If Developer, we don't show raw "New Ticket" notifications, only "Ticket Assigned" and "Client Updates"
+        $ticketItems = collect();
+        if (!$isDeveloper) {
+            $ticketItems = $ticketQuery
+                ->take(20)
+                ->get()
+                ->map(function (Ticket $ticket) {
+                    $isNew = $ticket->created_at && $ticket->created_at->greaterThan(now()->subDay());
 
-                return [
-                    'title' => 'New Ticket: #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT),
-                    'description' => $ticket->title ?: 'New ticket submitted.',
-                    'time' => $ticket->created_at,
-                    'time_human' => $this->humanTime($ticket->created_at),
-                    'is_new' => $isNew,
-                    'type' => $this->mapTicketType($ticket->priority),
-                    'category' => 'Ticket',
-                    'url' => route('tickets.show', $ticket),
-                ];
-            });
+                    return [
+                        'title' => 'New Ticket: #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT),
+                        'description' => $ticket->title ?: 'New ticket submitted.',
+                        'time' => $ticket->created_at,
+                        'time_human' => $this->humanTime($ticket->created_at),
+                        'is_new' => $isNew,
+                        'type' => $this->mapTicketType($ticket->priority),
+                        'category' => 'Ticket',
+                        'url' => route('tickets.show', $ticket),
+                    ];
+                });
+        }
 
+        // --- COMMENTS (Client Updates) ---
         $commentQuery = \App\Models\TicketComment::with('ticket')->latest();
-        if (!$hasGlobalDataAccess) {
+        if ($isDeveloper) {
+            // ONLY comments on tickets assigned to the developer!
+            $commentQuery->whereHas('ticket', function ($q) use ($user) {
+                $q->whereHas('tasks', function ($tq) use ($user) {
+                    $tq->where('assigned_to', $user->id);
+                });
+            });
+            // Assume comments are "client updates" for now
+            $commentQuery->where('user_id', '!=', $user->id); 
+        } elseif (!$hasGlobalDataAccess) {
             $commentQuery->whereHas('ticket', function ($q) use ($companyId) {
                 $q->where('company_id', $companyId ?: 0);
             });
@@ -82,19 +100,17 @@ class AppServiceProvider extends ServiceProvider
         $commentItems = $commentQuery
             ->take(20)
             ->get()
-            ->filter(function (\App\Models\TicketComment $comment) use ($hasGlobalDataAccess, $viewerRole) {
-                if ($hasGlobalDataAccess) {
-                    return true;
-                }
+            ->filter(function (\App\Models\TicketComment $comment) use ($hasGlobalDataAccess, $viewerRole, $isDeveloper) {
+                if ($isDeveloper) return true;
+                if ($hasGlobalDataAccess) return true;
 
-                // Workflow notifications are audience-specific.
                 if ($comment->type === 'workflow_notification') {
                     return ($comment->target_role ?? '') === $viewerRole;
                 }
 
                 return true;
             })
-            ->map(function (\App\Models\TicketComment $comment) {
+            ->map(function (\App\Models\TicketComment $comment) use ($isDeveloper) {
                 $isNew = $comment->created_at && $comment->created_at->greaterThan(now()->subDay());
 
                 if ($comment->type === 'workflow_notification') {
@@ -109,7 +125,7 @@ class AppServiceProvider extends ServiceProvider
                     $typeColor = 'orange';
                     $category = 'System';
                 } else {
-                    $title = 'New Comment: #' . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
+                    $title = ($isDeveloper ? 'Client Update: #' : 'New Comment: #') . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
                     $desc = \Illuminate\Support\Str::limit($comment->body, 50);
                     $typeColor = 'blue';
                     $category = 'Discussion';
@@ -127,6 +143,7 @@ class AppServiceProvider extends ServiceProvider
                 ];
             });
 
+        // --- TASKS (Ticket Assigned) ---
         $taskQuery = Task::with('ticket')->latest();
         if (!$hasGlobalDataAccess) {
             $taskQuery->whereHas('ticket', function ($q) use ($companyId) {
@@ -137,13 +154,21 @@ class AppServiceProvider extends ServiceProvider
         $taskItems = $taskQuery
             ->take(20)
             ->get()
-            ->map(function (Task $task) {
+            ->map(function (Task $task) use ($isDeveloper) {
                 $isNew = $task->created_at && $task->created_at->greaterThan(now()->subDay());
-                $taskLabel = $task->title ?: ('Task #' . $task->id);
+                
+                if ($isDeveloper) {
+                    $title = 'Ticket Assigned to You';
+                    $desc = $task->ticket ? 'Linked to ticket #' . str_pad((string) $task->ticket->id, 4, '0', STR_PAD_LEFT) . ' - ' . $task->title : $task->title;
+                } else {
+                    $taskLabel = $task->title ?: ('Task #' . $task->id);
+                    $title = 'Task activity: ' . $taskLabel;
+                    $desc = 'Status: ' . strtoupper((string) $task->status) . ($task->ticket ? ' · Linked to ticket #' . str_pad((string) $task->ticket->id, 4, '0', STR_PAD_LEFT) : '');
+                }
 
                 return [
-                    'title' => 'Task activity: ' . $taskLabel,
-                    'description' => 'Status: ' . strtoupper((string) $task->status) . ($task->ticket ? ' · Linked to ticket #' . str_pad((string) $task->ticket->id, 4, '0', STR_PAD_LEFT) : ''),
+                    'title' => $title,
+                    'description' => $desc,
                     'time' => $task->updated_at,
                     'time_human' => $this->humanTime($task->updated_at),
                     'is_new' => $isNew,

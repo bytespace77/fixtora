@@ -474,7 +474,7 @@ html, body {
 
     <nav class="sb-nav">
       {{-- Dashboard --}}
-      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_dashboard'))
+      @if((Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_dashboard')) && !Auth::user()->isDeveloper())
       <a href="{{ route('home') }}" class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -512,7 +512,7 @@ html, body {
 
 
       {{-- SLA Monitor --}}
-      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_sla_monitor'))
+      @if((Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_sla_monitor')) && !Auth::user()->isDeveloper())
       <a href="{{ route('sla-monitor.index') }}" class="nav-item {{ request()->routeIs('sla-monitor.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -522,7 +522,7 @@ html, body {
       @endif
 
       {{-- Reports --}}
-      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_reports'))
+      @if((Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_reports')) && !Auth::user()->isDeveloper())
       <a href="{{ route('reports.index') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <line x1="18" y1="20" x2="18" y2="10"/>
@@ -556,7 +556,7 @@ html, body {
       @endif
 
       {{-- User Roles: superadmin only --}}
-      @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_roles'))
+      @if((Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_roles')) && !Auth::user()->isDeveloper())
       <a href="{{ route('roles.index') }}" class="nav-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -580,6 +580,7 @@ html, body {
       @endif
 
       <div class="sb-util-links">
+        @if(!Auth::user()->isDeveloper())
         <a href="{{ route('settings.index') }}" class="sb-util-link {{ request()->routeIs('settings.*') ? 'active' : '' }}">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -587,6 +588,7 @@ html, body {
           </svg>
           Integrations
         </a>
+        @endif
         <a href="{{ route('profile.show') }}" class="sb-util-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
