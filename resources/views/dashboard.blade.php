@@ -331,6 +331,104 @@
   @endif
 </div>
 
+<!-- Bottom Row: Recent Tickets + Ticket Scheduling Summary -->
+<div class="middle-row" style="grid-template-columns:1fr 1fr;margin-top:16px">
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Recent Tickets Panel</div>
+        <div class="queue-sub" style="margin-top:2px">Latest 5 tickets with reporter &amp; timestamp</div>
+      </div>
+      <a href="{{ route('tickets.index') }}" class="view-all">View All →</a>
+    </div>
+
+    @if($recentTickets->isEmpty())
+      <div class="empty-msg" style="padding:28px 16px">No recent tickets.</div>
+    @else
+      <div style="display:flex;flex-direction:column;gap:10px">
+        @foreach($recentTickets as $t)
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg)">
+            <div style="min-width:0">
+              <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:800;color:var(--muted-lt)">
+                #TK-{{ str_pad($t->id, 4, '0', STR_PAD_LEFT) }}
+              </div>
+              <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px">
+                {{ $t->title }}
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-top:3px">
+                Reporter: {{ $t->user->name ?? '—' }} · {{ $t->created_at->diffForHumans() }}
+              </div>
+            </div>
+            <div style="flex-shrink:0">
+              <span class="status-pill pill-{{ $t->status }}">
+                {{ ucfirst(str_replace('_',' ',$t->status)) }}
+              </span>
+            </div>
+          </div>
+        @endforeach
+      </div>
+    @endif
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Ticket Scheduling</div>
+        <div class="queue-sub" style="margin-top:2px">Schedule &amp; track ticket resolution slots; metrics</div>
+      </div>
+      <a href="{{ route('scheduling.index') }}" class="view-all">Open →</a>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)">
+            Total Scheduled
+          </div>
+          <div style="font-size:30px;font-weight:900;color:var(--navy);line-height:1.1;margin-top:4px">
+            {{ $totalScheduled }}
+          </div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Next 30 days (tasks + tickets)</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="border:1px solid var(--border);background:var(--bg);border-radius:10px;padding:14px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-family:inherit">
+            Not Started
+          </div>
+          <div style="font-size:22px;font-weight:900;color:var(--blue);margin-top:4px;font-family:inherit">{{ $notStarted }}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px;font-family:inherit">Todo + Open</div>
+        </div>
+
+        <div style="border:1px solid var(--border);background:var(--bg);border-radius:10px;padding:14px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-family:inherit">
+            Active in Testing
+          </div>
+          <div style="font-size:22px;font-weight:900;color:var(--orange);margin-top:4px;font-family:inherit">{{ $activeInTesting }}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px;font-family:inherit">Doing + In Progress/In Review</div>
+        </div>
+
+        <div style="border:1px solid var(--border);background:var(--bg);border-radius:10px;padding:14px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-family:inherit">
+            Overdue
+          </div>
+          <div style="font-size:22px;font-weight:900;color:var(--red);margin-top:4px;font-family:inherit">{{ $overdue }}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px;font-family:inherit">Past due, not done/resolved</div>
+        </div>
+
+        <div style="border:1px solid var(--border);background:var(--bg);border-radius:10px;padding:14px">
+          <div style="font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-family:inherit">
+            Completed
+          </div>
+          <div style="font-size:22px;font-weight:900;color:var(--green);margin-top:4px;font-family:inherit">{{ $completedInPeriod }}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:4px;font-family:inherit">Done + Resolved/Closed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const chartLabels   = {!! json_encode($chartData['labels']) !!};
 const chartInflow   = {!! json_encode($chartData['inflow']) !!};

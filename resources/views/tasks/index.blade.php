@@ -23,7 +23,7 @@
 
 /* ── Kanban Board ──────────────────────────────────────────────── */
 .kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
-.kanban-col{min-height:200px}
+.kanban-col{min-height:200px;display:flex;flex-direction:column}
 .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .col-label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--text-sub)}
 .col-indicator{width:9px;height:9px;border-radius:50%}
@@ -33,7 +33,7 @@
 .col-count{font-size:11px;font-weight:700;background:var(--bg);border:1px solid var(--border);padding:1px 7px;border-radius:20px;color:var(--muted)}
 .col-more{background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted);padding:2px 6px;border-radius:5px}
 .col-more:hover{background:var(--bg)}
-.k-cards-container{min-height:80px}
+.k-cards-container{min-height:80px;max-height:520px;overflow-y:auto;padding-right:6px}
 
 /* ── Kanban Card ───────────────────────────────────────────────── */
 .k-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);transition:box-shadow .15s,transform .15s;cursor:grab;user-select:none}
@@ -103,6 +103,10 @@ textarea.form-control{resize:vertical;min-height:80px}
 .btn-secondary:hover{border-color:var(--muted)}
 
 /* ── List view ──────────────────────────────────────────────────── */
+.task-list-scroll{max-height:520px;overflow-y:auto;border-radius:10px;box-shadow:var(--shadow);border:1px solid var(--border);background:var(--surface)}
+.task-list-scroll table{width:100%;border-collapse:collapse}
+.task-list-scroll thead th{position:sticky;top:0;z-index:5;background:var(--bg)}
+.task-list-scroll tbody tr:last-child td{border-bottom:none}
 .task-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
 .task-table th{padding:11px 16px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border)}
 .task-table td{padding:12px 16px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -111,6 +115,23 @@ textarea.form-control{resize:vertical;min-height:80px}
 
 /* ── Deadline pills ─────────────────────────────────────────────── */
 .deadline-item{font-size:12.5px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;margin-bottom:6px}
+
+/* ── Velocity tooltip ──────────────────────────────────────────── */
+.velocity-tooltip{
+  position:fixed;
+  z-index:2500;
+  display:none;
+  pointer-events:none;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:var(--shadow-md);
+  padding:8px 10px;
+  color:var(--text);
+  font-family:inherit;
+}
+.velocity-tooltip .vt-day{font-size:12px;font-weight:800;color:var(--navy);letter-spacing:-.1px;margin-bottom:2px}
+.velocity-tooltip .vt-count{font-size:12px;font-weight:700;color:var(--text)}
 </style>
 @endsection
 
@@ -212,95 +233,135 @@ textarea.form-control{resize:vertical;min-height:80px}
 
 {{-- ── LIST VIEW ───────────────────────────────────────────────── --}}
 <div id="listView" style="display:none;margin-bottom:20px">
-  <table class="task-table">
-    <thead>
-      <tr>
-        <th>#</th><th>Title</th><th>Priority</th><th>Status</th>
-        <th>Assignee</th><th>Due Date</th><th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="listBody">
-      @foreach($todo->concat($doing)->concat($done) as $task)
-      <tr id="list-row-{{ $task->id }}">
-        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">#TK-{{ str_pad($task->id,4,'0',STR_PAD_LEFT) }}</td>
-        <td style="font-weight:600;max-width:260px">
-          {{ $task->title }}
-          @if($task->ticket)
-            <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="{{ $task->ticket->title }}">
-              #TIC-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
-            </a>
-          @endif
-        </td>
-        <td><span class="priority-badge pb-{{ $task->priority }}">{{ strtoupper($task->priority) }}</span></td>
-        <td>
-          <select class="form-control" style="padding:4px 8px;font-size:12px;width:auto"
-                  onchange="quickStatusUpdate({{ $task->id }}, this.value)">
-            <option value="todo" {{ $task->status=='todo'?'selected':'' }}>To Do</option>
-            <option value="doing" {{ $task->status=='doing'?'selected':'' }}>Doing</option>
-            <option value="done" {{ $task->status=='done'?'selected':'' }}>Done</option>
-          </select>
-        </td>
-        <td>
-          @if($task->assignee)
-            <div style="display:flex;align-items:center;gap:6px">
-              <div class="k-av" style="background:{{ ['#2563eb','#7c3aed','#0d9488','#ea580c','#16a34a'][$task->assignee->id % 5] }}">
-                {{ strtoupper(substr($task->assignee->name,0,2)) }}
+  <div class="task-list-scroll">
+    <table class="task-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Title</th><th>Priority</th><th>Status</th>
+          <th>Assignee</th><th>Due Date</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="listBody">
+        @foreach($todo->concat($doing)->concat($done) as $task)
+        <tr id="list-row-{{ $task->id }}">
+          <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">#TK-{{ str_pad($task->id,4,'0',STR_PAD_LEFT) }}</td>
+          <td style="font-weight:600;max-width:260px">
+            {{ $task->title }}
+            @if($task->ticket)
+              <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="{{ $task->ticket->title }}">
+                #TIC-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
+              </a>
+            @endif
+          </td>
+          <td><span class="priority-badge pb-{{ $task->priority }}">{{ strtoupper($task->priority) }}</span></td>
+          <td>
+            <select class="form-control" style="padding:4px 8px;font-size:12px;width:auto"
+                    onchange="quickStatusUpdate({{ $task->id }}, this.value)">
+              <option value="todo" {{ $task->status=='todo'?'selected':'' }}>To Do</option>
+              <option value="doing" {{ $task->status=='doing'?'selected':'' }}>Doing</option>
+              <option value="done" {{ $task->status=='done'?'selected':'' }}>Done</option>
+            </select>
+          </td>
+          <td>
+            @if($task->assignee)
+              <div style="display:flex;align-items:center;gap:6px">
+                <div class="k-av" style="background:{{ ['#2563eb','#7c3aed','#0d9488','#ea580c','#16a34a'][$task->assignee->id % 5] }}">
+                  {{ strtoupper(substr($task->assignee->name,0,2)) }}
+                </div>
+                <span style="font-size:12px">{{ $task->assignee->name }}</span>
               </div>
-              <span style="font-size:12px">{{ $task->assignee->name }}</span>
-            </div>
-          @else
-            <span style="color:var(--muted-lt);font-size:12px">Unassigned</span>
-          @endif
-        </td>
-        <td style="font-size:12px;color:var(--muted)">{{ $task->due_date ? $task->due_date->format('M d, Y') : '—' }}</td>
-        <td>
-          @if(auth()->user()->hasPermission('delete_tasks'))
-          <button class="k-action-btn" onclick="deleteTask({{ $task->id }})" title="Delete"
-                  style="color:var(--red);border:1px solid #fee2e2;padding:4px 8px">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-          </button>
-          @endif
-        </td>
-      </tr>
-      @endforeach
-    </tbody>
-  </table>
+            @else
+              <span style="color:var(--muted-lt);font-size:12px">Unassigned</span>
+            @endif
+          </td>
+          <td style="font-size:12px;color:var(--muted)">{{ $task->due_date ? $task->due_date->format('M d, Y') : '—' }}</td>
+          <td>
+            @if(auth()->user()->hasPermission('delete_tasks'))
+            <button class="k-action-btn" onclick="deleteTask({{ $task->id }})" title="Delete"
+                    style="color:var(--red);border:1px solid #fee2e2;padding:4px 8px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+            @endif
+          </td>
+        </tr>
+        @endforeach
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {{-- ── Velocity + SLA ──────────────────────────────────────────── --}}
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px">
+  <div>
+    <div style="font-size:14px;font-weight:700;color:var(--navy)">Upcoming Deadlines Widget</div>
+    <div style="font-size:11.5px;color:var(--muted);margin-top:2px">Next 7-day deadlines (non-done tasks)</div>
+  </div>
+</div>
 <div style="display:grid;grid-template-columns:1fr 220px;gap:14px">
-  <div class="velocity-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <div class="chart-title">Workload Velocity <span style="font-size:11px;font-weight:400;color:var(--muted)">(tasks completed this week)</span></div>
-    </div>
-    <div class="velocity-bars">
-      @php $maxV = max(array_column($velocity,'count')) ?: 1; @endphp
-      @foreach($velocity as $v)
-        @php $height = max(10, round(($v['count'] / $maxV) * 100)); $isWeekend = in_array($v['label'],['SAT','SUN']); @endphp
-        <div class="v-bar-wrap">
-          <div class="v-bar {{ $isWeekend ? 'gray' : 'blue' }}" style="height:{{ $height }}px"></div>
-          <span class="v-bar-label">{{ $v['label'] }}</span>
+  <div>
+    {{-- Upcoming Deadlines List --}}
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow);margin-bottom:14px">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:10px">
+        Next 7-day deadlines
+      </div>
+      @forelse($deadlines as $dl)
+        @php
+          $isHot = in_array($dl->priority, ['urgent','high'], true);
+          $dotColor = $isHot ? 'var(--red)' : 'var(--orange)';
+        @endphp
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);margin-bottom:10px">
+          <div style="min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              <span style="width:8px;height:8px;border-radius:50%;background:{{ $dotColor }};flex-shrink:0"></span>
+              <span style="font-size:12.5px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                {{ Str::limit($dl->title, 24) }}
+              </span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              {{ $dl->assignee?->name ?? 'Unassigned' }} · {{ strtoupper((string) $dl->priority) }}
+            </div>
+          </div>
+          <div style="flex-shrink:0;text-align:right">
+            <div style="font-size:10.5px;color:var(--muted-lt);font-weight:800">
+              {{ $dl->due_date->format('M d') }}
+            </div>
+          </div>
         </div>
-      @endforeach
+      @empty
+        <div style="font-size:12px;color:var(--muted-lt)">No upcoming deadlines.</div>
+      @endforelse
+    </div>
+
+    {{-- Workload Velocity --}}
+    <div class="velocity-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="chart-title">Workload Velocity <span style="font-size:11px;font-weight:400;color:var(--muted)">(tasks completed this week)</span></div>
+      </div>
+      <div class="velocity-bars">
+        @php $maxV = max(array_column($velocity,'count')) ?: 1; @endphp
+        @foreach($velocity as $v)
+          @php $height = max(10, round(($v['count'] / $maxV) * 100)); $isWeekend = in_array($v['label'],['SAT','SUN']); @endphp
+          <div class="v-bar-wrap"
+               data-velocity-day="{{ $v['label'] }}"
+               data-velocity-count="{{ (int) $v['count'] }}"
+               title="{{ (int) $v['count'] }} tasks completed on {{ $v['label'] }}">
+            <div class="v-bar {{ $isWeekend ? 'gray' : 'blue' }}" style="height:{{ $height }}px"></div>
+            <span class="v-bar-label">{{ $v['label'] }}</span>
+          </div>
+        @endforeach
+      </div>
+      <div id="velocityTooltip" class="velocity-tooltip">
+        <div id="velocityTooltipDay" class="vt-day"></div>
+        <div id="velocityTooltipCount" class="vt-count"></div>
+      </div>
     </div>
   </div>
+
   <div>
     <div class="sla-float">
       <div class="sla-pct">{{ $slaRate }}%</div>
       <div class="sla-label">SLA Success Rate</div>
       <div class="sla-note">Architectural tasks tracked against due dates.</div>
-    </div>
-    <div style="margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;box-shadow:var(--shadow)">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Upcoming Deadlines</div>
-      @forelse($deadlines as $dl)
-        <div class="deadline-item">
-          <span style="color:{{ $dl->priority=='urgent'||$dl->priority=='high' ? 'var(--red)' : 'var(--orange)' }}">●</span>
-          {{ Str::limit($dl->title, 28) }}
-          <span style="margin-left:auto;font-size:10.5px;color:var(--muted-lt)">{{ $dl->due_date->format('M d') }}</span>
-        </div>
-      @empty
-        <div style="font-size:12px;color:var(--muted-lt)">No upcoming deadlines.</div>
-      @endforelse
     </div>
   </div>
 </div>
@@ -373,11 +434,10 @@ textarea.form-control{resize:vertical;min-height:80px}
         @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
         <div style="margin:20px 0 16px;border-top:1px dashed var(--border);padding-top:16px;display:flex;align-items:center;gap:6px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <strong style="font-size:13px;color:var(--navy)">SLA & Timeline Tracking</strong>
+          <strong style="font-size:13px;color:var(--navy);font-weight:800;letter-spacing:-.2px;font-family:inherit">SLA & Timeline Tracking</strong>
         </div>
 
-        <div class="form-row" style="{{ auth()->user()->hasGlobalDataAccess() ? '' : 'grid-template-columns:1fr' }}">
-          @if(auth()->user()->hasGlobalDataAccess())
+        <div class="form-row" style="{{ auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper() ? '' : 'grid-template-columns:1fr' }}">
           <div class="form-group">
             <label>SLA Level</label>
             <select name="sla_level" class="form-control">
@@ -388,14 +448,13 @@ textarea.form-control{resize:vertical;min-height:80px}
               <option value="Critical">Critical</option>
             </select>
           </div>
-          @endif
           <div class="form-group">
             <label>Estimated Delivery</label>
             <input type="datetime-local" name="estimated_delivery_date" class="form-control">
           </div>
         </div>
 
-        @if(auth()->user()->hasGlobalDataAccess())
+        @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
           <div class="form-row">
             <div class="form-group">
               <label>Actual Delivery</label>
@@ -485,11 +544,10 @@ textarea.form-control{resize:vertical;min-height:80px}
         @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
         <div style="margin:20px 0 16px;border-top:1px dashed var(--border);padding-top:16px;display:flex;align-items:center;gap:6px">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <strong style="font-size:13px;color:var(--navy)">SLA & Timeline Tracking</strong>
+          <strong style="font-size:13px;color:var(--navy);font-weight:800;letter-spacing:-.2px;font-family:inherit">SLA & Timeline Tracking</strong>
         </div>
 
-        <div class="form-row" style="{{ auth()->user()->hasGlobalDataAccess() ? '' : 'grid-template-columns:1fr' }}">
-          @if(auth()->user()->hasGlobalDataAccess())
+        <div class="form-row" style="{{ auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper() ? '' : 'grid-template-columns:1fr' }}">
           <div class="form-group">
             <label>SLA Level</label>
             <select id="edit-sla_level" class="form-control">
@@ -500,14 +558,13 @@ textarea.form-control{resize:vertical;min-height:80px}
               <option value="Critical">Critical</option>
             </select>
           </div>
-          @endif
           <div class="form-group">
             <label>Estimated Delivery</label>
             <input type="datetime-local" id="edit-estimated_delivery_date" class="form-control">
           </div>
         </div>
 
-        @if(auth()->user()->hasGlobalDataAccess())
+        @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
           <div class="form-row">
             <div class="form-group">
               <label>Actual Delivery</label>
@@ -531,6 +588,34 @@ textarea.form-control{resize:vertical;min-height:80px}
 
 <script>
 const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+/* ── Workload Velocity tooltip (hover number) ───────────────────── */
+const velocityTooltip = document.getElementById('velocityTooltip');
+if (velocityTooltip) {
+  const velocityTooltipDay   = document.getElementById('velocityTooltipDay');
+  const velocityTooltipCount = document.getElementById('velocityTooltipCount');
+  const bars = document.querySelectorAll('.v-bar-wrap[data-velocity-count]');
+
+  function setTooltipPosition(e) {
+    const padding = 12;
+    velocityTooltip.style.left = `${e.clientX + padding}px`;
+    velocityTooltip.style.top  = `${e.clientY + padding}px`;
+  }
+
+  bars.forEach(bar => {
+    bar.addEventListener('mouseenter', (e) => {
+      const day = bar.getAttribute('data-velocity-day') || '';
+      const count = bar.getAttribute('data-velocity-count') || '0';
+      velocityTooltipDay.textContent = `${day}`;
+      velocityTooltipCount.textContent = `${count} tasks`;
+      velocityTooltip.style.display = 'block';
+      setTooltipPosition(e);
+    });
+
+    bar.addEventListener('mousemove', (e) => setTooltipPosition(e));
+    bar.addEventListener('mouseleave', () => velocityTooltip.style.display = 'none');
+  });
+}
 
 /* ════════════════════════════════════════════════════════════════
    DELEGATED EVENT LISTENER — single listener on #boardView handles

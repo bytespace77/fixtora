@@ -53,7 +53,7 @@
 
 html, body {
     height: 100%;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Monsterra', 'Montserrat', sans-serif;
     font-size: 14px;
     color: var(--text);
     background: var(--bg);
@@ -144,7 +144,7 @@ html, body {
     position: relative;
     border: none; background: transparent;
     width: 100%; text-align: left;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Monsterra', 'Montserrat', sans-serif;
 }
 .nav-item svg { flex-shrink: 0; opacity: 0.65; transition: opacity 0.15s; }
 .nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
@@ -182,7 +182,7 @@ html, body {
     color: #fff; border: none;
     border-radius: 8px;
     font-size: 13px; font-weight: 700;
-    cursor: pointer; font-family: 'Montserrat', sans-serif;
+    cursor: pointer; font-family: 'Monsterra', 'Montserrat', sans-serif;
     display: flex; align-items: center; justify-content: center; gap: 7px;
     margin-bottom: 8px; text-decoration: none;
     transition: all 0.15s;
@@ -205,7 +205,7 @@ html, body {
     text-decoration: none; transition: all 0.15s;
     border: none; background: transparent;
     cursor: pointer; width: 100%; text-align: left;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Monsterra', 'Montserrat', sans-serif;
 }
 .sb-util-link:hover { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.06); }
 
@@ -251,7 +251,7 @@ html, body {
 .topbar-search input {
     width: 100%; padding: 8px 12px 8px 34px;
     border: 1.5px solid var(--border); border-radius: 8px;
-    font-size: 13px; font-family: 'Montserrat', sans-serif;
+    font-size: 13px; font-family: 'Monsterra', 'Montserrat', sans-serif;
     background: var(--bg); color: var(--text); outline: none;
     transition: all 0.15s; font-weight: 500;
 }
@@ -342,7 +342,7 @@ html, body {
     font-size: 11px; font-weight: 700;
     color: var(--blue); cursor: pointer;
     background: none; border: none;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Monsterra', 'Montserrat', sans-serif;
     transition: color 0.15s;
 }
 .noti-dd-clear:hover { color: var(--blue-2); }

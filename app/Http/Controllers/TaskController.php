@@ -106,12 +106,13 @@ class TaskController extends Controller
         $slaRate = $withDue > 0 ? round(($onTime / $withDue) * 100) : 0;
 
         // Upcoming deadlines (next 7 days, not done)
-        $deadlines = Task::whereNotNull('due_date')
-                        ->where('status', '!=', 'done')
-                        ->whereBetween('due_date', [now()->toDateString(), now()->addDays(7)->toDateString()])
-                        ->orderBy('due_date')
-                        ->limit(5)
-                        ->get();
+        $deadlines = Task::with(['assignee', 'ticket'])
+            ->whereNotNull('due_date')
+            ->where('status', '!=', 'done')
+            ->whereBetween('due_date', [now()->toDateString(), now()->addDays(7)->toDateString()])
+            ->orderBy('due_date')
+            ->limit(5)
+            ->get();
 
         // Fetch tickets to link to tasks
         $tickets = Ticket::orderByDesc('id')->get(['id', 'title']);

@@ -26,7 +26,7 @@
 
     html, body {
         height: 100%;
-        font-family: 'Montserrat', sans-serif;
+    font-family: 'Monsterra', 'Montserrat', sans-serif;
         background: var(--bg);
     }
 
@@ -274,7 +274,7 @@
         border: 1.5px solid rgba(255,255,255,0.08);
         border-radius: 10px;
         padding: 0 14px 0 42px;
-        font-family: 'Montserrat', sans-serif;
+        font-family: 'Monsterra', 'Montserrat', sans-serif;
         font-size: 14px; font-weight: 500;
         color: #fff; outline: none; transition: all 0.15s;
     }
@@ -328,7 +328,7 @@
     .f-btn {
         width: 100%; height: 52px;
         background: var(--blue); color: #fff;
-        font-family: 'Montserrat', sans-serif;
+        font-family: 'Monsterra', 'Montserrat', sans-serif;
         font-size: 14px; font-weight: 700;
         letter-spacing: 0.5px;
         border: none; border-radius: 10px; cursor: pointer;

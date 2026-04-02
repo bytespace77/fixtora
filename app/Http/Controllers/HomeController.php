@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ticket;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -47,6 +48,80 @@ class HomeController extends Controller
             ->take(10)
             ->get();
 
+        // ── Recent Tickets (latest 5) ────────────────────────────────────
+        $recentTickets = Ticket::with('user')
+            ->orderByDesc('created_at')
+            ->take(5)
+            ->get();
+
+        // ── Ticket Scheduling Summary (next 30 days) ─────────────────────
+        $dueFrom = now()->startOfDay();
+        $dueTo   = now()->addDays(30)->endOfDay();
+
+        $taskScheduled = Task::whereNotNull('due_date')
+            ->where('status', '!=', 'done')
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $ticketScheduled = Ticket::whereNotNull('due_date')
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $totalScheduled = $taskScheduled + $ticketScheduled;
+
+        // Active in testing: doing tasks + in_progress / in_review tickets
+        $taskActiveTesting = Task::whereNotNull('due_date')
+            ->where('status', 'doing')
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $ticketActiveTesting = Ticket::whereNotNull('due_date')
+            ->whereIn('status', ['in_progress', 'in_review'])
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $activeInTesting = $taskActiveTesting + $ticketActiveTesting;
+
+        // Not started: todo tasks + open tickets (due within next 30 days)
+        $taskNotStarted = Task::whereNotNull('due_date')
+            ->where('status', 'todo')
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $ticketNotStarted = Ticket::whereNotNull('due_date')
+            ->where('status', 'open')
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $notStarted = $taskNotStarted + $ticketNotStarted;
+
+        // Completed within period: done tasks + resolved/closed tickets (due within next 30 days)
+        $taskResolved = Task::whereNotNull('due_date')
+            ->where('status', 'done')
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $ticketResolved = Ticket::whereNotNull('due_date')
+            ->whereIn('status', ['resolved', 'closed'])
+            ->whereBetween('due_date', [$dueFrom, $dueTo])
+            ->count();
+
+        $completedInPeriod = $taskResolved + $ticketResolved;
+
+        // Overdue: due_date in the past, still not done/resolved
+        $taskOverdue = Task::whereNotNull('due_date')
+            ->where('status', '!=', 'done')
+            ->whereDate('due_date', '<', now()->toDateString())
+            ->count();
+
+        $ticketOverdue = Ticket::whereNotNull('due_date')
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->whereDate('due_date', '<', now()->toDateString())
+            ->count();
+
+        $overdue = $taskOverdue + $ticketOverdue;
+
         // ── Search ────────────────────────────────────────────────────────
         $search        = $request->input('q', '');
         $searchResults = collect();
@@ -71,6 +146,8 @@ class HomeController extends Controller
 
         return view('dashboard', compact(
             'stats', 'chartData', 'queueTickets',
+            'recentTickets', 'totalScheduled', 'activeInTesting', 'overdue',
+            'notStarted', 'completedInPeriod',
             'search', 'searchResults', 'range', 'from', 'to'
         ));
     }
