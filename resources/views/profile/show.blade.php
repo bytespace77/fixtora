@@ -121,7 +121,6 @@
 <div class="prof-tabs">
   <button class="pt-btn active" onclick="switchTab('general',this)">General</button>
   <button class="pt-btn" onclick="switchTab('security',this)">Security</button>
-  <button class="pt-btn" onclick="switchTab('notifications',this)">Notifications</button>
 </div>
 
 <div class="profile-grid">
@@ -130,14 +129,24 @@
   <div>
     <!-- Avatar Card -->
     <div class="card-box" style="text-align:center">
-      <div class="avatar-circle">
-        {{ strtoupper(substr($user->name, 0, 2)) }}
-        <div class="avatar-cam">
+      {{-- Avatar upload form (hidden) --}}
+      <form id="avatarForm" action="{{ route('profile.avatar') }}" method="POST" enctype="multipart/form-data" style="display:none">
+        @csrf
+        <input type="file" id="avatarInput" name="avatar" accept="image/*" onchange="document.getElementById('avatarForm').submit()">
+      </form>
+
+      <div class="avatar-circle" style="{{ $user->avatar ? 'background:none;padding:0;overflow:hidden' : '' }}">
+        @if($user->avatar)
+          <img src="{{ asset('storage/' . $user->avatar) }}" alt="Avatar"
+               style="width:100%;height:100%;object-fit:cover;border-radius:16px">
+        @else
+          {{ strtoupper(substr($user->name, 0, 2)) }}
+        @endif
+        <div class="avatar-cam" onclick="document.getElementById('avatarInput').click()" title="Change photo">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </div>
       </div>
       <div class="prof-name">{{ $user->name }}</div>
-      {{-- ✅ Step 17: Show real company name --}}
       <div class="prof-role">{{ $user->company?->name ?? 'No Company' }}</div>
       <div class="prof-divider"></div>
       <div class="prof-stat-row">
@@ -162,9 +171,9 @@
     <div class="card-box" style="background:var(--blue-bg);border-color:#bfdbfe">
       <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--blue);margin-bottom:8px">Storage Usage</div>
       <div class="storage-bar-bg">
-        <div class="storage-bar-fill" style="width:72%"></div>
+        <div class="storage-bar-fill" style="width:{{ $usedPercent }}%"></div>
       </div>
-      <div style="font-size:11.5px;color:var(--muted)">7.2 GB of 10 GB used (72%)</div>
+      <div style="font-size:11.5px;color:var(--muted)">{{ $usedGB }} GB of 10 GB used ({{ $usedPercent }}%)</div>
     </div>
   </div>
 
@@ -248,35 +257,18 @@
           <button class="btn-ghost" style="font-size:12px;padding:6px 12px">Manage</button>
         </div>
 
-        <!-- 2FA -->
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:14px;margin-top:14px;display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:12px">
-            <div class="sec-icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-            </div>
-            <div>
-              <div class="sec-name">Two-Factor Authentication</div>
-              <div class="sec-desc">Extra layer of security via mobile authenticator.</div>
-            </div>
-          </div>
-          <label class="toggle-wrap">
-            <input type="checkbox" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-
         <!-- Password -->
-        <div class="sec-item" style="margin-top:6px">
+        <div class="sec-item" style="margin-top:14px">
           <div style="display:flex;align-items:center;gap:12px">
             <div style="width:38px;height:38px;background:var(--blue-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--blue)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
             <div>
               <div class="sec-name">Password</div>
-              <div class="sec-desc">Last changed — never</div>
+              <div class="sec-desc">Last changed — {{ $user->password_changed_at ? $user->password_changed_at->format('d M Y') : 'never' }}</div>
             </div>
           </div>
-          <a href="{{ route('password.request') }}" class="btn-ghost" style="font-size:12px;padding:7px 14px;text-decoration:none">Change</a>
+          <button type="button" class="btn-ghost" style="font-size:12px;padding:7px 14px" onclick="openPwModal()">Change</button>
         </div>
       </div>
 
@@ -284,70 +276,69 @@
       <div class="card-box">
         <div class="card-title">Active Sessions</div>
         <div class="card-sub">Devices currently signed in to your account.</div>
+        @forelse($activeSessions as $session)
         <div class="session-row">
           <div style="display:flex;align-items:center;gap:10px">
-            <div class="session-icon">💻</div>
+            <div class="session-icon">{{ in_array($session->os, ['Android','iOS']) ? '📱' : '💻' }}</div>
             <div>
-              <div class="session-name">Windows · {{ request()->getClientIp() }}</div>
-              <div class="session-sub">Chrome Browser · Active Now</div>
+              <div class="session-name">{{ $session->os }} · {{ $session->ip_address }}</div>
+              <div class="session-sub">{{ $session->browser }} · {{ $session->is_current ? 'Active Now' : $session->last_active }}</div>
             </div>
           </div>
-          <span class="badge-online">Current</span>
+          @if($session->is_current)
+            <span class="badge-online">Current</span>
+          @else
+            <form method="POST" action="{{ route('profile.session.destroy') }}" style="margin:0">
+              @csrf
+              <input type="hidden" name="session_id" value="{{ $session->id }}">
+              <button type="submit" class="btn-revoke">LOGOUT</button>
+            </form>
+          @endif
         </div>
-        <div class="session-row">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="session-icon">📱</div>
-            <div>
-              <div class="session-name">Mobile Device</div>
-              <div class="session-sub">Fixtora App · 2 hours ago</div>
-            </div>
-          </div>
-          <button class="btn-revoke">LOGOUT</button>
-        </div>
+        @empty
+        <div style="font-size:13px;color:var(--muted);padding:10px 0">No active sessions found.</div>
+        @endforelse
       </div>
     </div>
 
-    <!-- NOTIFICATIONS TAB -->
-    <div id="tab-notifications" class="tab-panel">
-      <div class="card-box">
-        <div class="card-title">Notification Preferences</div>
-        <div class="card-sub">Control how you stay informed about helpdesk activities.</div>
-        <table class="notif-table">
-          <thead>
-            <tr>
-              <th>Event Type</th>
-              <th>Email</th>
-              <th>Push</th>
-              <th>Desktop</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach([
-              ['New Ticket Assignment', 'When a new ticket is assigned to you.', true, true, false],
-              ['SLA Breach Alert', 'Critical alerts for tickets nearing SLA deadlines.', true, true, true],
-              ['Ticket Status Update', 'When a ticket you created changes status.', true, false, false],
-              ['System Update', 'Platform maintenance and feature releases.', false, false, true],
-              ['Weekly Report', 'Summary of your team performance each week.', true, false, false],
-            ] as [$name, $desc, $email, $push, $desktop])
-            <tr>
-              <td>
-                <div class="notif-name">{{ $name }}</div>
-                <div class="notif-desc">{{ $desc }}</div>
-              </td>
-              <td style="text-align:center"><input type="checkbox" class="notif-chk" {{ $email ? 'checked' : '' }}/></td>
-              <td style="text-align:center"><input type="checkbox" class="notif-chk" {{ $push ? 'checked' : '' }}/></td>
-              <td style="text-align:center"><input type="checkbox" class="notif-chk" {{ $desktop ? 'checked' : '' }}/></td>
-            </tr>
-            @endforeach
-          </tbody>
-        </table>
-        <div class="card-footer" style="margin-top:14px">
-          <button class="btn-save">Save Preferences</button>
-          <button class="btn-ghost">Reset to Default</button>
-        </div>
+
+  </div>
+</div>
+
+<!-- PASSWORD CHANGE MODAL -->
+<div id="pwModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:14px;padding:28px;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:16px;font-weight:800;color:var(--navy)">Change Password</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Choose a strong password with at least 8 characters.</div>
       </div>
+      <button onclick="closePwModal()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1">&times;</button>
     </div>
 
+    <form action="{{ route('profile.password') }}" method="POST">
+      @csrf
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="pf-group">
+          <label class="lbl">Current Password</label>
+          <input type="password" name="current_password" class="pf-input" placeholder="Enter current password" required/>
+          @error('current_password')<div style="font-size:11px;color:var(--red);margin-top:3px">{{ $message }}</div>@enderror
+        </div>
+        <div class="pf-group">
+          <label class="lbl">New Password</label>
+          <input type="password" name="password" class="pf-input" placeholder="Min 8 characters" required/>
+        </div>
+        <div class="pf-group">
+          <label class="lbl">Confirm New Password</label>
+          <input type="password" name="password_confirmation" class="pf-input" placeholder="Re-enter new password" required/>
+          @error('password')<div style="font-size:11px;color:var(--red);margin-top:3px">{{ $message }}</div>@enderror
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px">
+        <button type="submit" class="btn-save" style="flex:1">Update Password</button>
+        <button type="button" onclick="closePwModal()" class="btn-ghost">Cancel</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -358,5 +349,25 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
   btn.classList.add('active');
 }
+
+function openPwModal() {
+  const m = document.getElementById('pwModal');
+  m.style.display = 'flex';
+}
+
+function closePwModal() {
+  document.getElementById('pwModal').style.display = 'none';
+}
+
+// Auto-open Security tab if returning from password change or if there are errors
+document.addEventListener('DOMContentLoaded', function() {
+  @if(session('open_tab') === 'security' || $errors->has('current_password') || $errors->has('password'))
+    const secBtn = document.querySelectorAll('.pt-btn')[1];
+    switchTab('security', secBtn);
+    @if($errors->has('current_password') || $errors->has('password'))
+      openPwModal();
+    @endif
+  @endif
+});
 </script>
 @endsection

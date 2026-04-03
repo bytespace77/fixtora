@@ -14,8 +14,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'password_changed_at',
+        'avatar',
         'company_id',
-        'role',         // ← Task 36: added
+        'role',
         'role_id',
     ];
 
@@ -27,8 +29,9 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at'    => 'datetime',
+            'password'             => 'hashed',
+            'password_changed_at'  => 'datetime',
         ];
     }
 

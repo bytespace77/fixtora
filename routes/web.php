@@ -62,6 +62,9 @@ Route::middleware(['auth'])->group(function () {
     // ✅ Step 17: Profile — wired to real controller
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.avatar');
+    Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::post('/profile/session/destroy', [ProfileController::class, 'destroySession'])->name('profile.session.destroy');
 
     // Notifications
     Route::get('/notifications', function () {
