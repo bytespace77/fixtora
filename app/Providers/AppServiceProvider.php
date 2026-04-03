@@ -68,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
                     $isNew = $ticket->created_at && $ticket->created_at->greaterThan(now()->subDay());
 
                     return [
+                        'unique_id' => 'ticket_' . $ticket->id . '_' . $ticket->updated_at->timestamp,
                         'title' => 'New Ticket: #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT),
                         'description' => $ticket->title ?: 'New ticket submitted.',
                         'time' => $ticket->created_at,
@@ -132,6 +133,7 @@ class AppServiceProvider extends ServiceProvider
                 }
 
                 return [
+                    'unique_id' => 'comment_' . $comment->id,
                     'title' => $title,
                     'description' => $desc,
                     'time' => $comment->created_at,
@@ -182,6 +184,7 @@ class AppServiceProvider extends ServiceProvider
                     : route('tasks.index');
 
                 return [
+                    'unique_id' => 'task_' . $task->id . '_' . $task->updated_at->timestamp,
                     'title' => $title,
                     'description' => $desc,
                     'time' => $task->updated_at,
@@ -206,6 +209,7 @@ class AppServiceProvider extends ServiceProvider
                 if (($data['type'] ?? '') === 'integration_request_status') $type = 'green';
 
                 return [
+                    'unique_id' => 'db_' . $notif->id,
                     'title' => $data['title'] ?? 'System Notification',
                     'description' => $data['message'] ?? '',
                     'time' => $notif->created_at,

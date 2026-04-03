@@ -77,6 +77,34 @@ class Task extends Model
                 $task->company_id = Auth::user()->company_id;
             }
         });
+        static::saved(function ($task) {
+            // Auto-sync task workflow fields back to the parent ticket
+            if ($task->ticket_id) {
+                $ticket = Ticket::withoutGlobalScopes()->find($task->ticket_id);
+                if ($ticket) {
+                    $ticketUpdates = [];
+                    if ($task->isDirty('assigned_to') || !empty($task->assigned_to)) {
+                        $ticketUpdates['assigned_developer_id'] = $task->assigned_to;
+                    }
+                    if ($task->isDirty('sla_level') || !empty($task->sla_level)) {
+                        $ticketUpdates['sla_level'] = $task->sla_level;
+                    }
+                    if ($task->isDirty('estimated_delivery_date') || !empty($task->estimated_delivery_date)) {
+                        $ticketUpdates['estimated_delivery_date'] = $task->estimated_delivery_date;
+                    }
+                    if ($task->isDirty('actual_delivery_date') || !empty($task->actual_delivery_date)) {
+                        $ticketUpdates['actual_delivery_date'] = $task->actual_delivery_date;
+                    }
+                    if ($task->isDirty('qc_test_date') || !empty($task->qc_test_date)) {
+                        $ticketUpdates['qc_test_date'] = $task->qc_test_date;
+                    }
+
+                    if (!empty($ticketUpdates)) {
+                        $ticket->update($ticketUpdates);
+                    }
+                }
+            }
+        });
     }
 
     /** Creator */

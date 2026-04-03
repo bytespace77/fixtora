@@ -171,18 +171,16 @@ class TicketController extends Controller
 
         $canEditTicket = $user->hasPermission('edit_tickets');
         $isAssignedDeveloper = (int) $ticket->assigned_developer_id === (int) $user->id;
-        $estimateOnlyKeys = ['_token', '_method', 'estimated_delivery_date'];
-        $requestKeys = array_keys($request->all());
-        $isEstimateOnlyRequest = empty(array_diff($requestKeys, $estimateOnlyKeys));
 
         abort_unless(
-            $canEditTicket || ($isAssignedDeveloper && $isEstimateOnlyRequest),
+            $canEditTicket || $isAssignedDeveloper,
             403,
             'You do not have permission to update this ticket.'
         );
 
         $rules = [
             'estimated_delivery_date' => 'sometimes|nullable|date',
+            'actual_delivery_date'    => 'sometimes|nullable|date',
         ];
 
         if ($canEditTicket) {
@@ -196,7 +194,6 @@ class TicketController extends Controller
                 'due_date'    => 'sometimes|nullable|date',
                 'assigned_developer_id' => 'sometimes|nullable|exists:users,id',
                 'sla_level'             => 'sometimes|nullable|in:Low,Medium,High,Critical',
-                'actual_delivery_date'  => 'sometimes|nullable|date',
                 'qc_test_date'          => 'sometimes|nullable|date',
             ]);
         }
@@ -204,7 +201,7 @@ class TicketController extends Controller
         $validated = $request->validate($rules);
 
         if (!$canEditTicket) {
-            $validated = array_intersect_key($validated, array_flip(['estimated_delivery_date']));
+            $validated = array_intersect_key($validated, array_flip(['estimated_delivery_date', 'actual_delivery_date']));
         }
 
         if (array_key_exists('assigned_developer_id', $validated) || array_key_exists('sla_level', $validated)) {
@@ -252,39 +249,57 @@ class TicketController extends Controller
             }
 
             if ($validated['status'] === 'in_progress') {
-                // SLA & assignment now live on tasks (not tickets).
-                $hasAssignedDeveloperAndSla = $ticket->tasks()
-                    ->whereNotNull('assigned_to')
-                    ->whereNotNull('sla_level')
-                    ->exists();
+                $hasRelatedTasks = $ticket->tasks()->exists();
+                if ($hasRelatedTasks) {
+                    $hasAssignedDeveloperAndSla = $ticket->tasks()
+                        ->whereNotNull('assigned_to')
+                        ->whereNotNull('sla_level')
+                        ->exists();
 
-                if (!$hasAssignedDeveloperAndSla) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Assign developer and SLA first.',
-                    ]);
+                    if (!$hasAssignedDeveloperAndSla) {
+                        throw ValidationException::withMessages([
+                            'status' => 'Assign developer and SLA first to related tasks.',
+                        ]);
+                    }
+                } else {
+                    $dev = $validated['assigned_developer_id'] ?? $ticket->assigned_developer_id;
+                    $sla = $validated['sla_level'] ?? $ticket->sla_level;
+                    if (empty($dev) || empty($sla)) {
+                        throw ValidationException::withMessages([
+                            'status' => 'Assign developer and SLA first.',
+                        ]);
+                    }
                 }
             }
 
             if ($validated['status'] === 'in_review') {
-                // Developer estimate now lives on tasks.
-                $tasksWithEstimate = $ticket->tasks()
-                    ->whereNotNull('estimated_delivery_date');
+                $hasRelatedTasks = $ticket->tasks()->exists();
+                if ($hasRelatedTasks) {
+                    $tasksWithEstimate = $ticket->tasks()
+                        ->whereNotNull('estimated_delivery_date');
 
-                // If a developer is making the status change, require their own tasks.
-                if ($user->isDeveloper() && !$user->isSuperAdmin()) {
-                    $tasksWithEstimate->where('assigned_to', $user->id);
-                }
+                    if ($user->isDeveloper() && !$user->isSuperAdmin()) {
+                        $tasksWithEstimate->where('assigned_to', $user->id);
+                    }
 
-                if (!$tasksWithEstimate->exists()) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Developer must update estimated delivery first.',
+                    if (!$tasksWithEstimate->exists()) {
+                        throw ValidationException::withMessages([
+                            'status' => 'Developer must update estimated delivery on the task first.',
+                        ]);
+                    }
+
+                    $tasksWithEstimate->update([
+                        'actual_delivery_date' => now(),
                     ]);
+                } else {
+                    $est = $validated['estimated_delivery_date'] ?? $ticket->estimated_delivery_date;
+                    if (empty($est)) {
+                        throw ValidationException::withMessages([
+                            'status' => 'Developer must update estimated delivery first.',
+                        ]);
+                    }
+                    $validated['actual_delivery_date'] = now();
                 }
-
-                // Mark actual delivery time on the same task(s) once the ticket enters review.
-                $tasksWithEstimate->update([
-                    'actual_delivery_date' => now(),
-                ]);
 
                 TicketComment::create([
                     'ticket_id' => $ticket->id,
@@ -305,13 +320,17 @@ class TicketController extends Controller
             }
 
             if ($validated['status'] === 'resolved') {
-                // QC test date now lives on tasks.
-                $ticket->tasks()
-                    ->whereNotNull('actual_delivery_date')
-                    ->whereNull('qc_test_date')
-                    ->update([
-                        'qc_test_date' => now(),
-                    ]);
+                $hasRelatedTasks = $ticket->tasks()->exists();
+                if ($hasRelatedTasks) {
+                    $ticket->tasks()
+                        ->whereNotNull('actual_delivery_date')
+                        ->whereNull('qc_test_date')
+                        ->update([
+                            'qc_test_date' => now(),
+                        ]);
+                } else {
+                    $validated['qc_test_date'] = now();
+                }
 
                 TicketComment::create([
                     'ticket_id' => $ticket->id,
@@ -359,6 +378,29 @@ class TicketController extends Controller
         }
 
         $ticket->update($validated);
+
+        if ($ticket->tasks()->exists()) {
+            $taskUpdates = [];
+            if (array_key_exists('assigned_developer_id', $validated)) {
+                $taskUpdates['assigned_to'] = $validated['assigned_developer_id'];
+            }
+            if (array_key_exists('sla_level', $validated)) {
+                $taskUpdates['sla_level'] = $validated['sla_level'];
+            }
+            if (array_key_exists('estimated_delivery_date', $validated)) {
+                $taskUpdates['estimated_delivery_date'] = $validated['estimated_delivery_date'];
+            }
+            if (array_key_exists('actual_delivery_date', $validated)) {
+                $taskUpdates['actual_delivery_date'] = $validated['actual_delivery_date'];
+            }
+            if (array_key_exists('qc_test_date', $validated)) {
+                $taskUpdates['qc_test_date'] = $validated['qc_test_date'];
+            }
+
+            if (!empty($taskUpdates)) {
+                $ticket->tasks()->update($taskUpdates);
+            }
+        }
 
         if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
             TicketComment::create([
