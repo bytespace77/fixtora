@@ -10,6 +10,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchedulingController;
 use App\Http\Controllers\IntegrationRequestController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SuperAdminController; // ✅ Task 33 & 34
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -93,4 +94,19 @@ Route::middleware(['auth'])->group(function () {
         ->name('integrations.custom-request.create');
     Route::post('/integrations/custom-request', [IntegrationRequestController::class, 'store'])
         ->name('integrations.custom-request.store');
+
+    // ✅ Task 33 & 34: Super Admin routes (controller enforces isSuperAdmin internally)
+    Route::prefix('superadmin')->name('superadmin.')->group(function () {
+        // Task 33: Super Admin dashboard
+        Route::get('/', [SuperAdminController::class, 'dashboard'])->name('dashboard');
+
+        // Task 34: Company management CRUD
+        Route::get('/companies', [SuperAdminController::class, 'companiesIndex'])->name('companies.index');
+        Route::get('/companies/create', [SuperAdminController::class, 'companiesCreate'])->name('companies.create');
+        Route::post('/companies', [SuperAdminController::class, 'companiesStore'])->name('companies.store');
+        Route::get('/companies/{company}', [SuperAdminController::class, 'companiesShow'])->name('companies.show');
+        Route::get('/companies/{company}/edit', [SuperAdminController::class, 'companiesEdit'])->name('companies.edit');
+        Route::patch('/companies/{company}', [SuperAdminController::class, 'companiesUpdate'])->name('companies.update');
+        Route::patch('/companies/{company}/toggle', [SuperAdminController::class, 'companiesToggle'])->name('companies.toggle');
+    });
 });

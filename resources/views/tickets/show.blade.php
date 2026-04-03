@@ -260,14 +260,26 @@ textarea.form-control{resize:vertical;min-height:80px}
       <div class="card-body">
         <div class="timeline">
           <div class="tl-item">
-            <div class="tl-dot blue">{{ strtoupper(substr($ticket->user->name??'U',0,1)) }}</div>
+            <div class="tl-dot blue" style="{{ ($ticket->user->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
+              @if($ticket->user->avatar ?? null)
+                <img src="{{ asset('storage/' . $ticket->user->avatar) }}" alt="{{ $ticket->user->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+              @else
+                {{ strtoupper(substr($ticket->user->name??'U',0,1)) }}
+              @endif
+            </div>
             <div><div class="tl-title">Ticket Created</div><div class="tl-time">{{ $ticket->created_at->format('M d, Y · H:i') }}</div><div class="tl-desc">Submitted by {{ $ticket->user->name??'Unknown' }}</div></div>
           </div>
           @if($ticket->tasks && $ticket->tasks->count() > 0)
           @foreach($ticket->tasks as $task)
             @if($task->assigned_to)
             <div class="tl-item">
-              <div class="tl-dot orange">{{ strtoupper(substr($task->assignee->name??'A',0,1)) }}</div>
+              <div class="tl-dot orange" style="{{ ($task->assignee->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
+                @if($task->assignee->avatar ?? null)
+                  <img src="{{ asset('storage/' . $task->assignee->avatar) }}" alt="{{ $task->assignee->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+                @else
+                  {{ strtoupper(substr($task->assignee->name??'A',0,1)) }}
+                @endif
+              </div>
               <div>
                 <div class="tl-title">Task "{{ Str::limit($task->title, 20) }}" Assigned</div>
                 <div class="tl-time">{{ $task->assigned_date ? $task->assigned_date->format('M d, Y · H:i') : '—' }}</div>
@@ -326,8 +338,12 @@ textarea.form-control{resize:vertical;min-height:80px}
               }
             @endphp
             <div class="comment-item">
-              <div class="cmt-av" style="background:{{ $cmtAvColor }}">
-                {{ strtoupper(substr($cmtUser->name??'U',0,2)) }}
+              <div class="cmt-av" style="{{ ($cmtUser->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : 'background:' . $cmtAvColor }}">
+                @if($cmtUser->avatar ?? null)
+                  <img src="{{ asset('storage/' . $cmtUser->avatar) }}" alt="{{ $cmtUser->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">
+                @else
+                  {{ strtoupper(substr($cmtUser->name??'U',0,2)) }}
+                @endif
               </div>
               <div class="cmt-bubble">
                 <div class="cmt-meta">
@@ -375,7 +391,13 @@ textarea.form-control{resize:vertical;min-height:80px}
         @csrf
         <div class="cmt-input-wrap">
           <div class="cmt-sender">
-            <div class="cmt-sender-av">{{ strtoupper(substr(auth()->user()->name??'SA',0,2)) }}</div>
+            <div class="cmt-sender-av" style="{{ auth()->user()->avatar ? 'background:none;padding:0;overflow:hidden' : '' }}">
+              @if(auth()->user()->avatar)
+                <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">
+              @else
+                {{ strtoupper(substr(auth()->user()->name??'SA',0,2)) }}
+              @endif
+            </div>
             <div class="cmt-sender-info">
               <span class="name">{{ auth()->user()->name??'Superadmin' }}</span>
 
@@ -431,7 +453,7 @@ textarea.form-control{resize:vertical;min-height:80px}
               <span class="pill pill-{{ $t->status }}">{{ ucfirst(str_replace('_',' ',$t->status)) }}</span>
             </div>
             <div class="meta-list" style="margin-top:10px">
-              <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($t->assignee)<div style="width:18px;height:18px;border-radius:4px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">{{ strtoupper(substr($t->assignee->name,0,2)) }}</div>{{ $t->assignee->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
+              <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($t->assignee)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($t->assignee->avatar ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($t->assignee->avatar ?? null)<img src="{{ asset('storage/' . $t->assignee->avatar) }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($t->assignee->name,0,2)) }}@endif</div>{{ $t->assignee->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
               <div class="meta-row"><span class="meta-key">SLA</span><span class="meta-val">{{ $t->sla_level ?? '—' }}</span></div>
               <div class="meta-row"><span class="meta-key">Estimated Delivery</span><span class="meta-val">{{ $t->estimated_delivery_date ? $t->estimated_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
               <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $t->actual_delivery_date ? $t->actual_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
@@ -489,7 +511,13 @@ textarea.form-control{resize:vertical;min-height:80px}
       <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Reported By</div></div>
       <div class="card-body">
         <div class="reporter-row">
-          <div class="rep-av">{{ strtoupper(substr($ticket->user->name??'U',0,2)) }}</div>
+          <div class="rep-av" style="{{ ($ticket->user->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
+            @if($ticket->user->avatar ?? null)
+              <img src="{{ asset('storage/' . $ticket->user->avatar) }}" alt="{{ $ticket->user->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">
+            @else
+              {{ strtoupper(substr($ticket->user->name??'U',0,2)) }}
+            @endif
+          </div>
           <div><div class="rep-name">{{ $ticket->user->name??'Unknown' }}</div><div class="rep-email">{{ $ticket->user->email??'' }}</div></div>
         </div>
       </div>

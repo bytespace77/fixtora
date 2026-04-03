@@ -146,8 +146,12 @@ textarea.form-control{resize:vertical;min-height:80px}
   <div style="display:flex;align-items:center;gap:12px">
     <div class="avatar-stack">
       @foreach($users->take(3) as $u)
-        <div class="av-stack-item" style="background:{{ ['#2d6a4f','#7b2d8b','#c05621','#1d4ed8','#0d9488'][($u->id % 5)] }}">
-          {{ strtoupper(substr($u->name,0,2)) }}
+        <div class="av-stack-item" style="{{ ($u->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : 'background:' . ['#2d6a4f','#7b2d8b','#c05621','#1d4ed8','#0d9488'][$u->id % 5] }}">
+          @if($u->avatar ?? null)
+            <img src="{{ asset('storage/' . $u->avatar) }}" alt="{{ $u->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:7px">
+          @else
+            {{ strtoupper(substr($u->name,0,2)) }}
+          @endif
         </div>
       @endforeach
       @if($users->count() > 3)
@@ -267,8 +271,12 @@ textarea.form-control{resize:vertical;min-height:80px}
           <td>
             @if($task->assignee)
               <div style="display:flex;align-items:center;gap:6px">
-                <div class="k-av" style="background:{{ ['#2563eb','#7c3aed','#0d9488','#ea580c','#16a34a'][$task->assignee->id % 5] }}">
-                  {{ strtoupper(substr($task->assignee->name,0,2)) }}
+                <div class="k-av" style="{{ ($task->assignee->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : 'background:' . ['#2563eb','#7c3aed','#0d9488','#ea580c','#16a34a'][$task->assignee->id % 5] }}">
+                  @if($task->assignee->avatar ?? null)
+                    <img src="{{ asset('storage/' . $task->assignee->avatar) }}" alt="{{ $task->assignee->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">
+                  @else
+                    {{ strtoupper(substr($task->assignee->name,0,2)) }}
+                  @endif
                 </div>
                 <span style="font-size:12px">{{ $task->assignee->name }}</span>
               </div>
@@ -798,7 +806,9 @@ function cardHtml(t) {
     ? `<span style="font-size:9.5px;font-weight:700;color:var(--green)">● RESOLVED</span>`
     : `<span class="priority-badge pb-${t.priority}">${t.priority.toUpperCase()}</span>`;
   const assigneeHtml = t.assignee
-    ? `<div class="k-av" style="background:${COLORS[t.assignee.id%5]}">${t.assignee.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div><span class="k-av-name">${escHtml(t.assignee.name)}</span>`
+    ? (t.assignee.avatar
+        ? `<div class="k-av" style="background:none;padding:0;overflow:hidden"><img src="/storage/${t.assignee.avatar}" alt="${escHtml(t.assignee.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"></div><span class="k-av-name">${escHtml(t.assignee.name)}</span>`
+        : `<div class="k-av" style="background:${COLORS[t.assignee.id%5]}">${t.assignee.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div><span class="k-av-name">${escHtml(t.assignee.name)}</span>`)
     : `<div class="k-av unassigned"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="pointer-events:none"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div><span class="k-av-name" style="color:var(--muted-lt)">Unassigned</span>`;
 
   const formatSlaDate = (dt) => {
@@ -871,7 +881,9 @@ function listRowHtml(t) {
   const ticketId = `#${t.task_company_code || 'XX'}-${String(t.task_company_seq || 0).padStart(4,'0')}`;
   const badge = `<span class="priority-badge pb-${t.priority}">${t.priority.toUpperCase()}</span>`;
   const assigneeHtml = t.assignee
-    ? `<div style="display:flex;align-items:center;gap:6px"><div class="k-av" style="background:${COLORS[t.assignee.id%5]}">${t.assignee.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div><span style="font-size:12px">${escHtml(t.assignee.name)}</span></div>`
+    ? (t.assignee.avatar
+        ? `<div style="display:flex;align-items:center;gap:6px"><div class="k-av" style="background:none;padding:0;overflow:hidden"><img src="/storage/${t.assignee.avatar}" alt="${escHtml(t.assignee.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:6px"></div><span style="font-size:12px">${escHtml(t.assignee.name)}</span></div>`
+        : `<div style="display:flex;align-items:center;gap:6px"><div class="k-av" style="background:${COLORS[t.assignee.id%5]}">${t.assignee.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}</div><span style="font-size:12px">${escHtml(t.assignee.name)}</span></div>`)
     : `<span style="color:var(--muted-lt);font-size:12px">Unassigned</span>`;
   
   let dueDateHtml = '—';

@@ -24,7 +24,13 @@
     'estimated_delivery_date' => $task->estimated_delivery_date ? $task->estimated_delivery_date->format('Y-m-d\TH:i') : '',
     'actual_delivery_date'    => $task->actual_delivery_date ? $task->actual_delivery_date->format('Y-m-d\TH:i') : '',
     'qc_test_date'            => $task->qc_test_date ? $task->qc_test_date->format('Y-m-d\TH:i') : '',
+    'assignee'    => $task->assignee ? [
+        'id'     => $task->assignee->id,
+        'name'   => $task->assignee->name,
+        'avatar' => $task->assignee->avatar ?? null,
+    ] : null,
   ];
+
 @endphp
 
 {{--
@@ -93,8 +99,12 @@
   <div class="k-footer" style="margin-top:10px">
     <div class="k-assignee">
       @if($task->assignee)
-        <div class="k-av" style="background:{{ $colors[$task->assignee->id % 5] }}">
-          {{ strtoupper(substr($task->assignee->name, 0, 2)) }}
+        <div class="k-av" style="{{ ($task->assignee->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : 'background:' . $colors[$task->assignee->id % 5] }}">
+          @if($task->assignee->avatar ?? null)
+            <img src="{{ asset('storage/' . $task->assignee->avatar) }}" alt="{{ $task->assignee->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:6px">
+          @else
+            {{ strtoupper(substr($task->assignee->name, 0, 2)) }}
+          @endif
         </div>
         <span class="k-av-name">{{ $task->assignee->name }}</span>
       @else
