@@ -667,7 +667,7 @@ html, body {
             @if(($topNotifications ?? collect())->count() > 0)
               <div class="noti-list">
                 @foreach($topNotifications as $notification)
-                  <a href="{{ $notification['url'] ?? route('notifications.index') }}" class="noti-item {{ !empty($notification['is_new']) ? 'unread' : '' }}">
+                  <a href="{{ $notification['url'] ?? route('notifications.index') }}" data-uid="{{ $notification['unique_id'] ?? '' }}" class="noti-item {{ !empty($notification['is_new']) ? 'unread' : '' }}">
                     <div class="noti-icon {{ $notification['type'] ?? 'blue' }}">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -748,7 +748,8 @@ document.addEventListener('DOMContentLoaded', () => {
     items.forEach(item => {
         let titleBlock = item.querySelector('.noti-title') ? item.querySelector('.noti-title').innerText : '';
         let descBlock = item.querySelector('.noti-desc') ? item.querySelector('.noti-desc').innerText : '';
-        let key = item.getAttribute('href') + '|' + titleBlock + '|' + descBlock;
+        let uid = item.getAttribute('data-uid');
+        let key = uid ? uid : (item.getAttribute('href') + '|' + titleBlock + '|' + descBlock);
         
         if (readNotis.includes(key)) {
             item.classList.remove('unread');
@@ -778,7 +779,8 @@ document.addEventListener('DOMContentLoaded', () => {
             items.forEach(item => {
                 let titleBlock = item.querySelector('.noti-title') ? item.querySelector('.noti-title').innerText : '';
                 let descBlock = item.querySelector('.noti-desc') ? item.querySelector('.noti-desc').innerText : '';
-                let key = item.getAttribute('href') + '|' + titleBlock + '|' + descBlock;
+                let uid = item.getAttribute('data-uid');
+                let key = uid ? uid : (item.getAttribute('href') + '|' + titleBlock + '|' + descBlock);
                 if (!readNotis.includes(key)) {
                     readNotis.push(key);
                 }

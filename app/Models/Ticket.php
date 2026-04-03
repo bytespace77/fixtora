@@ -20,10 +20,21 @@ class Ticket extends Model
         'impact',
         'status',
         'due_date',
+        'assigned_developer_id',
+        'assigned_date',
+        'assigned_by',
+        'sla_level',
+        'estimated_delivery_date',
+        'actual_delivery_date',
+        'qc_test_date',
     ];
 
     protected $casts = [
         'due_date' => 'date',
+        'assigned_date' => 'datetime',
+        'estimated_delivery_date' => 'datetime',
+        'actual_delivery_date' => 'datetime',
+        'qc_test_date' => 'datetime',
     ];
 
     // Auto-filter by company — superadmin sees ALL
@@ -36,8 +47,11 @@ class Ticket extends Model
                     return;
                 }
                 if ($user->isDeveloper()) {
-                    $query->whereHas('tasks', function($q) use ($user) {
-                        $q->where('assigned_to', $user->id);
+                    $query->where(function ($q) use ($user) {
+                        $q->where('assigned_developer_id', $user->id)
+                          ->orWhereHas('tasks', function($taskQ) use ($user) {
+                              $taskQ->where('assigned_to', $user->id);
+                          });
                     });
                     return;
                 }

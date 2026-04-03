@@ -444,38 +444,88 @@ textarea.form-control{resize:vertical;min-height:80px}
   <div class="detail-col">
 
     <div class="card">
-      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Related Tasks (SLA & Delivery)</div></div>
+      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>{{ $ticket->tasks->isNotEmpty() ? 'Related Tasks (SLA & Delivery)' : 'SLA & Delivery Tracking' }}</div></div>
       <div class="card-body" style="padding:0">
-        @forelse($ticket->tasks as $t)
-          <div style="padding:16px;border-bottom:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:13.5px;font-weight:800;color:var(--navy)">{{ $t->title }}</div>
-              <span class="pill pill-{{ $t->status }}">{{ ucfirst(str_replace('_',' ',$t->status)) }}</span>
+        @if($ticket->tasks->isNotEmpty())
+          @foreach($ticket->tasks as $t)
+            <div style="padding:16px;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:13.5px;font-weight:800;color:var(--navy)">{{ $t->title }}</div>
+                <span class="pill pill-{{ $t->status }}">{{ ucfirst(str_replace('_',' ',$t->status)) }}</span>
+              </div>
+              <div class="meta-list" style="margin-top:10px">
+                <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($t->assignee)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($t->assignee->avatar ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($t->assignee->avatar ?? null)<img src="{{ asset('storage/' . $t->assignee->avatar) }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($t->assignee->name,0,2)) }}@endif</div>{{ $t->assignee->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
+                <div class="meta-row"><span class="meta-key">SLA</span><span class="meta-val">{{ $t->sla_level ?? '—' }}</span></div>
+                <div class="meta-row"><span class="meta-key">Estimated Delivery</span><span class="meta-val">{{ $t->estimated_delivery_date ? $t->estimated_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
+                <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $t->actual_delivery_date ? $t->actual_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
+                <div class="meta-row"><span class="meta-key">QC Test Date</span><span class="meta-val">{{ $t->qc_test_date ? $t->qc_test_date->format('M d, Y · H:i') : '—' }}</span></div>
+              </div>
             </div>
-            <div class="meta-list" style="margin-top:10px">
-              <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($t->assignee)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($t->assignee->avatar ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($t->assignee->avatar ?? null)<img src="{{ asset('storage/' . $t->assignee->avatar) }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($t->assignee->name,0,2)) }}@endif</div>{{ $t->assignee->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
-              <div class="meta-row"><span class="meta-key">SLA</span><span class="meta-val">{{ $t->sla_level ?? '—' }}</span></div>
-              <div class="meta-row"><span class="meta-key">Estimated Delivery</span><span class="meta-val">{{ $t->estimated_delivery_date ? $t->estimated_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
-              <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $t->actual_delivery_date ? $t->actual_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
-              <div class="meta-row"><span class="meta-key">QC Test Date</span><span class="meta-val">{{ $t->qc_test_date ? $t->qc_test_date->format('M d, Y · H:i') : '—' }}</span></div>
+          @endforeach
+        @else
+          @php $assignedDev = $ticket->assigned_developer_id ? \App\Models\User::find($ticket->assigned_developer_id) : null; @endphp
+          <div style="padding:16px;">
+            <div class="meta-list">
+              <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($assignedDev)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($assignedDev->avatar ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($assignedDev->avatar ?? null)<img src="{{ asset('storage/' . $assignedDev->avatar) }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($assignedDev->name,0,2)) }}@endif</div>{{ $assignedDev->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
+              <div class="meta-row"><span class="meta-key">SLA Level</span><span class="meta-val">{{ $ticket->sla_level ?? '—' }}</span></div>
+              <div class="meta-row"><span class="meta-key">Est. Delivery</span><span class="meta-val">{{ $ticket->estimated_delivery_date ? \Carbon\Carbon::parse($ticket->estimated_delivery_date)->format('M d, Y · H:i') : '—' }}</span></div>
+              <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $ticket->actual_delivery_date ? \Carbon\Carbon::parse($ticket->actual_delivery_date)->format('M d, Y · H:i') : '—' }}</span></div>
+              <div class="meta-row"><span class="meta-key">QC Test Date</span><span class="meta-val">{{ $ticket->qc_test_date ? \Carbon\Carbon::parse($ticket->qc_test_date)->format('M d, Y · H:i') : '—' }}</span></div>
             </div>
+            <div style="margin-top:14px;font-size:11.5px;color:var(--muted-lt);text-align:center;">Standalone Ticket Tracking</div>
           </div>
-        @empty
-          <div style="padding:24px 20px;text-align:center;color:var(--muted)">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto 10px;opacity:0.3;display:block"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            <div style="font-size:12.5px;font-weight:600">No tasks linked</div>
-            <div style="font-size:11.5px;color:var(--muted-lt);margin-top:2px">SLA & Delivery are now managed in Tasks.</div>
-          </div>
-        @endforelse
+        @endif
       </div>
     </div>
 
     <div class="card">
       <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Update Status</div></div>
       <div class="card-body">
-        @if(auth()->user()->hasPermission('edit_tickets'))
+        @if(auth()->user()->hasPermission('edit_tickets') || (auth()->user()->isDeveloper() && $ticket->assigned_developer_id == auth()->id()))
         <form action="{{ route('tickets.update', $ticket) }}" method="POST">
           @csrf @method('PATCH')
+
+          @if(auth()->user()->isSuperAdmin())
+          <div class="form-group">
+            <label>Assign Developer</label>
+            <select name="assigned_developer_id" class="form-control" style="margin-bottom:12px">
+              <option value="">Unassigned</option>
+              @foreach($developers as $dev)
+                <option value="{{ $dev->id }}" {{ $ticket->assigned_developer_id == $dev->id ? 'selected' : '' }}>{{ $dev->name }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="form-group">
+            <label>SLA Level</label>
+            <select name="sla_level" class="form-control" style="margin-bottom:12px">
+              <option value="">None</option>
+              <option value="Low" {{ $ticket->sla_level == 'Low' ? 'selected' : '' }}>Low</option>
+              <option value="Medium" {{ $ticket->sla_level == 'Medium' ? 'selected' : '' }}>Medium</option>
+              <option value="High" {{ $ticket->sla_level == 'High' ? 'selected' : '' }}>High</option>
+              <option value="Critical" {{ $ticket->sla_level == 'Critical' ? 'selected' : '' }}>Critical</option>
+            </select>
+          </div>
+          @endif
+
+          @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
+          <div class="form-group">
+            <label>Estimated Delivery</label>
+            <input type="datetime-local" class="form-control" name="estimated_delivery_date" value="{{ $ticket->estimated_delivery_date ? \Carbon\Carbon::parse($ticket->estimated_delivery_date)->format('Y-m-d\TH:i') : '' }}" style="margin-bottom:12px">
+          </div>
+          <div class="form-group">
+            <label>Actual Delivery</label>
+            <input type="datetime-local" class="form-control" name="actual_delivery_date" value="{{ $ticket->actual_delivery_date ? \Carbon\Carbon::parse($ticket->actual_delivery_date)->format('Y-m-d\TH:i') : '' }}" style="margin-bottom:12px">
+          </div>
+          @if(!auth()->user()->isDeveloper() || auth()->user()->isSuperAdmin())
+          <div class="form-group">
+            <label>QC Test Date</label>
+            <input type="datetime-local" class="form-control" name="qc_test_date" value="{{ $ticket->qc_test_date ? \Carbon\Carbon::parse($ticket->qc_test_date)->format('Y-m-d\TH:i') : '' }}" style="margin-bottom:12px">
+          </div>
+          @endif
+          @endif
+
+          @if(auth()->user()->hasPermission('edit_tickets'))
+          <label style="display:block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Status</label>
           <select name="status" class="status-select">
             <option value="open" {{ $ticket->status=='open'?'selected':'' }}>Open</option>
             <option value="in_progress" {{ $ticket->status=='in_progress'?'selected':'' }}>In Progress</option>
@@ -483,7 +533,9 @@ textarea.form-control{resize:vertical;min-height:80px}
             <option value="resolved" {{ $ticket->status=='resolved'?'selected':'' }}>Resolved</option>
             <option value="closed" {{ $ticket->status=='closed'?'selected':'' }}>Closed</option>
           </select>
-          <button type="submit" class="btn-full"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Save Status</button>
+          @endif
+
+          <button type="submit" class="btn-full" style="margin-top: 8px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Save Updates</button>
         </form>
         @else
         <p style="font-size:13px;color:var(--muted)">You do not have permission to update the status.</p>
@@ -549,6 +601,8 @@ textarea.form-control{resize:vertical;min-height:80px}
           <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="open" {{ $ticket->status==='open'?'selected':'' }}>Open</option><option value="in_progress" {{ $ticket->status==='in_progress'?'selected':'' }}>In Progress</option><option value="in_review" {{ $ticket->status==='in_review'?'selected':'' }}>In Review</option><option value="resolved" {{ $ticket->status==='resolved'?'selected':'' }}>Resolved</option><option value="closed" {{ $ticket->status==='closed'?'selected':'' }}>Closed</option></select></div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Due Date</label><input type="date" name="due_date" class="form-control" value="{{ $ticket->due_date?\Carbon\Carbon::parse($ticket->due_date)->format('Y-m-d'):'' }}"></div>
+        
+
       </div>
       <div class="modal-foot"><button type="button" onclick="closeEditModal()" class="btn-sm">Cancel</button><button type="submit" class="btn-sm btn-primary">Save Changes</button></div>
     </form>

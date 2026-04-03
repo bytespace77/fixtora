@@ -33,11 +33,15 @@ class RegisterController extends Controller
 
     protected function create(array $data)
     {
-        // Task 36: Create the company first
-        $company = Company::create([
-            'name' => $data['company_name'],
-            'slug' => Str::slug($data['company_name']) . '-' . Str::random(4),
-        ]);
+        // Check if company already exists by name
+        $company = Company::where('name', $data['company_name'])->first();
+
+        if (!$company) {
+            $company = Company::create([
+                'name' => $data['company_name'],
+                'slug' => Str::slug($data['company_name']) . '-' . Str::random(4),
+            ]);
+        }
 
         // Task 36: Create the user linked to company, role = admin (first user = company admin)
         return User::create([

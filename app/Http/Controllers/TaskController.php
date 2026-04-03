@@ -208,7 +208,7 @@ class TaskController extends Controller
             ->limit(5)
             ->get();
 
-        // Fetch tickets to link to tasks
+        // Fetch all tickets to link to tasks (allowing multiple tasks per ticket)
         $tickets = Ticket::with('company')
             ->orderByDesc('id')
             ->get(['id', 'title', 'company_id', 'created_at']);

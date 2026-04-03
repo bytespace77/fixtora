@@ -941,7 +941,23 @@ function openEditModal(task) {
   document.getElementById('edit-status').value      = task.status;
   const assignedEl = document.getElementById('edit-assigned_to');
   if (assignedEl) assignedEl.value = task.assigned_to ?? '';
-  document.getElementById('edit-ticket_id').value   = task.ticket_id ?? '';
+  const ticketSelect = document.getElementById('edit-ticket_id');
+  if (task.ticket_id) {
+    let exists = false;
+    for(let i = 0; i < ticketSelect.options.length; i++) {
+        if (ticketSelect.options[i].value == task.ticket_id) {
+            exists = true;
+            break;
+        }
+    }
+    if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = task.ticket_id;
+        opt.text = `#${task.ticket_company_code || 'XX'}-${String(task.ticket_company_seq || 0).padStart(4,'0')} - Linked Ticket`;
+        ticketSelect.add(opt);
+    }
+  }
+  ticketSelect.value   = task.ticket_id ?? '';
   document.getElementById('edit-due_date').value    = task.due_date ?? '';
   const slaEl = document.getElementById('edit-sla_level');
   if (slaEl) slaEl.value = task.sla_level ?? '';
