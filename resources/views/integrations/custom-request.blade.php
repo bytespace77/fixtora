@@ -102,14 +102,26 @@ textarea.form-input{min-height:120px;resize:vertical}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
       <div>
         <label class="lbl" for="email">Email (Optional)</label>
-        <input
-          id="email"
-          type="email"
-          name="email"
-          class="form-input {{ $errors->has('email') ? 'is-invalid' : '' }}"
-          value="{{ old('email') }}"
-          placeholder="email@company.com"
-        />
+        @if(auth()->user()->isSuperAdmin())
+          <input
+            id="email"
+            type="email"
+            name="email"
+            class="form-input {{ $errors->has('email') ? 'is-invalid' : '' }}"
+            value="{{ old('email') }}"
+            placeholder="email@company.com"
+          />
+        @else
+          <input
+            id="email"
+            type="email"
+            name="email"
+            class="form-input {{ $errors->has('email') ? 'is-invalid' : '' }}"
+            value="{{ old('email', auth()->user()->email) }}"
+            readonly
+            style="background:#f1f5f9; color:var(--muted); cursor:not-allowed;"
+          />
+        @endif
         @error('email')
           <div class="error-msg">{{ $message }}</div>
         @enderror
@@ -117,14 +129,28 @@ textarea.form-input{min-height:120px;resize:vertical}
 
       <div>
         <label class="lbl" for="company">Company (Optional)</label>
-        <input
-          id="company"
-          type="text"
-          name="company"
-          class="form-input {{ $errors->has('company') ? 'is-invalid' : '' }}"
-          value="{{ old('company') }}"
-          placeholder="Company name"
-        />
+        @if(auth()->user()->isSuperAdmin())
+          <select
+            id="company"
+            name="company"
+            class="form-input {{ $errors->has('company') ? 'is-invalid' : '' }}"
+          >
+            <option value="">Select Company...</option>
+            @foreach($companies as $c)
+              <option value="{{ $c->name }}" {{ old('company') == $c->name ? 'selected' : '' }}>{{ $c->name }}</option>
+            @endforeach
+          </select>
+        @else
+          <input
+            id="company"
+            type="text"
+            name="company"
+            class="form-input {{ $errors->has('company') ? 'is-invalid' : '' }}"
+            value="{{ old('company', auth()->user()->company->name ?? '') }}"
+            readonly
+            style="background:#f1f5f9; color:var(--muted); cursor:not-allowed;"
+          />
+        @endif
         @error('company')
           <div class="error-msg">{{ $message }}</div>
         @enderror

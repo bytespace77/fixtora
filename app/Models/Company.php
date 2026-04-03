@@ -24,4 +24,12 @@ class Company extends Model
     {
         return $this->hasMany(Ticket::class);
     }
+
+    // A company has many integrations via company_integrations
+    public function integrations()
+    {
+        return $this->belongsToMany(Integration::class, 'company_integrations')
+                    ->withPivot(['id', 'status', 'credentials'])
+                    ->withTimestamps();
+    }
 }

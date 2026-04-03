@@ -193,9 +193,34 @@ class AppServiceProvider extends ServiceProvider
                 ];
             });
 
+        // --- DB NOTIFICATIONS (Integrations, System) ---
+        $dbNotifications = $user->notifications()
+            ->take(15)
+            ->get()
+            ->map(function ($notif) {
+                $data = $notif->data;
+                $isNew = $notif->unread() || ($notif->created_at && $notif->created_at->greaterThan(now()->subDay()));
+                
+                $type = 'blue';
+                if (($data['type'] ?? '') === 'integration_request') $type = 'orange';
+                if (($data['type'] ?? '') === 'integration_request_status') $type = 'green';
+
+                return [
+                    'title' => $data['title'] ?? 'System Notification',
+                    'description' => $data['message'] ?? '',
+                    'time' => $notif->created_at,
+                    'time_human' => $this->humanTime($notif->created_at),
+                    'is_new' => $isNew,
+                    'type' => $type,
+                    'category' => 'System',
+                    'url' => $data['link'] ?? route('notifications.index'),
+                ];
+            });
+
         return $ticketItems
             ->merge($commentItems)
             ->merge($taskItems)
+            ->merge($dbNotifications)
             ->sortByDesc('time')
             ->values();
     }

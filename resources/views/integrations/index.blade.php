@@ -37,6 +37,7 @@
 .int-conn-card {
   background: var(--surface);
   border:1px solid var(--border);
+  border-left:4px solid var(--navy);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding:18px;
@@ -148,14 +149,17 @@
 .int-card .int-connect:disabled { background: rgba(37,99,235,.25); cursor:not-allowed; }
 
 .int-custom {
-  background: var(--bg);
-  border:1px dashed var(--border);
+  background: #f8fafc;
+  border:1px dashed #cbd5e1;
   align-items:center;
   text-align:center;
+  grid-column: 1 / -1;
+  justify-content: center;
+  padding: 32px;
 }
-.int-custom .int-tool-logo { background: var(--blue-bg); color: var(--blue-2); border:1px solid #bfdbfe; margin-bottom:12px; }
-.int-custom .int-tool-name { margin-bottom:8px; }
-.int-custom .int-tool-desc { max-width: 320px; }
+.int-custom .int-tool-logo { background: #eff6ff; color: #1e3a8a; border:1px solid #bfdbfe; margin-bottom:16px; }
+.int-custom .int-tool-name { font-size:18px; margin-bottom:10px; }
+.int-custom .int-tool-desc { max-width: 480px; text-align: center; margin: 0 auto; flex: none; font-size:13.5px; }
 
 @media (max-width: 1100px) {
   .int-conn-grid { grid-template-columns: 1fr; }
@@ -174,38 +178,29 @@
   font-weight:600;
   padding:18px 0;
 }
+
 </style>
 @endsection
 
 @section('content')
-@php
-  $activeTab = request('tab', 'all');
-  $filter = (string) request('filter', '');
 
-  $tabs = [
-    'all' => 'All Tools',
-    'communication' => 'Communication',
-    'developer' => 'Developer Tools',
-    'analytics' => 'Analytics',
-  ];
-
-  // No demo connections/tools yet. When backend is ready, these will come from DB.
-  $active_connections = [];
-  $connectedNames = [];
-  $catalog = [];
-
-  $filtered = collect($catalog)->filter(function ($t) use ($activeTab, $filter) {
-    $tabOk = $activeTab === 'all' || $t['category'] === $activeTab;
-    $nameOk = $filter === '' || stripos($t['name'], $filter) !== false;
-    return $tabOk && $nameOk;
-  })->values();
-@endphp
 
 <div class="int-page">
 
-  <div class="int-hero">
-    <h1>Connected Ecosystem</h1>
-    <p>Centralize your operations by bridging the gap between your favorite tools and our orchestration engine.</p>
+  <div class="int-hero" style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div>
+      <h1>Connected Ecosystem</h1>
+      <p>Centralize your operations by bridging the gap between your favorite tools and our orchestration engine.</p>
+    </div>
+    <a href="{{ route('integrations.requests.index') }}" style="padding: 10px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--navy); font-size: 13px; font-weight: 800; text-decoration: none; display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-sm); transition: all 0.15s; cursor: pointer;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+      </svg>
+      {{ Auth::user()->isSuperAdmin() ? 'Manage Requests' : 'My Requests' }}
+    </a>
   </div>
 
   <div class="int-section-label">Active Connections</div>
@@ -221,6 +216,13 @@
               <div>
                 <div class="int-conn-name">{{ $c['name'] }}</div>
                 <div class="int-conn-desc">{{ $c['desc'] }}</div>
+                <div style="margin-top:12px;">
+                  @if(Auth::user()->isAdmin() || Auth::user()->isSuperAdmin())
+                    <a href="{{ route('integrations.configure', $c['id'] ?? \App\Models\Integration::where('name', $c['name'])->value('id')) }}" style="font-size:12.5px; font-weight:800; color:var(--navy); text-decoration:none;">Configure &rarr;</a>
+                  @else
+                    <span style="font-size:11.5px; font-weight:700; color:var(--muted);"><svg width="10" height="10" style="margin-right:2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Admin Only</span>
+                  @endif
+                </div>
               </div>
             </div>
             <span class="int-pill">Connected</span>
@@ -236,7 +238,7 @@
     <div class="int-tabs">
       @foreach($tabs as $key => $label)
         <a
-          href="{{ route('settings.index', ['tab' => $key, 'filter' => $filter]) }}"
+          href="{{ route('integrations.index', ['tab' => $key, 'filter' => $filter]) }}"
           class="int-tab {{ $activeTab === $key ? 'active' : '' }}"
         >
           {{ $label }}
@@ -244,7 +246,7 @@
       @endforeach
     </div>
 
-    <form class="int-search" method="GET" action="{{ route('settings.index') }}">
+    <form class="int-search" method="GET" action="{{ route('integrations.index') }}">
       <svg width="14" height="14" fill="none" stroke="#a0aab4" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -261,22 +263,8 @@
   </div>
 
   <div class="int-catalog-grid">
-    @if($filtered->isEmpty())
+    @if(count($filtered) === 0)
       <div class="int-empty-msg">No integration tools available yet.</div>
-
-      <div class="int-card int-custom" style="grid-column: span 3;">
-        <div class="int-tool-logo">+</div>
-        <div class="int-tool-name">Request Custom Integration</div>
-        <div class="int-tool-desc">Don’t see your internal tools? Submit a request and our engineering concierge team will review it.</div>
-
-        <a
-          class="int-connect"
-          href="{{ route('integrations.custom-request.create') }}"
-          style="display:block; text-align:center; text-decoration:none; line-height:38px;"
-        >
-          Create Request →
-        </a>
-      </div>
     @else
       @foreach($filtered as $tool)
         @php
@@ -286,12 +274,41 @@
           <div class="int-tool-logo" style="background: {{ $tool['color'] }}">{{ strtoupper(substr($tool['name'], 0, 1)) }}</div>
           <div class="int-tool-name">{{ $tool['name'] }}</div>
           <div class="int-tool-desc">{{ $tool['desc'] }}</div>
-          <button class="int-connect" type="button" {{ $isConnected ? 'disabled' : '' }}>
-            {{ $isConnected ? 'Connected' : 'Connect Tool' }}
-          </button>
+          @php $canManage = Auth::user()->isAdmin() || Auth::user()->isSuperAdmin(); @endphp
+          @if(!$isConnected)
+            @if($canManage)
+              <form method="POST" action="{{ route('integrations.connect', $tool['id']) }}" style="width:100%; margin-top:14px;">
+                @csrf
+                <button class="int-connect" type="submit">Connect Tool</button>
+              </form>
+            @else
+              <button class="int-connect" type="button" disabled style="margin-top:14px;">Admin Access Required</button>
+            @endif
+          @else
+            <button class="int-connect" type="button" disabled style="margin-top:14px;">Connected</button>
+          @endif
         </div>
       @endforeach
     @endif
-  </div>
+
+      <div class="int-card int-custom">
+        <div class="int-tool-logo" style="width:42px; height:42px; border-radius:10px; font-size:16px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </div>
+        <div class="int-tool-name">Request Custom Integration</div>
+        <div class="int-tool-desc">Don’t see your internal tools? Submit a request and our engineering concierge team will review it.</div>
+
+        <a
+          href="{{ route('integrations.custom-request.create') }}"
+          style="display:block; width:100%; text-align:center; text-decoration:none; font-size:13.5px; font-weight:800; color:#fff; background:#0f172a; padding:14px 0; border-radius:8px; margin-top:24px; transition: opacity 0.2s;"
+          onmouseover="this.style.opacity='0.9'"
+          onmouseout="this.style.opacity='1'"
+        >
+          Create Request &rarr;
+        </a>
+      </div>
+    </div>
 </div>
 @endsection

@@ -49,10 +49,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/sla-monitor', [SlaController::class, 'index'])->name('sla-monitor.index');
     Route::post('/sla-monitor/configure', [SlaController::class, 'configure'])->name('sla-monitor.configure');
 
-    // Settings
-    Route::get('/settings', function () {
-        return view('settings.index');
-    })->name('settings.index');
+
 
     // Help
     Route::get('/help', function () {
@@ -85,6 +82,13 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
 
     // Integrations
+    Route::get('/integrations', [App\Http\Controllers\IntegrationController::class, 'index'])->name('integrations.index');
+    Route::get('/integrations/requests', [IntegrationRequestController::class, 'index'])->name('integrations.requests.index');
+    Route::patch('/integrations/requests/{integrationRequest}', [IntegrationRequestController::class, 'update'])->name('integrations.requests.update');
+    Route::post('/integrations/{integration}/connect', [App\Http\Controllers\IntegrationController::class, 'connect'])->name('integrations.connect');
+    Route::get('/integrations/{integration}/configure', [App\Http\Controllers\IntegrationController::class, 'configure'])->name('integrations.configure');
+    Route::post('/integrations/{integration}/configure', [App\Http\Controllers\IntegrationController::class, 'saveConfig'])->name('integrations.configure.store');
+    Route::delete('/integrations/{integration}/disconnect', [App\Http\Controllers\IntegrationController::class, 'disconnect'])->name('integrations.disconnect');
     Route::get('/integrations/custom-request', [IntegrationRequestController::class, 'create'])
         ->name('integrations.custom-request.create');
     Route::post('/integrations/custom-request', [IntegrationRequestController::class, 'store'])
