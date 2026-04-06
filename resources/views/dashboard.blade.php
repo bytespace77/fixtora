@@ -31,6 +31,8 @@
 .range-custom input { width:100%; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:12px; font-family:inherit; outline:none; }
 .range-custom input:focus { border-color:var(--blue); }
 .range-custom-apply { margin-top:8px; width:100%; padding:7px; background:var(--navy); color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+.range-clear { display:block; width:100%; margin-top:4px; padding:6px; background:none; border:1px solid var(--border); border-radius:6px; font-size:12px; font-weight:500; color:var(--muted); cursor:pointer; font-family:inherit; text-align:center; transition:all .12s; }
+.range-clear:hover { border-color:var(--red,#ef4444); color:var(--red,#ef4444); background:rgba(239,68,68,.05); }
 
 /* Export */
 .export-wrap { position:relative; }
@@ -161,8 +163,12 @@
           <label>Custom range</label>
           <input type="date" id="customFrom" value="{{ $from->format('Y-m-d') }}"/>
           <input type="date" id="customTo"   value="{{ $to->format('Y-m-d') }}" style="margin-top:5px"/>
-          <button class="range-custom-apply" onclick="applyCustomRange()">Apply</button>
         </div>
+        @if($range !== '7d')
+        <div style="padding:0 6px 6px">
+          <button class="range-clear" onclick="clearFilter()">✕ Clear filter</button>
+        </div>
+        @endif
       </div>
     </div>
 
@@ -477,19 +483,45 @@ function toggleDropdown(menuId, btnId) {
 }
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('.header-actions')) {
-    document.querySelectorAll('.range-dropdown,.export-dropdown').forEach(m => m.classList.remove('open'));
-    document.querySelectorAll('.range-btn,.export-btn').forEach(b => b.classList.remove('active'));
+  // Don't close if clicking inside any dropdown or its trigger button
+  if (e.target.closest('.range-dropdown') || e.target.closest('#rangeBtn') ||
+      e.target.closest('.export-dropdown') || e.target.closest('#exportBtn') ||
+      e.target.closest('.export-wrap')) {
+    return;
   }
+  document.querySelectorAll('.range-dropdown,.export-dropdown').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.range-btn,.export-btn').forEach(b => b.classList.remove('active'));
+});
+
+// Prevent date input clicks from bubbling up and closing the dropdown
+document.addEventListener('DOMContentLoaded', function() {
+  var customFrom = document.getElementById('customFrom');
+  var customTo   = document.getElementById('customTo');
+  if (customFrom) customFrom.addEventListener('click', function(e) { e.stopPropagation(); });
+  if (customTo)   customTo.addEventListener('click',   function(e) { e.stopPropagation(); });
+  // Auto-apply when both dates are set
+  if (customTo) customTo.addEventListener('change', function() {
+    var from = document.getElementById('customFrom').value;
+    var to   = this.value;
+    if (from && to && from <= to) applyCustomRange();
+  });
+  if (customFrom) customFrom.addEventListener('change', function() {
+    var from = this.value;
+    var to   = document.getElementById('customTo').value;
+    if (from && to && from <= to) applyCustomRange();
+  });
 });
 
 function applyRange(r) { window.location.href = '{{ route('home') }}?range=' + r; }
+
+function clearFilter() { window.location.href = '{{ route('home') }}'; }
 
 function applyCustomRange() {
   const from = document.getElementById('customFrom').value;
   const to   = document.getElementById('customTo').value;
   if (!from || !to) { alert('Please select both dates.'); return; }
-  window.location.href = '{{ route('home') }}?range=custom&custom=' + from + ',' + to;
+  if (from > to) { alert('Start date must be before end date.'); return; }
+  window.location.href = '{{ route('home') }}?range=custom&from=' + from + '&to=' + to;
 }
 </script>
 @endsection

@@ -150,7 +150,7 @@ class ReportController extends Controller
             // Helper: real stats for an array of user IDs, sourced from tasks
             $buildStats = function (array $userIds) use ($from, $to): array {
                 if (empty($userIds)) {
-                    return ['resolved' => 0, 'avg_response' => '—', 'load' => 0, 'pending' => 0, 'pending_tickets' => 0];
+                    return ['resolved' => 0, 'avg_response' => '—', 'load' => 0, 'pending_tickets' => 0];
                 }
 
                 // Resolved: tasks assigned to these users with status 'done' within the date range
@@ -191,7 +191,7 @@ class ReportController extends Controller
                     ->whereNotIn('status', ['resolved', 'closed'])
                     ->count();
 
-                return ['resolved' => $resolvedCount, 'avg_response' => $avgResponse, 'load' => $loadPct, 'pending' => $openCount, 'pending_tickets' => $pendingTickets];
+                return ['resolved' => $resolvedCount, 'avg_response' => $avgResponse, 'load' => $loadPct, 'pending_tickets' => $pendingTickets];
             };
 
             $roleConfig = [
@@ -210,7 +210,6 @@ class ReportController extends Controller
                 'resolved'        => $s['resolved'],
                 'avg_response'    => $s['avg_response'],
                 'load'            => $s['load'],
-                'pending'         => $s['pending'],
                 'pending_tickets' => $s['pending_tickets'],
             ];
 
@@ -236,7 +235,6 @@ class ReportController extends Controller
                     'resolved'        => $s['resolved'],
                     'avg_response'    => $s['avg_response'],
                     'load'            => $s['load'],
-                    'pending'         => $s['pending'],
                     'pending_tickets' => $s['pending_tickets'],
                 ];
             }

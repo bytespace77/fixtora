@@ -20,10 +20,13 @@ class HomeController extends Controller
         abort_unless(auth()->user()->hasPermission('view_dashboard'), 403, 'You do not have permission to view the dashboard.');
 
         // ── Date range filter ─────────────────────────────────────────────
-        $range  = $request->input('range', '7d');   // 24h | 7d | 30d | 90d
-        $custom = $request->input('custom');         // YYYY-MM-DD,YYYY-MM-DD
+        $range  = $request->input('range', '7d');   // 24h | 7d | 30d | 90d | custom
+        $fromParam = $request->input('from');        // YYYY-MM-DD (custom range)
+        $toParam   = $request->input('to');          // YYYY-MM-DD (custom range)
+        // Legacy support: also accept ?range=custom&custom=YYYY-MM-DD,YYYY-MM-DD
+        $custom = $request->input('custom');
 
-        [$from, $to] = $this->parseRange($range, $custom);
+        [$from, $to] = $this->parseRange($range, $custom, $fromParam, $toParam);
 
         // ── Stats ─────────────────────────────────────────────────────────
         // ✅ Task 5: All counts are automatically scoped per company via
@@ -154,10 +157,18 @@ class HomeController extends Controller
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private function parseRange(string $range, ?string $custom): array
+    private function parseRange(string $range, ?string $custom, ?string $fromParam = null, ?string $toParam = null): array
     {
         $to = Carbon::now()->endOfDay();
 
+        // New format: ?range=custom&from=YYYY-MM-DD&to=YYYY-MM-DD
+        if ($range === 'custom' && $fromParam && $toParam) {
+            $from = Carbon::parse($fromParam)->startOfDay();
+            $to   = Carbon::parse($toParam)->endOfDay();
+            return [$from, $to];
+        }
+
+        // Legacy format: ?range=custom&custom=YYYY-MM-DD,YYYY-MM-DD
         if ($range === 'custom' && $custom) {
             $parts = explode(',', $custom);
             $from  = Carbon::parse($parts[0])->startOfDay();
