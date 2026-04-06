@@ -70,13 +70,6 @@ class Role extends Model
                 'assign_users_to_role', // Assign users to a role
             ],
 
-
-
-            // ── Integrations ───────────────────────────────────────
-            'Integrations' => [
-                'view_integrations',    // View integrations page
-                'submit_custom_request', // Submit a custom integration request
-            ],
         ];
     }
 

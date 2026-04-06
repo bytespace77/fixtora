@@ -106,7 +106,6 @@ class User extends Authenticatable
             'sla'         => ['view_sla_monitor'],
             'scheduling'  => ['view_scheduling'],
             'user'        => ['user', 'role'],
-            'integration' => ['integration', 'custom_request'],
             'settings'    => ['settings', 'profile'],
             'dashboard'   => ['dashboard'],
         ];

@@ -8,7 +8,6 @@ use App\Http\Controllers\SlaController;
 use App\Http\Controllers\ProfileController; // ✅ Step 17
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SchedulingController;
-use App\Http\Controllers\IntegrationRequestController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SuperAdminController; // ✅ Task 33 & 34
 
@@ -81,19 +80,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/roles/{role}/permissions', [RoleController::class, 'savePermissions'])->name('roles.permissions');
     Route::post('/roles/{role}/association', [RoleController::class, 'saveAssociation'])->name('roles.association');
     Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
-
-    // Integrations
-    Route::get('/integrations', [App\Http\Controllers\IntegrationController::class, 'index'])->name('integrations.index');
-    Route::get('/integrations/requests', [IntegrationRequestController::class, 'index'])->name('integrations.requests.index');
-    Route::patch('/integrations/requests/{integrationRequest}', [IntegrationRequestController::class, 'update'])->name('integrations.requests.update');
-    Route::post('/integrations/{integration}/connect', [App\Http\Controllers\IntegrationController::class, 'connect'])->name('integrations.connect');
-    Route::get('/integrations/{integration}/configure', [App\Http\Controllers\IntegrationController::class, 'configure'])->name('integrations.configure');
-    Route::post('/integrations/{integration}/configure', [App\Http\Controllers\IntegrationController::class, 'saveConfig'])->name('integrations.configure.store');
-    Route::delete('/integrations/{integration}/disconnect', [App\Http\Controllers\IntegrationController::class, 'disconnect'])->name('integrations.disconnect');
-    Route::get('/integrations/custom-request', [IntegrationRequestController::class, 'create'])
-        ->name('integrations.custom-request.create');
-    Route::post('/integrations/custom-request', [IntegrationRequestController::class, 'store'])
-        ->name('integrations.custom-request.store');
 
     // ✅ Task 33 & 34: Super Admin routes (controller enforces isSuperAdmin internally)
     Route::prefix('superadmin')->name('superadmin.')->group(function () {
