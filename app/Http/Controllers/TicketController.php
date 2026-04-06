@@ -17,32 +17,6 @@ class TicketController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
-    // Sync all related tasks' status when a ticket status changes.
-    //
-    // Mapping:
-    //   ticket open                 → task todo
-    //   ticket in_progress/in_review → task doing
-    //   ticket resolved/closed       → task done
-    // ─────────────────────────────────────────────────────────
-    private function syncTaskStatusFromTicket(Ticket $ticket, string $newTicketStatus): void
-    {
-        $taskStatus = match ($newTicketStatus) {
-            'open'                  => 'todo',
-            'in_progress', 'in_review' => 'doing',
-            'resolved', 'closed'    => 'done',
-            default                 => null,
-        };
-
-        if ($taskStatus === null) {
-            return;
-        }
-
-        \App\Models\Task::withoutGlobalScope('company')
-            ->where('ticket_id', $ticket->id)
-            ->update(['status' => $taskStatus, 'updated_at' => now()]);
-    }
-
-    // ─────────────────────────────────────────────────────────
     // Task 41: Company isolation guard (defense-in-depth).
     // The Ticket model's global scope already filters list/index
     // queries. This guard protects individual-record endpoints
@@ -84,9 +58,42 @@ class TicketController extends Controller
         abort_unless(auth()->user()->hasPermission('list_tickets'), 403, 'You do not have permission to view tickets.');
 
         $query = Ticket::with('user')->latest();
-        if ($request->status) {
-            $query->where('status', $request->status);
+
+        // Status — accepts both ?status=open (tab click) and ?status[]=open (filter panel)
+        $statusInput = request('status[]') ?? request('status');
+        if (!empty($statusInput)) {
+            $statuses = array_filter((array) $statusInput, fn($s) => $s !== 'all');
+            if (!empty($statuses)) {
+                $query->whereIn('status', $statuses);
+            }
         }
+
+        // Priority filter
+        $priorityInput = request('priority[]') ?? request('priority');
+        if (!empty($priorityInput)) {
+            $priorities = array_filter((array) $priorityInput, fn($p) => $p !== 'all');
+            if (!empty($priorities)) {
+                $query->whereIn('priority', $priorities);
+            }
+        }
+
+        // System (company name) filter
+        $systemInput = request('system[]') ?? request('system');
+        if (!empty($systemInput)) {
+            $systems = array_filter((array) $systemInput, fn($s) => $s !== 'all');
+            if (!empty($systems)) {
+                $query->whereIn('system', $systems);
+            }
+        }
+
+        // Date range filter
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
         $tickets = $query->paginate(10)->withQueryString();
         $companySystems = auth()->user()->company?->systems ?? [];
 
@@ -404,11 +411,6 @@ class TicketController extends Controller
         }
 
         $ticket->update($validated);
-
-        // Sync task statuses when ticket status changes
-        if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
-            $this->syncTaskStatusFromTicket($ticket, $validated['status']);
-        }
 
         if ($ticket->tasks()->exists()) {
             $taskUpdates = [];

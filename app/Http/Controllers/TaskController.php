@@ -208,8 +208,11 @@ class TaskController extends Controller
             ->limit(5)
             ->get();
 
-        // Fetch all tickets to link to tasks (allowing multiple tasks per ticket)
+        // Fetch only tickets that are not yet linked to any task.
+        // Tickets that already have a task assigned would cause confusion in the "Create Task" dropdown.
         $tickets = Ticket::with('company')
+            ->whereDoesntHave('tasks')
+            ->whereNotIn('status', ['resolved', 'closed'])
             ->orderByDesc('id')
             ->get(['id', 'title', 'company_id', 'created_at']);
 

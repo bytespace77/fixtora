@@ -189,14 +189,12 @@ textarea.form-control{resize:vertical;min-height:80px}
 
 <!-- Status Tabs -->
 <div class="filter-row">
-  <a href="{{ route('tickets.index') }}" class="filter-tab {{ !request('status') ? 'active' : '' }}">
+  <a href="{{ route('tickets.index') }}" class="filter-tab {{ !request('status') && !request('status[]') ? 'active' : '' }}">
     All Tickets <span class="tab-count">{{ $tickets->total() }}</span>
   </a>
-  <a href="{{ route('tickets.index', ['status'=>'open']) }}" class="filter-tab {{ request('status')==='open' ? 'active' : '' }}">Open</a>
-  <a href="{{ route('tickets.index', ['status'=>'in_progress']) }}" class="filter-tab {{ request('status')==='in_progress' ? 'active' : '' }}">In Progress</a>
-  <a href="{{ route('tickets.index', ['status'=>'in_review']) }}" class="filter-tab {{ request('status')==='in_review' ? 'active' : '' }}">In Review</a>
-  <a href="{{ route('tickets.index', ['status'=>'resolved']) }}" class="filter-tab {{ request('status')==='resolved' ? 'active' : '' }}">Resolved</a>
-  <a href="{{ route('tickets.index', ['status'=>'closed']) }}" class="filter-tab {{ request('status')==='closed' ? 'active' : '' }}">Closed</a>
+  @foreach(['open'=>'Open','in_progress'=>'In Progress','in_review'=>'In Review','resolved'=>'Resolved','closed'=>'Closed'] as $val=>$label)
+  <a href="{{ route('tickets.index', ['status[]' => [$val]]) }}" class="filter-tab {{ (request('status[]') === [$val] || request('status') === $val) ? 'active' : '' }}">{{ $label }}</a>
+  @endforeach
 </div>
 
 <!-- Ticket Table -->
@@ -246,7 +244,10 @@ textarea.form-control{resize:vertical;min-height:80px}
   <div class="empty-state">
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" style="margin:0 auto;display:block;opacity:.18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     <h3>No tickets found</h3>
-    <p>{{ request('status') ? 'No '.str_replace('_',' ',request('status')).' tickets.' : 'You have not created any tickets yet.' }}</p>
+    @php
+      $_activeStatuses = array_filter((array)(request('status[]') ?? request('status') ?? []), fn($s) => $s !== 'all');
+    @endphp
+    <p>{{ count($_activeStatuses) ? 'No '.implode(', ', array_map(fn($s) => str_replace('_',' ',$s), $_activeStatuses)).' tickets found.' : 'You have not created any tickets yet.' }}</p>
     @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('create_tickets'))
     <button onclick="openModal('new')" class="btn-sm btn-primary" style="display:inline-flex;margin:0 auto">+ Create First Ticket</button>
     @endif
@@ -407,8 +408,67 @@ document.addEventListener('click',()=>{
 
 // Filter
 function toggleFilter(){document.getElementById('filterPanel').classList.toggle('open');}
-function clearFilters(){document.querySelectorAll('.filter-status,.filter-priority,.filter-system').forEach((el,i)=>el.checked=i===0);}
-function applyFilters(){toggleFilter();showToast('Filters applied');}
+
+function clearFilters(){
+  document.querySelectorAll('.filter-status').forEach(el=>{ el.checked = (el.value==='all'); });
+  document.querySelectorAll('.filter-priority').forEach(el=>{ el.checked = (el.value==='all'); });
+  document.querySelectorAll('.filter-system').forEach(el=>{ el.checked = false; });
+  document.querySelectorAll('.filter-date-input').forEach(el=>{ el.value=''; });
+}
+
+function applyFilters(){
+  const params = new URLSearchParams();
+
+  // Status — collect checked values, skip "all"
+  const statuses = [...document.querySelectorAll('.filter-status:checked')].map(el=>el.value).filter(v=>v!=='all');
+  statuses.forEach(s => params.append('status[]', s));
+
+  // Priority
+  const priorities = [...document.querySelectorAll('.filter-priority:checked')].map(el=>el.value).filter(v=>v!=='all');
+  priorities.forEach(p => params.append('priority[]', p));
+
+  // System (company)
+  const systems = [...document.querySelectorAll('.filter-system:checked')].map(el=>el.value).filter(v=>v!=='all');
+  systems.forEach(s => params.append('system[]', s));
+
+  // Date range
+  const dates = document.querySelectorAll('.filter-date-input');
+  if(dates[0]?.value) params.set('date_from', dates[0].value);
+  if(dates[1]?.value) params.set('date_to',   dates[1].value);
+
+  window.location.href = '{{ route("tickets.index") }}' + (params.toString() ? '?'+params.toString() : '');
+}
+
+// Restore filter panel checkbox/date state from current URL on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const p = new URLSearchParams(window.location.search);
+  const hasFilters = p.has('status[]') || p.has('priority[]') || p.has('system[]') || p.has('date_from') || p.has('date_to');
+
+  if(hasFilters){
+    // Status
+    const activeStatuses = p.getAll('status[]');
+    document.querySelectorAll('.filter-status').forEach(el=>{
+      el.checked = el.value === 'all' ? activeStatuses.length === 0 : activeStatuses.includes(el.value);
+    });
+
+    // Priority
+    const activePriorities = p.getAll('priority[]');
+    document.querySelectorAll('.filter-priority').forEach(el=>{
+      el.checked = el.value === 'all' ? activePriorities.length === 0 : activePriorities.includes(el.value);
+    });
+
+    // System
+    const activeSystems = p.getAll('system[]');
+    document.querySelectorAll('.filter-system').forEach(el=>{
+      el.checked = el.value !== 'all' && activeSystems.includes(el.value);
+    });
+
+    // Dates
+    const dates = document.querySelectorAll('.filter-date-input');
+    if(dates[0] && p.get('date_from')) dates[0].value = p.get('date_from');
+    if(dates[1] && p.get('date_to'))   dates[1].value = p.get('date_to');
+  }
+});
 
 // Modal
 let currentMode='new';

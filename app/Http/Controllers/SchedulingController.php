@@ -36,6 +36,7 @@ class SchedulingController extends Controller
 
         $ticketsInMonth = \App\Models\Ticket::whereNotNull('due_date')
             ->whereNotIn('status', ['resolved', 'closed'])
+            ->whereDoesntHave('tasks')
             ->whereBetween('due_date', [$monthStart->toDateString(), $monthEnd->toDateString()])
             ->get();
 
@@ -88,11 +89,11 @@ class SchedulingController extends Controller
 
         // Stats
         $taskScheduled = Task::whereNotNull('due_date')->where('status', '!=', 'done')->count();
-        $ticketScheduled = \App\Models\Ticket::whereNotNull('due_date')->whereNotIn('status', ['resolved', 'closed'])->count();
+        $ticketScheduled = \App\Models\Ticket::whereNotNull('due_date')->whereNotIn('status', ['resolved', 'closed'])->whereDoesntHave('tasks')->count();
         $totalScheduled = $taskScheduled + $ticketScheduled;
 
         $taskOverdue = Task::whereNotNull('due_date')->where('status', '!=', 'done')->whereDate('due_date', '<', now()->toDateString())->count();
-        $ticketOverdue = \App\Models\Ticket::whereNotNull('due_date')->whereNotIn('status', ['resolved', 'closed'])->whereDate('due_date', '<', now()->toDateString())->count();
+        $ticketOverdue = \App\Models\Ticket::whereNotNull('due_date')->whereNotIn('status', ['resolved', 'closed'])->whereDoesntHave('tasks')->whereDate('due_date', '<', now()->toDateString())->count();
         $overdue = $taskOverdue + $ticketOverdue;
 
         $taskThisWeek = Task::whereNotNull('due_date')
@@ -100,7 +101,7 @@ class SchedulingController extends Controller
             ->where('status', '!=', 'done')->count();
         $ticketThisWeek = \App\Models\Ticket::whereNotNull('due_date')
             ->whereBetween('due_date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()])
-            ->whereNotIn('status', ['resolved', 'closed'])->count();
+            ->whereNotIn('status', ['resolved', 'closed'])->whereDoesntHave('tasks')->count();
         $thisWeek = $taskThisWeek + $ticketThisWeek;
 
         // Upcoming
@@ -125,6 +126,7 @@ class SchedulingController extends Controller
         $upcomingTickets = \App\Models\Ticket::with(['user'])
             ->whereNotNull('due_date')
             ->whereNotIn('status', ['resolved', 'closed'])
+            ->whereDoesntHave('tasks')
             ->whereDate('due_date', '>=', now()->toDateString())
             ->get()->map(function($t) {
                 return (object)[
