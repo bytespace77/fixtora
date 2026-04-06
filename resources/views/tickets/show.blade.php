@@ -26,7 +26,7 @@
 .pill-in_progress,.pill-in-progress{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
 .pill-in_review{background:#fdf4ff;color:#c026d3;border:1px solid #fae8ff}
 .pill-closed{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
-.detail-grid{display:grid;grid-template-columns:1fr 300px;gap:18px}
+.detail-grid{display:grid;grid-template-columns:1fr 340px;gap:18px}
 .detail-col{display:flex;flex-direction:column;gap:14px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
 .card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)}
@@ -303,8 +303,7 @@ textarea.form-control{resize:vertical;min-height:80px}
           @endif
         </div>
       </div>
-
-      {{-- CSAT moved to right sidebar --}}
+    </div>
 
     {{-- ── Comments ── --}}
     <div class="card">

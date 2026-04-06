@@ -150,7 +150,7 @@ class ReportController extends Controller
             // Helper: real stats for an array of user IDs, sourced from tasks
             $buildStats = function (array $userIds) use ($from, $to): array {
                 if (empty($userIds)) {
-                    return ['resolved' => 0, 'avg_response' => '—', 'load' => 0];
+                    return ['resolved' => 0, 'avg_response' => '—', 'load' => 0, 'pending' => 0, 'pending_tickets' => 0];
                 }
 
                 // Resolved: tasks assigned to these users with status 'done' within the date range
@@ -185,7 +185,13 @@ class ReportController extends Controller
                     ->count();
                 $loadPct = min(100, $openCount * 5);
 
-                return ['resolved' => $resolvedCount, 'avg_response' => $avgResponse, 'load' => $loadPct];
+                // Pending tickets: tickets assigned to these users not yet resolved/closed
+                $pendingTickets = Ticket::withoutGlobalScope('company')
+                    ->whereIn('assigned_developer_id', $userIds)
+                    ->whereNotIn('status', ['resolved', 'closed'])
+                    ->count();
+
+                return ['resolved' => $resolvedCount, 'avg_response' => $avgResponse, 'load' => $loadPct, 'pending' => $openCount, 'pending_tickets' => $pendingTickets];
             };
 
             $roleConfig = [
@@ -198,12 +204,14 @@ class ReportController extends Controller
             $superUser = auth()->user();
             $s = $buildStats([$superUser->id]);
             $agentsByRole['Super Admin'][] = [
-                'name'         => $superUser->name,
-                'initials'     => strtoupper(substr($superUser->name, 0, 2)),
-                'color'        => '#1e3a6e',
-                'resolved'     => $s['resolved'],
-                'avg_response' => $s['avg_response'],
-                'load'         => $s['load'],
+                'name'            => $superUser->name,
+                'initials'        => strtoupper(substr($superUser->name, 0, 2)),
+                'color'           => '#1e3a6e',
+                'resolved'        => $s['resolved'],
+                'avg_response'    => $s['avg_response'],
+                'load'            => $s['load'],
+                'pending'         => $s['pending'],
+                'pending_tickets' => $s['pending_tickets'],
             ];
 
             // All staff — match by the `role` string column OR by the linked custom role name
@@ -222,12 +230,14 @@ class ReportController extends Controller
                 $roleLabel = $cfg['label'];
                 $s = $buildStats([$u->id]);
                 $agentsByRole[$roleLabel][] = [
-                    'name'         => $u->name,
-                    'initials'     => strtoupper(substr($u->name, 0, 2)),
-                    'color'        => $cfg['color'],
-                    'resolved'     => $s['resolved'],
-                    'avg_response' => $s['avg_response'],
-                    'load'         => $s['load'],
+                    'name'            => $u->name,
+                    'initials'        => strtoupper(substr($u->name, 0, 2)),
+                    'color'           => $cfg['color'],
+                    'resolved'        => $s['resolved'],
+                    'avg_response'    => $s['avg_response'],
+                    'load'            => $s['load'],
+                    'pending'         => $s['pending'],
+                    'pending_tickets' => $s['pending_tickets'],
                 ];
             }
 

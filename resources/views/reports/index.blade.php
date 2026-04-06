@@ -224,10 +224,11 @@
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Pending Tasks</th>
+                    <th>Pending Tickets</th>
                     <th>Resolved</th>
                     <th>Avg Response</th>
                     <th>Load</th>
-                    <th>CSAT</th>
                 </tr>
             </thead>
             <tbody>
@@ -241,7 +242,7 @@
                 @forelse($agentsByRole as $roleLabel => $members)
                     {{-- Role header row --}}
                     <tr class="role-group-row">
-                        <td colspan="5">
+                        <td colspan="6">
                             <span class="role-group-label">
                                 <span class="role-group-dot" style="background:{{ $roleColors[$roleLabel] ?? '#6b7280' }}"></span>
                                 {{ $roleLabel }}
@@ -257,17 +258,26 @@
                                 <div class="agent-name">{{ $a['name'] }}</div>
                             </div>
                         </td>
+                        <td>
+                            <span style="font-weight:700;color:{{ ($a['pending'] ?? 0) > 0 ? 'var(--orange,#f97316)' : 'var(--muted)' }}">
+                                {{ $a['pending'] ?? 0 }}
+                            </span>
+                        </td>
+                        <td>
+                            <span style="font-weight:700;color:{{ ($a['pending_tickets'] ?? 0) > 0 ? 'var(--orange,#f97316)' : 'var(--muted)' }}">
+                                {{ $a['pending_tickets'] ?? 0 }}
+                            </span>
+                        </td>
                         <td style="font-weight:700">{{ $a['resolved'] }}</td>
                         <td>{{ $a['avg_response'] }}</td>
                         <td>
                             <div class="load-wrap"><div class="load-fill" style="width:{{ $a['load'] }}%"></div></div>
                         </td>
-                        <td><span class="csat">—</span></td>
                     </tr>
                     @endforeach
                 @empty
                     <tr>
-                        <td colspan="5">
+                        <td colspan="6">
                             <div class="empty-msg">No team performance data yet.</div>
                         </td>
                     </tr>

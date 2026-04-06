@@ -30,6 +30,30 @@ class SuperAdminController extends Controller
         $totalUsers = User::count();
         $totalTickets = Ticket::withoutGlobalScope('company')->count();
 
+        // ── Global CSAT stats ──────────────────────────────────────────────
+        $csatTickets = Ticket::withoutGlobalScope('company')
+            ->whereNotNull('csat_rating')
+            ->whereNotNull('csat_submitted_at');
+
+        $csatCount       = (clone $csatTickets)->count();
+        $csatAvg         = $csatCount > 0 ? round((clone $csatTickets)->avg('csat_rating'), 1) : null;
+        $csatDistribution = [
+            5 => (clone $csatTickets)->where('csat_rating', 5)->count(),
+            4 => (clone $csatTickets)->where('csat_rating', 4)->count(),
+            3 => (clone $csatTickets)->where('csat_rating', 3)->count(),
+            2 => (clone $csatTickets)->where('csat_rating', 2)->count(),
+            1 => (clone $csatTickets)->where('csat_rating', 1)->count(),
+        ];
+
+        // Recent CSAT submissions (last 5)
+        $recentCsat = Ticket::withoutGlobalScope('company')
+            ->with(['user', 'company'])
+            ->whereNotNull('csat_rating')
+            ->whereNotNull('csat_submitted_at')
+            ->orderByDesc('csat_submitted_at')
+            ->limit(5)
+            ->get();
+
         // Per-company stats for the table
         $companyStats = $companies->map(function ($company) {
             $openTickets = Ticket::withoutGlobalScope('company')
@@ -42,6 +66,16 @@ class SuperAdminController extends Controller
                 ->whereIn('status', ['resolved', 'closed'])
                 ->count();
 
+            $companyCsatAvg = Ticket::withoutGlobalScope('company')
+                ->where('company_id', $company->id)
+                ->whereNotNull('csat_rating')
+                ->avg('csat_rating');
+
+            $companyCsatCount = Ticket::withoutGlobalScope('company')
+                ->where('company_id', $company->id)
+                ->whereNotNull('csat_rating')
+                ->count();
+
             return [
                 'id'               => $company->id,
                 'name'             => $company->name,
@@ -51,6 +85,8 @@ class SuperAdminController extends Controller
                 'tickets_count'    => $company->tickets_count,
                 'open_tickets'     => $openTickets,
                 'resolved_tickets' => $resolvedTickets,
+                'csat_avg'         => $companyCsatAvg ? round($companyCsatAvg, 1) : null,
+                'csat_count'       => $companyCsatCount,
             ];
         });
 
@@ -60,7 +96,11 @@ class SuperAdminController extends Controller
             'activeCompanies',
             'inactiveCompanies',
             'totalUsers',
-            'totalTickets'
+            'totalTickets',
+            'csatAvg',
+            'csatCount',
+            'csatDistribution',
+            'recentCsat'
         ));
     }
 

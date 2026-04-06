@@ -398,7 +398,23 @@ class TaskController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('delete_tasks'), 403, 'You do not have permission to delete tasks.');
 
+        // If this task is linked to a ticket that already has an assigned developer,
+        // delete the ticket as well (cascade: attachments directory too).
+        $linkedTicket = null;
+        if ($task->ticket_id) {
+            $ticket = \App\Models\Ticket::withoutGlobalScopes()->find($task->ticket_id);
+            if ($ticket && !empty($ticket->assigned_developer_id)) {
+                $linkedTicket = $ticket;
+            }
+        }
+
         $task->delete();
+
+        if ($linkedTicket) {
+            \Illuminate\Support\Facades\Storage::disk('public')
+                ->deleteDirectory("ticket-attachments/{$linkedTicket->id}");
+            $linkedTicket->delete();
+        }
 
         if (request()->expectsJson()) {
             return response()->json(['success' => true]);

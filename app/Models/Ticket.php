@@ -79,6 +79,10 @@ class Ticket extends Model
                 $ticket->company_id = Auth::user()->company_id;
             }
         });
+        // Cascade-delete all related tasks when a ticket is deleted
+        static::deleting(function ($ticket) {
+            $ticket->tasks()->delete();
+        });
     }
 
     public function user()

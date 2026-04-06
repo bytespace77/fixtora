@@ -397,6 +397,25 @@ class TicketController extends Controller
                 $taskUpdates['qc_test_date'] = $validated['qc_test_date'];
             }
 
+            // Sync task status based on ticket status change
+            // ticket open        → task todo
+            // ticket in_progress → task doing
+            // ticket in_review   → task doing
+            // ticket resolved    → task done
+            // ticket closed      → task done
+            if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
+                $taskStatusMap = [
+                    'open'        => 'todo',
+                    'in_progress' => 'doing',
+                    'in_review'   => 'doing',
+                    'resolved'    => 'done',
+                    'closed'      => 'done',
+                ];
+                if (isset($taskStatusMap[$validated['status']])) {
+                    $taskUpdates['status'] = $taskStatusMap[$validated['status']];
+                }
+            }
+
             if (!empty($taskUpdates)) {
                 $ticket->tasks()->update($taskUpdates);
             }

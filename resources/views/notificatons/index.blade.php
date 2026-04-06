@@ -41,6 +41,14 @@
 .n-desc { font-size:12px; color:var(--muted); margin-top:3px; line-height:1.4; }
 .n-meta { display:flex; align-items:center; gap:8px; margin-top:7px; font-size:11px; color:var(--muted-lt); }
 .n-tag { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; padding:3px 7px; border-radius:999px; border:1px solid var(--border); background:#fff; color:var(--text-2); }
+.n-tag.tag-task-assigned  { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.n-tag.tag-ticket-assigned { background:#f0fdf4; color:#15803d; border-color:#bbf7d0; }
+.n-tag.tag-task-update    { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+.n-tag.tag-ticket-update  { background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+.n-tag.tag-client-update  { background:#fdf4ff; color:#7e22ce; border-color:#e9d5ff; }
+.n-tag.tag-workflow       { background:#fef9c3; color:#92400e; border-color:#fde68a; }
+.n-tag.tag-reminder       { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.n-tag.tag-system         { background:#f8fafc; color:var(--muted); border-color:var(--border); }
 
 .pref-body { padding:14px 16px; }
 .pref-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f1f5f9; gap:12px; }
@@ -114,14 +122,17 @@
                 <div class="n-group">
                     <div class="n-group-label">Today</div>
                     @forelse($todayNotifications as $notification)
+                        @php
+                            $catSlug = 'tag-' . strtolower(str_replace(' ', '-', $notification['category'] ?? 'system'));
+                        @endphp
                         <a href="{{ $notification['url'] ?? route('notifications.index') }}" class="n-item {{ !empty($notification['is_new']) ? 'unread' : '' }}" style="text-decoration:none;color:inherit">
-                            <span class="n-dot {{ ($notification['type'] ?? '') === 'red' ? 'warn' : (($notification['type'] ?? '') === 'green' ? 'success' : 'info') }}"></span>
+                            <span class="n-dot {{ ($notification['type'] ?? '') === 'red' ? 'warn' : (($notification['type'] ?? '') === 'green' ? 'success' : (($notification['type'] ?? '') === 'orange' ? 'warn' : 'info')) }}"></span>
                             <div class="n-main">
                                 <div class="n-title">{{ $notification['title'] ?? 'Notification' }}</div>
                                 <div class="n-desc">{{ $notification['description'] ?? '' }}</div>
                                 <div class="n-meta">
                                     <span>{{ $notification['time_human'] ?? 'just now' }}</span>
-                                    <span class="n-tag">{{ $notification['category'] ?? 'System' }}</span>
+                                    <span class="n-tag {{ $catSlug }}">{{ $notification['category'] ?? 'System' }}</span>
                                 </div>
                             </div>
                         </a>
@@ -133,14 +144,17 @@
                 <div class="n-group">
                     <div class="n-group-label">Earlier</div>
                     @forelse($earlierNotifications as $notification)
+                        @php
+                            $catSlug = 'tag-' . strtolower(str_replace(' ', '-', $notification['category'] ?? 'system'));
+                        @endphp
                         <a href="{{ $notification['url'] ?? route('notifications.index') }}" class="n-item {{ !empty($notification['is_new']) ? 'unread' : '' }}" style="text-decoration:none;color:inherit">
-                            <span class="n-dot {{ ($notification['type'] ?? '') === 'red' ? 'warn' : (($notification['type'] ?? '') === 'green' ? 'success' : 'info') }}"></span>
+                            <span class="n-dot {{ ($notification['type'] ?? '') === 'red' ? 'warn' : (($notification['type'] ?? '') === 'green' ? 'success' : (($notification['type'] ?? '') === 'orange' ? 'warn' : 'info')) }}"></span>
                             <div class="n-main">
                                 <div class="n-title">{{ $notification['title'] ?? 'Notification' }}</div>
                                 <div class="n-desc">{{ $notification['description'] ?? '' }}</div>
                                 <div class="n-meta">
                                     <span>{{ $notification['time_human'] ?? 'earlier' }}</span>
-                                    <span class="n-tag">{{ $notification['category'] ?? 'System' }}</span>
+                                    <span class="n-tag {{ $catSlug }}">{{ $notification['category'] ?? 'System' }}</span>
                                 </div>
                             </div>
                         </a>
