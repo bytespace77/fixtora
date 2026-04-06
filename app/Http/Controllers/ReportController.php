@@ -47,10 +47,12 @@ class ReportController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('view_reports'), 403, 'You do not have permission to view reports.');
 
-        $range  = $request->input('range', '30d');
-        $custom = $request->input('custom');
+        $range     = $request->input('range', '30d');
+        $custom    = $request->input('custom');   // legacy: YYYY-MM-DD,YYYY-MM-DD
+        $fromParam = $request->input('from');     // new: YYYY-MM-DD
+        $toParam   = $request->input('to');       // new: YYYY-MM-DD
 
-        [$from, $to] = $this->parseRange($range, $custom);
+        [$from, $to] = $this->parseRange($range, $custom, $fromParam, $toParam);
 
         $totalTickets = Ticket::whereBetween('created_at', [$from, $to])->count();
 
@@ -271,10 +273,20 @@ class ReportController extends Controller
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private function parseRange(string $range, ?string $custom): array
+    private function parseRange(string $range, ?string $custom, ?string $fromParam = null, ?string $toParam = null): array
     {
         $to = Carbon::now()->endOfDay();
 
+        // New format: ?range=custom&from=YYYY-MM-DD&to=YYYY-MM-DD
+        // Explicit from/to always wins — covers both custom ranges and preset exports
+        // so the exported data matches exactly what the user was viewing on screen.
+        if ($fromParam && $toParam) {
+            $from = Carbon::parse($fromParam)->startOfDay();
+            $to   = Carbon::parse($toParam)->endOfDay();
+            return [$from, $to];
+        }
+
+        // Legacy format: ?range=custom&custom=YYYY-MM-DD,YYYY-MM-DD
         if ($range === 'custom' && $custom) {
             $parts = explode(',', $custom);
             $from  = Carbon::parse($parts[0])->startOfDay();

@@ -58,9 +58,33 @@ class TicketController extends Controller
         abort_unless(auth()->user()->hasPermission('list_tickets'), 403, 'You do not have permission to view tickets.');
 
         $query = Ticket::with('user')->latest();
-        if ($request->status) {
-            $query->where('status', $request->status);
+
+        // Status filter — supports both ?status=open (legacy tab links) and ?status[]=open&status[]=in_progress (filter panel)
+        $statuses = array_filter((array) ($request->input('status[]') ?: ($request->status ? [$request->status] : [])));
+        if (!empty($statuses)) {
+            $query->whereIn('status', $statuses);
         }
+
+        // Priority filter
+        $priorities = array_filter((array) $request->input('priority[]', []));
+        if (!empty($priorities)) {
+            $query->whereIn('priority', $priorities);
+        }
+
+        // System / company filter — 'system' column stores the company name
+        $systems = array_filter((array) $request->input('system[]', []));
+        if (!empty($systems)) {
+            $query->whereIn('system', $systems);
+        }
+
+        // Date range filter
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
         $tickets = $query->paginate(10)->withQueryString();
         $companySystems = auth()->user()->company?->systems ?? [];
 

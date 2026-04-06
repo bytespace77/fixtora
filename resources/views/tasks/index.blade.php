@@ -13,7 +13,20 @@
 .av-stack-item:first-child{margin-left:0}
 .av-stack-item.av-more{background:var(--bg);color:var(--muted);font-size:8px;border-color:var(--border)}
 .filter-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-size:12px;font-weight:600;color:var(--text-sub);cursor:pointer;font-family:inherit;transition:all .15s}
-.filter-btn:hover{border-color:var(--blue);color:var(--blue)}
+.filter-btn:hover,.filter-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+/* ── Task Filter Panel ───────────────────────────────────────── */
+.task-filter-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:18px;overflow:hidden;display:none}
+.task-filter-panel.open{display:block}
+.tfp-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border)}
+.tfp-head h3{font-size:13px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:7px}
+.tfp-body{padding:16px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.tfp-group .tfp-label{display:block;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.tfp-check{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer}
+.tfp-check input{width:14px;height:14px;accent-color:var(--blue)}
+.tfp-check span{font-size:12.5px;font-weight:500;color:var(--text)}
+.tfp-foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 18px;border-top:1px solid var(--border);background:var(--bg)}
+.link-btn{background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);font-family:inherit;padding:6px 10px;border-radius:6px}
+.link-btn:hover{color:var(--text);background:var(--bg)}
 .board-header-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
 .board-title{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--navy)}
 .board-desc{font-size:12.5px;color:var(--muted);margin-top:4px}
@@ -174,6 +187,50 @@ textarea.form-control{resize:vertical;min-height:80px}
       New Task
     </button>
     @endif
+    <button class="filter-btn" id="taskFilterBtn" onclick="toggleTaskFilter()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Filter
+    </button>
+  </div>
+</div>
+
+{{-- ── Task Filter Panel ──────────────────────────────────────── --}}
+<div class="task-filter-panel" id="taskFilterPanel">
+  <div class="tfp-head">
+    <h3>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filter Tasks
+    </h3>
+    <button class="link-btn" onclick="clearTaskFilters()">Clear all</button>
+  </div>
+  <div class="tfp-body">
+    <div class="tfp-group">
+      <span class="tfp-label">Priority</span>
+      <label class="tfp-check"><input type="checkbox" class="tf-priority" value="all" checked><span>All</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-priority" value="low"><span>Low</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-priority" value="medium"><span>Medium</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-priority" value="high"><span>High</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-priority" value="urgent"><span>Urgent</span></label>
+    </div>
+    <div class="tfp-group">
+      <span class="tfp-label">Status</span>
+      <label class="tfp-check"><input type="checkbox" class="tf-status" value="all" checked><span>All</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-status" value="todo"><span>To Do</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-status" value="doing"><span>Doing</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-status" value="done"><span>Done</span></label>
+    </div>
+    <div class="tfp-group">
+      <span class="tfp-label">Assignee</span>
+      <label class="tfp-check"><input type="checkbox" class="tf-assignee" value="all" checked><span>All</span></label>
+      <label class="tfp-check"><input type="checkbox" class="tf-assignee" value="unassigned"><span>Unassigned</span></label>
+      @foreach($users as $u)
+      <label class="tfp-check"><input type="checkbox" class="tf-assignee" value="{{ $u->id }}"><span>{{ $u->name }}</span></label>
+      @endforeach
+    </div>
+  </div>
+  <div class="tfp-foot">
+    <button class="link-btn" onclick="toggleTaskFilter()">Cancel</button>
+    <button class="btn-primary" style="padding:7px 16px;font-size:12px" onclick="applyTaskFilters()">Apply Filters</button>
   </div>
 </div>
 
@@ -1071,6 +1128,63 @@ function updateCount(status) {
   const container = document.getElementById(`cards-${status}`);
   const badge     = document.getElementById(`count-${status}`);
   if (container && badge) badge.textContent = container.querySelectorAll('.k-card').length;
+}
+
+/* ── Task Filter Panel ───────────────────────────────────────── */
+function toggleTaskFilter() {
+  const panel = document.getElementById('taskFilterPanel');
+  const btn   = document.getElementById('taskFilterBtn');
+  panel.classList.toggle('open');
+  btn.classList.toggle('active');
+}
+
+function clearTaskFilters() {
+  document.querySelectorAll('.tf-priority').forEach(el => { el.checked = el.value === 'all'; });
+  document.querySelectorAll('.tf-status').forEach(el =>   { el.checked = el.value === 'all'; });
+  document.querySelectorAll('.tf-assignee').forEach(el => { el.checked = el.value === 'all'; });
+  applyTaskFilters();
+}
+
+function applyTaskFilters() {
+  const priorities = [...document.querySelectorAll('.tf-priority:checked')].map(e => e.value).filter(v => v !== 'all');
+  const statuses   = [...document.querySelectorAll('.tf-status:checked')].map(e => e.value).filter(v => v !== 'all');
+  const assignees  = [...document.querySelectorAll('.tf-assignee:checked')].map(e => e.value).filter(v => v !== 'all');
+
+  const hasFilter = priorities.length || statuses.length || assignees.length;
+
+  // Filter kanban cards
+  document.querySelectorAll('.k-card').forEach(card => {
+    const task    = JSON.parse(card.dataset.task || '{}');
+    const matchP  = !priorities.length || priorities.includes(task.priority);
+    const matchS  = !statuses.length   || statuses.includes(task.status);
+    const matchA  = !assignees.length  || (assignees.includes('unassigned') && !task.assigned_to)
+                                       || (task.assigned_to && assignees.includes(String(task.assigned_to)));
+    card.style.display = (matchP && matchS && matchA) ? '' : 'none';
+  });
+
+  // Filter list rows
+  document.querySelectorAll('tr[id^="list-row-"]').forEach(row => {
+    const card = document.querySelector(`.k-card[data-id="${row.dataset.id}"]`);
+    if (card) row.style.display = card.style.display;
+  });
+
+  // Update column counts to reflect visible cards only
+  ['todo','doing','done'].forEach(status => {
+    const container = document.getElementById(`cards-${status}`);
+    const badge     = document.getElementById(`count-${status}`);
+    if (container && badge) {
+      badge.textContent = [...container.querySelectorAll('.k-card')].filter(c => c.style.display !== 'none').length;
+    }
+  });
+
+  // Update filter button label
+  const btn = document.getElementById('taskFilterBtn');
+  if (hasFilter) {
+    btn.classList.add('active');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Filter (${priorities.length + statuses.length + assignees.length})`;
+  } else {
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> Filter`;
+  }
 }
 </script>
 @endsection

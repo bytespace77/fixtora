@@ -162,7 +162,9 @@ class HomeController extends Controller
         $to = Carbon::now()->endOfDay();
 
         // New format: ?range=custom&from=YYYY-MM-DD&to=YYYY-MM-DD
-        if ($range === 'custom' && $fromParam && $toParam) {
+        // Also applies to preset ranges — explicit from/to always wins so that
+        // export links carry the exact dates the user was viewing, not a fresh recalculation.
+        if ($fromParam && $toParam) {
             $from = Carbon::parse($fromParam)->startOfDay();
             $to   = Carbon::parse($toParam)->endOfDay();
             return [$from, $to];
