@@ -17,6 +17,32 @@ class TicketController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────
+    // Sync all related tasks' status when a ticket status changes.
+    //
+    // Mapping:
+    //   ticket open                 → task todo
+    //   ticket in_progress/in_review → task doing
+    //   ticket resolved/closed       → task done
+    // ─────────────────────────────────────────────────────────
+    private function syncTaskStatusFromTicket(Ticket $ticket, string $newTicketStatus): void
+    {
+        $taskStatus = match ($newTicketStatus) {
+            'open'                  => 'todo',
+            'in_progress', 'in_review' => 'doing',
+            'resolved', 'closed'    => 'done',
+            default                 => null,
+        };
+
+        if ($taskStatus === null) {
+            return;
+        }
+
+        \App\Models\Task::withoutGlobalScope('company')
+            ->where('ticket_id', $ticket->id)
+            ->update(['status' => $taskStatus, 'updated_at' => now()]);
+    }
+
+    // ─────────────────────────────────────────────────────────
     // Task 41: Company isolation guard (defense-in-depth).
     // The Ticket model's global scope already filters list/index
     // queries. This guard protects individual-record endpoints
@@ -378,6 +404,11 @@ class TicketController extends Controller
         }
 
         $ticket->update($validated);
+
+        // Sync task statuses when ticket status changes
+        if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
+            $this->syncTaskStatusFromTicket($ticket, $validated['status']);
+        }
 
         if ($ticket->tasks()->exists()) {
             $taskUpdates = [];
