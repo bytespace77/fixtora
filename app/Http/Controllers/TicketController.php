@@ -58,42 +58,9 @@ class TicketController extends Controller
         abort_unless(auth()->user()->hasPermission('list_tickets'), 403, 'You do not have permission to view tickets.');
 
         $query = Ticket::with('user')->latest();
-
-        // Status — accepts both ?status=open (tab click) and ?status[]=open (filter panel)
-        $statusInput = request('status[]') ?? request('status');
-        if (!empty($statusInput)) {
-            $statuses = array_filter((array) $statusInput, fn($s) => $s !== 'all');
-            if (!empty($statuses)) {
-                $query->whereIn('status', $statuses);
-            }
+        if ($request->status) {
+            $query->where('status', $request->status);
         }
-
-        // Priority filter
-        $priorityInput = request('priority[]') ?? request('priority');
-        if (!empty($priorityInput)) {
-            $priorities = array_filter((array) $priorityInput, fn($p) => $p !== 'all');
-            if (!empty($priorities)) {
-                $query->whereIn('priority', $priorities);
-            }
-        }
-
-        // System (company name) filter
-        $systemInput = request('system[]') ?? request('system');
-        if (!empty($systemInput)) {
-            $systems = array_filter((array) $systemInput, fn($s) => $s !== 'all');
-            if (!empty($systems)) {
-                $query->whereIn('system', $systems);
-            }
-        }
-
-        // Date range filter
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-
         $tickets = $query->paginate(10)->withQueryString();
         $companySystems = auth()->user()->company?->systems ?? [];
 
@@ -518,6 +485,43 @@ class TicketController extends Controller
         Storage::disk('public')->delete($attachment->stored_path);
         $attachment->delete();
         return redirect()->route('tickets.show', $ticket)->with('success', 'Attachment deleted!');
+    }
+
+    public function submitRating(Request $request, Ticket $ticket)
+    {
+        $this->authorizeTicketCompany($ticket);
+
+        // Only the ticket creator (the client) can rate
+        abort_unless(
+            (int) $ticket->user_id === (int) auth()->id(),
+            403,
+            'Only the ticket reporter can submit a satisfaction rating.'
+        );
+
+        // Only allowed when ticket is resolved
+        abort_unless(
+            in_array($ticket->status, ['resolved', 'closed'], true),
+            422,
+            'You can only rate a resolved ticket.'
+        );
+
+        // Only allow one rating per ticket
+        if ($ticket->csat_submitted_at) {
+            return back()->with('error', 'You have already rated this ticket.');
+        }
+
+        $request->validate([
+            'csat_rating'  => 'required|integer|min:1|max:5',
+            'csat_comment' => 'nullable|string|max:1000',
+        ]);
+
+        $ticket->update([
+            'csat_rating'       => $request->csat_rating,
+            'csat_comment'      => $request->csat_comment,
+            'csat_submitted_at' => now(),
+        ]);
+
+        return back()->with('success', 'Thank you for your feedback!');
     }
 
     public function destroy(Ticket $ticket)

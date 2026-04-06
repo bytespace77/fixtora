@@ -16,6 +16,33 @@ class ReportController extends Controller
         $this->middleware('auth');
     }
 
+    /**
+     * Return a Task query scoped to the current user's company.
+     * SuperAdmin sees all tasks (no company filter).
+     * Developers see only their own assigned tasks.
+     * All others see tasks belonging to their company.
+     */
+    private function companyTask(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = auth()->user();
+        $query = Task::withoutGlobalScopes();
+
+        if ($user->isSuperAdmin()) {
+            return $query; // sees everything
+        }
+
+        if ($user->isDeveloper()) {
+            return $query->where('assigned_to', $user->id);
+        }
+
+        if ($user->company_id) {
+            return $query->where('company_id', $user->company_id);
+        }
+
+        // Fallback: return nothing
+        return $query->whereRaw('1 = 0');
+    }
+
     public function index(Request $request)
     {
         abort_unless(auth()->user()->hasPermission('view_reports'), 403, 'You do not have permission to view reports.');
@@ -28,7 +55,7 @@ class ReportController extends Controller
         $totalTickets = Ticket::whereBetween('created_at', [$from, $to])->count();
 
         // Total Tasks in period
-        $totalTasks = Task::withoutGlobalScopes()
+        $totalTasks = $this->companyTask()
             ->whereBetween('created_at', [$from, $to])
             ->count();
 
@@ -36,7 +63,7 @@ class ReportController extends Controller
         $resolvedTickets = Ticket::whereIn('status', ['resolved', 'closed'])
             ->whereBetween('updated_at', [$from, $to])->get();
 
-        $doneTasks = Task::withoutGlobalScopes()
+        $doneTasks = $this->companyTask()
             ->where('status', 'done')
             ->whereBetween('updated_at', [$from, $to])->get();
 
@@ -56,13 +83,13 @@ class ReportController extends Controller
 
         // SLA Task Success Rate — Task 24
         // % tasks completed on time (actual_delivery_date <= due_date) vs total tasks with due_date
-        $slaTotalTasks = Task::withoutGlobalScopes()
+        $slaTotalTasks = $this->companyTask()
             ->whereNotNull('due_date')
             ->whereBetween('created_at', [$from, $to])
             ->count();
 
         if ($slaTotalTasks > 0) {
-            $slaOnTime = Task::withoutGlobalScopes()
+            $slaOnTime = $this->companyTask()
                 ->where('status', 'done')
                 ->whereNotNull('due_date')
                 ->whereNotNull('actual_delivery_date')
@@ -74,7 +101,20 @@ class ReportController extends Controller
             $slaCompliance = 0;
         }
 
-        $csat = '4.8/5';
+        // Real CSAT — average of submitted ratings within the period
+        $csatData = Ticket::whereNotNull('csat_rating')
+            ->whereNotNull('csat_submitted_at')
+            ->whereBetween('csat_submitted_at', [$from, $to])
+            ->selectRaw('AVG(csat_rating) as avg_rating, COUNT(*) as total')
+            ->first();
+
+        if ($csatData && $csatData->total > 0) {
+            $csat      = number_format($csatData->avg_rating, 1) . '/5';
+            $csatCount = $csatData->total . ' rating' . ($csatData->total > 1 ? 's' : '');
+        } else {
+            $csat      = 'N/A';
+            $csatCount = 'No ratings yet';
+        }
 
         // Trend Data — tickets and tasks
         $chartData   = $this->buildChartData($from, $to, $range);
@@ -214,7 +254,7 @@ class ReportController extends Controller
         }
 
         return view('reports.index', compact(
-            'totalTickets', 'totalTasks', 'avgResolution', 'slaCompliance', 'csat',
+            'totalTickets', 'totalTasks', 'avgResolution', 'slaCompliance', 'csat', 'csatCount',
             'labels', 'newTrend', 'closedTrend', 'newTaskTrend', 'doneTaskTrend', 'distribution',
             'isSuperAdmin', 'agentsByRole',
             'range', 'from', 'to'
@@ -267,7 +307,7 @@ class ReportController extends Controller
             ->toArray();
 
         // Tasks created
-        $taskInflowRaw = Task::withoutGlobalScopes()
+        $taskInflowRaw = $this->companyTask()
             ->select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as cnt'))
             ->whereBetween('created_at', [$from, $to])
             ->groupBy('day')
@@ -275,7 +315,7 @@ class ReportController extends Controller
             ->toArray();
 
         // Tasks done
-        $taskDoneRaw = Task::withoutGlobalScopes()
+        $taskDoneRaw = $this->companyTask()
             ->select(DB::raw('DATE(updated_at) as day'), DB::raw('COUNT(*) as cnt'))
             ->where('status', 'done')
             ->whereBetween('updated_at', [$from, $to])

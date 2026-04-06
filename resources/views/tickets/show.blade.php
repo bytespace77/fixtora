@@ -303,7 +303,8 @@ textarea.form-control{resize:vertical;min-height:80px}
           @endif
         </div>
       </div>
-    </div>
+
+      {{-- CSAT moved to right sidebar --}}
 
     {{-- ── Comments ── --}}
     <div class="card">
@@ -574,6 +575,76 @@ textarea.form-control{resize:vertical;min-height:80px}
         </div>
       </div>
     </div>
+
+    {{-- ── CSAT Rating Card (sidebar) ── --}}
+    @if(in_array($ticket->status, ['resolved', 'closed']) && (int)$ticket->user_id === (int)auth()->id())
+    <div class="card">
+      <div class="card-head">
+        <div class="card-head-left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Satisfaction Rating
+        </div>
+      </div>
+      <div style="padding:20px">
+        @if($ticket->csat_submitted_at)
+          <div style="text-align:center;padding:10px 0">
+            <div style="font-size:26px;margin-bottom:6px">
+              @for($i=1;$i<=5;$i++)
+                <span style="color:{{ $i <= $ticket->csat_rating ? '#f59e0b' : '#d1d5db' }}">★</span>
+              @endfor
+            </div>
+            <p style="font-size:13px;font-weight:700;color:var(--navy)">You rated this ticket {{ $ticket->csat_rating }}/5</p>
+            @if($ticket->csat_comment)
+              <p style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">"{{ $ticket->csat_comment }}"</p>
+            @endif
+            <p style="font-size:11px;color:var(--muted-lt);margin-top:4px">Submitted {{ $ticket->csat_submitted_at->format('M d, Y') }}</p>
+          </div>
+        @else
+          <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px">How satisfied are you with this resolution?</p>
+          <form action="{{ route('tickets.rating.store', $ticket) }}" method="POST" id="csatForm">
+            @csrf
+            <input type="hidden" name="csat_rating" id="csatRatingInput" value="">
+            <div style="display:flex;gap:4px;justify-content:center;margin-bottom:10px" id="starRow">
+              @for($i=1;$i<=5;$i++)
+              <button type="button"
+                onclick="setRating({{ $i }})"
+                onmouseover="hoverRating({{ $i }})"
+                onmouseout="resetHover()"
+                data-star="{{ $i }}"
+                style="font-size:28px;background:none;border:none;cursor:pointer;color:#d1d5db;transition:color .1s;line-height:1;padding:0 2px"
+                title="{{ $i }} star{{ $i>1?'s':'' }}">★</button>
+              @endfor
+            </div>
+            <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-bottom:10px;min-height:16px" id="starLabel"></div>
+            <textarea name="csat_comment" placeholder="Optional comment…" rows="2"
+              style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;font-family:inherit;resize:none;outline:none;margin-bottom:10px;box-sizing:border-box"></textarea>
+            <button type="submit" id="csatSubmitBtn"
+              style="width:100%;background:var(--blue);color:#fff;border:none;padding:8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;opacity:.4;pointer-events:none;font-family:inherit;transition:all .15s"
+              disabled>Submit Rating</button>
+          </form>
+          <script>
+          const starLabels = ['','Terrible','Poor','Okay','Good','Excellent'];
+          let currentRating = 0;
+          function setRating(n){
+            currentRating = n;
+            document.getElementById('csatRatingInput').value = n;
+            updateStars(n);
+            document.getElementById('starLabel').textContent = starLabels[n];
+            const btn = document.getElementById('csatSubmitBtn');
+            btn.disabled = false; btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
+          }
+          function hoverRating(n){ if(!currentRating) updateStars(n); document.getElementById('starLabel').textContent = starLabels[n]; }
+          function resetHover(){ updateStars(currentRating); document.getElementById('starLabel').textContent = currentRating ? starLabels[currentRating] : ''; }
+          function updateStars(n){
+            document.querySelectorAll('#starRow button').forEach(b=>{
+              b.style.color = parseInt(b.dataset.star) <= n ? '#f59e0b' : '#d1d5db';
+            });
+          }
+          </script>
+        @endif
+      </div>
+    </div>
+    @endif
 
   </div>
 </div>

@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
     // Attachments
     Route::post('/tickets/{ticket}/attachments', [TicketController::class, 'uploadAttachment'])->name('tickets.attachments.store');
     Route::delete('/tickets/{ticket}/attachments/{attachment}', [TicketController::class, 'deleteAttachment'])->name('tickets.attachments.destroy');
+    Route::post('/tickets/{ticket}/rating', [TicketController::class, 'submitRating'])->name('tickets.rating.store');
 
     // Tasks — include POST fallback for AJAX _method spoofing
     Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');

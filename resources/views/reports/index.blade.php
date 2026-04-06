@@ -166,7 +166,7 @@
         <div class="stat-card">
             <div class="stat-label">Customer CSAT</div>
             <div class="stat-value">{{ $csat }}</div>
-            <div class="stat-sub">Average rating</div>
+            <div class="stat-sub">{{ $csatCount }}</div>
         </div>
     </div>
 

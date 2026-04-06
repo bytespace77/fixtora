@@ -27,6 +27,9 @@ class Ticket extends Model
         'estimated_delivery_date',
         'actual_delivery_date',
         'qc_test_date',
+        'csat_rating',
+        'csat_comment',
+        'csat_submitted_at',
     ];
 
     protected $casts = [
@@ -35,6 +38,8 @@ class Ticket extends Model
         'estimated_delivery_date' => 'datetime',
         'actual_delivery_date' => 'datetime',
         'qc_test_date' => 'datetime',
+        'csat_submitted_at' => 'datetime',
+        'csat_rating' => 'integer',
     ];
 
     // Auto-filter by company — superadmin sees ALL
