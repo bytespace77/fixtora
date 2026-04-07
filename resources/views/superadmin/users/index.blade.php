@@ -83,6 +83,10 @@ tbody tr:hover td { background:#fafbfd; }
     <h1>Manage Users</h1>
     <p>View contact details, reset passwords, and toggle user access across all companies.</p>
   </div>
+  <button class="btn btn-primary" onclick="document.getElementById('addUserModal').classList.add('open')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New User
+  </button>
 </div>
 
 @if(session('success'))
@@ -242,6 +246,53 @@ tbody tr:hover td { background:#fafbfd; }
 </div>
 @endif
 
+{{-- Add User Modal --}}
+<div class="modal-backdrop" id="addUserModal">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" onclick="document.getElementById('addUserModal').classList.remove('open')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3>Add New User</h3>
+    <p class="sub">Create a new user account and assign them to a company.</p>
+    <form method="POST" action="{{ route('superadmin.users.store') }}">
+      @csrf
+      <div class="f-group">
+        <label class="f-label">Full Name *</label>
+        <input type="text" name="name" class="f-input" placeholder="e.g. John Smith" required value="{{ old('name') }}">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Email Address *</label>
+        <input type="email" name="email" class="f-input" placeholder="user@company.com" required value="{{ old('email') }}">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Password *</label>
+        <input type="password" name="password" class="f-input" placeholder="Min. 8 characters" required minlength="8">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Company *</label>
+        <select name="company_id" class="f-select" required>
+          <option value="">— Select Company —</option>
+          @foreach($companies as $company)
+            <option value="{{ $company->id }}" {{ old('company_id') == $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Role *</label>
+        <select name="role" class="f-select" required>
+          <option value="user" {{ old('role') === 'user' ? 'selected' : '' }}>User</option>
+          <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
+          <option value="developer" {{ old('role') === 'developer' ? 'selected' : '' }}>Developer</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('addUserModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 @endsection
 
 @section('scripts')
@@ -261,5 +312,11 @@ function closeViewModal() {
 document.getElementById('viewModal').addEventListener('click', function(e) {
   if (e.target === this) closeViewModal();
 });
+document.getElementById('addUserModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+@if(session('errors') && old('name'))
+document.getElementById('addUserModal').classList.add('open');
+@endif
 </script>
 @endsection

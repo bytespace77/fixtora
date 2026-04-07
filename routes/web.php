@@ -101,6 +101,7 @@ Route::middleware(['auth'])->group(function () {
 
         // User management
         Route::get('/users', [SuperAdminController::class, 'usersIndex'])->name('users.index');
+        Route::post('/users', [SuperAdminController::class, 'usersStore'])->name('users.store');
         Route::patch('/users/{user}/toggle', [SuperAdminController::class, 'usersToggle'])->name('users.toggle');
         Route::post('/users/{user}/reset-password', [SuperAdminController::class, 'usersResetPassword'])->name('users.resetPassword');
     });

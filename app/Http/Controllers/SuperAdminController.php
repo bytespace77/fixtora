@@ -162,8 +162,27 @@ class SuperAdminController extends Controller
             'password'            => Hash::make($tempPassword),
             'password_changed_at' => null,
         ]);
-        return back()->with('temp_password', $tempPassword)
-                     ->with('success', "Password reset for \"{$user->name}\".");
+        return redirect()->route('superadmin.users.index')
+                         ->with('temp_password', $tempPassword)
+                         ->with('success', "Password reset for \"{$user->name}\".");
+    }
+
+    public function usersStore(Request $request)
+    {
+        $data = $request->validate([
+            'name'       => 'required|string|max:255',
+            'email'      => 'required|email|unique:users,email',
+            'password'   => 'required|string|min:8',
+            'company_id' => 'required|exists:companies,id',
+            'role'       => 'required|string|in:user,admin,developer',
+        ]);
+
+        $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
+
+        \App\Models\User::create($data);
+
+        return redirect()->route('superadmin.users.index')
+                         ->with('success', "User \"{$data['name']}\" created successfully.");
     }
 
 
