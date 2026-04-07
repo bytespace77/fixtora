@@ -47,14 +47,13 @@ class SuperAdminController extends Controller
             1 => (clone $csatTickets)->where('csat_rating', 1)->count(),
         ];
 
-        // Recent CSAT submissions (last 5)
+        // Recent CSAT submissions (paginated)
         $recentCsat = Ticket::withoutGlobalScope('company')
             ->with(['user', 'company'])
             ->whereNotNull('csat_rating')
             ->whereNotNull('csat_submitted_at')
             ->orderByDesc('csat_submitted_at')
-            ->limit(5)
-            ->get();
+            ->paginate(10);
 
         // Per-company stats for the table
         $companyStats = $companies->map(function ($company) {
@@ -172,6 +171,7 @@ class SuperAdminController extends Controller
         $data = $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => 'required|email|unique:users,email',
+            'phone'      => 'nullable|regex:/^[0-9]+$/|max:50',
             'password'   => 'required|string|min:8',
             'company_id' => 'required|exists:companies,id',
             'role'       => 'required|string|in:user,admin,developer',

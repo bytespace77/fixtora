@@ -97,11 +97,13 @@ class ProfileController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name'  => ['required', 'string', 'max:255'],
+            'phone' => ['nullable', 'regex:/^[0-9]+$/', 'max:50'],
         ]);
 
         Auth::user()->update([
-            'name' => $request->name,
+            'name'  => $request->name,
+            'phone' => $request->phone,
         ]);
 
         return redirect()->route('profile.show')->with('success', 'Profile updated successfully.');

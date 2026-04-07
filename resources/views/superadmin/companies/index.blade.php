@@ -48,13 +48,6 @@ tbody tr:hover td { background:#fafbfd; }
 @endsection
 
 @section('content')
-<div class="breadcrumb">
-  <a href="{{ route('superadmin.dashboard') }}">Super Admin</a>
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-  <a href="{{ route('superadmin.configuration') }}">Configuration</a>
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-  Companies
-</div>
 
 <div class="page-header">
   <div>
@@ -67,12 +60,6 @@ tbody tr:hover td { background:#fafbfd; }
   </a>
 </div>
 
-@if(session('success'))
-<div class="alert alert-success">{{ session('success') }}</div>
-@endif
-@if(session('error'))
-<div class="alert alert-error">{{ session('error') }}</div>
-@endif
 
 <div class="card">
   <div class="card-header">

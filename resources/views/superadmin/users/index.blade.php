@@ -72,11 +72,6 @@ tbody tr:hover td { background:#fafbfd; }
 @endsection
 
 @section('content')
-<div class="breadcrumb">
-  <a href="{{ route('superadmin.dashboard') }}">Super Admin</a>
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-  Manage Users
-</div>
 
 <div class="page-header">
   <div>
@@ -89,12 +84,6 @@ tbody tr:hover td { background:#fafbfd; }
   </button>
 </div>
 
-@if(session('success'))
-<div class="alert alert-success">{{ session('success') }}</div>
-@endif
-@if(session('error'))
-<div class="alert alert-error">{{ session('error') }}</div>
-@endif
 
 <div class="card">
   <div class="card-header">
@@ -263,6 +252,10 @@ tbody tr:hover td { background:#fafbfd; }
       <div class="f-group">
         <label class="f-label">Email Address *</label>
         <input type="email" name="email" class="f-input" placeholder="user@company.com" required value="{{ old('email') }}">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Phone</label>
+        <input type="text" name="phone" class="f-input" placeholder="0123456789" value="{{ old('phone') }}" pattern="[0-9]+" title="Numbers only">
       </div>
       <div class="f-group">
         <label class="f-label">Password *</label>

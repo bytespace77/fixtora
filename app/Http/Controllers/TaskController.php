@@ -166,9 +166,10 @@ class TaskController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('list_tasks'), 403, 'You do not have permission to view tasks.');
 
-        $todo  = Task::with(['assignee', 'ticket.company', 'company'])->todo()->latest()->get();
-        $doing = Task::with(['assignee', 'ticket.company', 'company'])->doing()->latest()->get();
-        $done  = Task::with(['assignee', 'ticket.company', 'company'])->done()->latest()->get();
+        $unassignedTasks = Task::with(['assignee', 'ticket.company', 'company'])->whereNull('assigned_to')->latest()->get();
+        $todo  = Task::with(['assignee', 'ticket.company', 'company'])->whereNotNull('assigned_to')->todo()->latest()->get();
+        $doing = Task::with(['assignee', 'ticket.company', 'company'])->whereNotNull('assigned_to')->doing()->latest()->get();
+        $done  = Task::with(['assignee', 'ticket.company', 'company'])->whereNotNull('assigned_to')->done()->latest()->get();
 
         // ✅ Step 14: Only show users from the same company in the assignee dropdown (filtered like User::isDeveloper())
         $usersQuery = User::assignableDevelopers()->orderBy('name');
@@ -258,7 +259,7 @@ class TaskController extends Controller
             $ticket->ticket_company_seq  = $ticketSeqById[(int) $ticket->id] ?? 0;
         }
 
-        $allTasks = $todo->concat($doing)->concat($done);
+        $allTasks = $unassignedTasks->concat($todo)->concat($doing)->concat($done);
 
         // Ensure tasks have company_id (legacy safety).
         foreach ($allTasks as $t) {
@@ -283,7 +284,7 @@ class TaskController extends Controller
             }
         }
 
-        foreach ([$todo, $doing, $done] as $bucket) {
+        foreach ([$unassignedTasks, $todo, $doing, $done] as $bucket) {
             foreach ($bucket as $t) {
                 $companyName = $t->company?->name ?? $t->ticket?->company?->name;
                 $t->task_company_code = $this->buildCompanyCode($companyName);
@@ -295,7 +296,7 @@ class TaskController extends Controller
         }
 
         return view('tasks.index', compact(
-            'todo', 'doing', 'done', 'users', 'velocity', 'slaRate', 'deadlines', 'tickets',
+            'unassignedTasks', 'todo', 'doing', 'done', 'users', 'velocity', 'slaRate', 'deadlines', 'tickets',
             'unassignedTickets', 'developersByCompany'
         ));
     }

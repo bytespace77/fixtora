@@ -3,10 +3,10 @@
   $devs = $developersByCompany[$cid] ?? collect();
   $isCriticalUnassigned = $ticket->priority === 'critical' && !$ticket->assigned_developer_id;
 @endphp
-<div class="ut-card @if($isCriticalUnassigned) ut-card-critical @endif" data-ticket-id="{{ $ticket->id }}">
+<div class="ut-card @if($isCriticalUnassigned) ut-card-critical @endif" data-ticket-id="{{ $ticket->id }}" data-priority="{{ $ticket->priority }}">
   <div class="k-card-meta">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      <span class="ticket-id">#{{ $ticket->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($ticket->ticket_company_seq ?? 0), 4, '0', STR_PAD_LEFT) }}</span>
+      <span class="ticket-id">#TK-{{ str_pad($ticket->id, 4, '0', STR_PAD_LEFT) }}</span>
       <a href="{{ route('tickets.show', $ticket) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="Open ticket">Ticket</a>
     </div>
     @if($isCriticalUnassigned)
@@ -15,7 +15,12 @@
       <span class="priority-badge pb-{{ $ticket->priority }}">{{ strtoupper($ticket->priority) }}</span>
     @endif
   </div>
-  <div class="k-title">{{ $ticket->title }}</div>
+  <div class="k-title">
+    @if($ticket->company)
+      <span style="font-size:10px;font-weight:800;color:#7c3aed;text-transform:uppercase;margin-right:4px;">[{{ $ticket->company->name }}]</span>
+    @endif
+    {{ $ticket->title }}
+  </div>
   @if($ticket->system_name)
     <div class="k-desc" style="font-size:11px;color:var(--muted)">System: {{ $ticket->system_name }}</div>
   @endif

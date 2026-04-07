@@ -12,7 +12,7 @@
     <span>{{ $role->name }}</span>
   </div>
 
-  <h1 style="font-size:20px; font-weight:700; color:var(--text); margin-bottom:20px;">User role – {{ $role->name }}</h1>
+  <h1 style="font-size:24px; font-weight:800; letter-spacing:-.6px; color:var(--navy); margin-bottom:24px;">User role – {{ $role->name }}</h1>
 
   {{-- Flash --}}
   @if(session('success'))

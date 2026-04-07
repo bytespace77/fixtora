@@ -48,7 +48,7 @@
       <span class="ticket-id">{{ $taskCode }}</span>
       @if($task->ticket)
         <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="{{ $task->ticket->title }}">
-          #{{ $task->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($task->ticket_company_seq ?? 0), 4, '0', STR_PAD_LEFT) }}
+          #TK-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
         </a>
       @endif
     </div>
@@ -59,7 +59,13 @@
     @endif
   </div>
 
-  <div class="k-title">{{ $task->title }}</div>
+  <div class="k-title">
+    @php $cName = $task->company->name ?? $task->ticket->company->name ?? ''; @endphp
+    @if($cName)
+      <span style="font-size:10px;font-weight:800;color:#7c3aed;text-transform:uppercase;margin-right:4px;">[{{ $cName }}]</span>
+    @endif
+    {{ $task->title }}
+  </div>
 
   @if($task->description)
     <div class="k-desc">{{ $task->description }}</div>

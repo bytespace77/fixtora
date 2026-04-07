@@ -51,7 +51,7 @@ class SchedulingController extends Controller
                 'sort_date' => Carbon::parse($t->due_date)->startOfDay(),
                 'status' => $t->status ?? 'todo',
                 'priority' => $t->priority ?? 'medium',
-                'link' => route('tasks.index'),
+                'link' => $t->ticket ? route('tickets.show', $t->ticket->id) : route('tasks.index'),
             ]);
         }
 
@@ -116,7 +116,7 @@ class SchedulingController extends Controller
                     'title' => $t->title,
                     'due_date' => Carbon::parse($t->due_date),
                     'status' => $t->status ?? 'todo',
-                    'link' => route('tasks.index'),
+                    'link' => $t->ticket ? route('tickets.show', $t->ticket->id) : route('tasks.index'),
                     'priority' => $t->priority ?? 'medium',
                     'meta1' => $t->ticket ? 'Ticket #'.str_pad($t->ticket->id, 4, '0', STR_PAD_LEFT) : 'No linked ticket',
                     'meta2' => $t->assignee ? $t->assignee->name : null,

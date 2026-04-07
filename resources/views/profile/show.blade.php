@@ -101,13 +101,6 @@
 
 @section('content')
 
-{{-- ✅ Step 17: Flash success message --}}
-@if(session('success'))
-<div class="flash-success">
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-  {{ session('success') }}
-</div>
-@endif
 
 <div class="page-header">
   <div>
@@ -194,6 +187,11 @@
               <label class="lbl">Full Name</label>
               <input type="text" name="name" class="pf-input" value="{{ old('name', $user->name) }}" required/>
               @error('name')<div style="font-size:11px;color:var(--red);margin-top:3px">{{ $message }}</div>@enderror
+            </div>
+            <div class="pf-group">
+              <label class="lbl">Phone Number</label>
+              <input type="text" name="phone" class="pf-input" value="{{ old('phone', $user->phone) }}" pattern="[0-9]+" title="Numbers only"/>
+              @error('phone')<div style="font-size:11px;color:var(--red);margin-top:3px">{{ $message }}</div>@enderror
             </div>
             <div class="pf-group">
               <label class="lbl">Company</label>

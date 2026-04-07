@@ -242,18 +242,22 @@ textarea.form-control{resize:vertical;min-height:80px}
 {{-- ── BOARD VIEW ──────────────────────────────────────────────── --}}
 <div id="boardView">
   <div class="kanban">
-    {{-- UNASSIGNED TICKETS --}}
+    {{-- UNASSIGNED --}}
     <div class="kanban-col" id="col-unassigned" data-status="unassigned" data-no-task-drop="1">
       <div class="col-header">
         <div class="col-label">
           <div class="col-indicator ci-amber"></div>
           Unassigned
-          <span class="col-count" id="count-unassigned">{{ $unassignedTickets->count() }}</span>
+          <span class="col-count" id="count-unassigned">{{ $unassignedTickets->count() + $unassignedTasks->count() }}</span>
         </div>
       </div>
       <div class="k-cards-container" id="cards-unassigned">
         @foreach($unassignedTickets as $ticket)
           @include('tasks._unassigned_ticket_card', ['ticket' => $ticket, 'developersByCompany' => $developersByCompany])
+        @endforeach
+
+        @foreach($unassignedTasks as $task)
+          @include('tasks._card', ['task' => $task])
         @endforeach
       </div>
     </div>
@@ -319,21 +323,27 @@ textarea.form-control{resize:vertical;min-height:80px}
     <table class="task-table">
       <thead>
         <tr>
-          <th>#</th><th>Title</th><th>Priority</th><th>Status</th>
+          <th>#</th><th>Company</th><th>System</th><th>Title</th><th>Priority</th><th>Status</th>
           <th>Assignee</th><th>Due Date</th><th>Actions</th>
         </tr>
       </thead>
       <tbody id="listBody">
-        @foreach($todo->concat($doing)->concat($done) as $task)
+        @foreach($unassignedTasks->concat($todo)->concat($doing)->concat($done) as $task)
         <tr id="list-row-{{ $task->id }}">
           <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">
             #{{ $task->task_company_code ?? 'XX' }}-{{ str_pad((string)($task->task_company_seq ?? 0),4,'0',STR_PAD_LEFT) }}
+          </td>
+          <td style="font-size:12px;font-weight:700;color:var(--text)">
+            {{ $task->company->name ?? $task->ticket->company->name ?? '—' }}
+          </td>
+          <td style="font-size:12px;color:var(--text-sub)">
+            {{ $task->ticket->system_name ?? '—' }}
           </td>
           <td style="font-weight:600;max-width:260px">
             {{ $task->title }}
             @if($task->ticket)
               <a href="{{ route('tickets.show', $task->ticket_id) }}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="{{ $task->ticket->title }}">
-                #{{ $task->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($task->ticket_company_seq ?? 0), 4, '0', STR_PAD_LEFT) }}
+                #TK-{{ str_pad($task->ticket_id, 4, '0', STR_PAD_LEFT) }}
               </a>
             @endif
           </td>
@@ -509,7 +519,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             <select name="ticket_id" class="form-control">
               <option value="">No Ticket</option>
               @foreach($tickets as $t)
-                <option value="{{ $t->id }}">#{{ $t->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($t->ticket_company_seq ?? 0),4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
+                <option value="{{ $t->id }}">#TK-{{ str_pad($t->id, 4, '0', STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
               @endforeach
             </select>
           </div>
@@ -619,7 +629,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             <select id="edit-ticket_id" class="form-control">
               <option value="">No Ticket</option>
               @foreach($tickets as $t)
-                <option value="{{ $t->id }}">#{{ $t->ticket_company_code ?? 'XX' }}-{{ str_pad((string)($t->ticket_company_seq ?? 0),4,'0',STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
+                <option value="{{ $t->id }}">#TK-{{ str_pad($t->id, 4, '0', STR_PAD_LEFT) }} - {{ Str::limit($t->title, 30) }}</option>
               @endforeach
             </select>
           </div>
@@ -933,7 +943,7 @@ function cardHtml(t) {
     <div class="k-card-meta">
       <div style="display:flex;align-items:center;gap:6px;">
         <span class="ticket-id">${ticketId}</span>
-        ${t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="${escHtml(t.ticket.title)}">#${t.ticket_company_code || 'XX'}-${String(t.ticket_company_seq || 0).padStart(4,'0')}</a>` : ''}
+        ${t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px" target="_blank" title="${escHtml(t.ticket.title)}">#TK-${String(t.ticket_id).padStart(4,'0')}</a>` : ''}
       </div>
       ${badge}
     </div>
@@ -979,11 +989,16 @@ function listRowHtml(t) {
       dueDateHtml = `${months[d.getMonth()]} ${String(d.getDate()).padStart(2,'0')}, ${d.getFullYear()}`;
   }
 
-  const ticketHtml = t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="${escHtml(t.ticket.title)}">#${t.ticket_company_code || 'XX'}-${String(t.ticket_company_seq || 0).padStart(4,'0')}</a>` : '';
+  const ticketHtml = t.ticket ? `<a href="/tickets/${t.ticket_id}" style="font-size:10px;font-weight:700;color:var(--blue);text-decoration:none;background:#eff6ff;padding:2px 6px;border-radius:4px;margin-left:6px" target="_blank" title="${escHtml(t.ticket.title)}">#TK-${String(t.ticket_id).padStart(4,'0')}</a>` : '';
+
+  const compName = t.company?.name || t.ticket?.company?.name || '—';
+  const sysName = t.ticket?.system_name || '—';
 
   return `
       <tr id="list-row-${t.id}">
         <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted-lt)">${ticketId}</td>
+        <td style="font-size:12px;font-weight:700;color:var(--text)">${escHtml(compName)}</td>
+        <td style="font-size:12px;color:var(--text-sub)">${escHtml(sysName)}</td>
         <td style="font-weight:600;max-width:260px">
           ${escHtml(t.title)}
           ${ticketHtml}
@@ -1039,7 +1054,7 @@ function openEditModal(task) {
     if (!exists) {
         const opt = document.createElement('option');
         opt.value = task.ticket_id;
-        opt.text = `#${task.ticket_company_code || 'XX'}-${String(task.ticket_company_seq || 0).padStart(4,'0')} - Linked Ticket`;
+        opt.text = `#TK-${String(task.ticket_id).padStart(4,'0')} - Linked Ticket`;
         ticketSelect.add(opt);
     }
   }
@@ -1196,10 +1211,20 @@ function applyTaskFilters() {
     card.style.display = (matchP && matchS && matchA) ? '' : 'none';
   });
 
+  document.querySelectorAll('.ut-card').forEach(card => {
+    const matchP = !priorities.length || priorities.includes(card.dataset.priority);
+    const matchA = !assignees.length || assignees.includes('unassigned');
+    const matchS = !statuses.length || statuses.includes('todo');
+    card.style.display = (matchP && matchS && matchA) ? '' : 'none';
+  });
+
   // Filter list rows
   document.querySelectorAll('tr[id^="list-row-"]').forEach(row => {
-    const card = document.querySelector(`.k-card[data-id="${row.dataset.id}"]`);
-    if (card) row.style.display = card.style.display;
+    const id = row.id.replace('list-row-', '');
+    const card = document.querySelector(`.k-card[data-id="${id}"]`);
+    if (card) {
+      row.style.display = card.style.display;
+    }
   });
 
   // Update column counts to reflect visible cards only
@@ -1207,7 +1232,7 @@ function applyTaskFilters() {
     const container = document.getElementById(`cards-${status}`);
     const badge     = document.getElementById(`count-${status}`);
     if (container && badge) {
-      badge.textContent = [...container.querySelectorAll('.k-card')].filter(c => c.style.display !== 'none').length;
+      badge.textContent = [...container.querySelectorAll('.k-card, .ut-card')].filter(c => c.style.display !== 'none').length;
     }
   });
 

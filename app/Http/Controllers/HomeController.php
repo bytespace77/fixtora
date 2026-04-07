@@ -20,9 +20,9 @@ class HomeController extends Controller
         abort_unless(auth()->user()->hasPermission('view_dashboard'), 403, 'You do not have permission to view the dashboard.');
 
         // ── Date range filter ─────────────────────────────────────────────
-        $range  = $request->input('range', '7d');   // 24h | 7d | 30d | 90d | custom
+        $range = $request->input('range', '7d');   // 24h | 7d | 30d | 90d | custom
         $fromParam = $request->input('from');        // YYYY-MM-DD (custom range)
-        $toParam   = $request->input('to');          // YYYY-MM-DD (custom range)
+        $toParam = $request->input('to');          // YYYY-MM-DD (custom range)
         // Legacy support: also accept ?range=custom&custom=YYYY-MM-DD,YYYY-MM-DD
         $custom = $request->input('custom');
 
@@ -32,12 +32,12 @@ class HomeController extends Controller
         // ✅ Task 5: All counts are automatically scoped per company via
         //            Ticket model's global 'company' scope (superadmin sees all).
         $stats = [
-            'active'   => Ticket::whereNotIn('status', ['resolved', 'closed'])->count(),
+            'active' => Ticket::whereNotIn('status', ['resolved', 'closed'])->count(),
             'resolved' => Ticket::where('status', 'resolved')
-                                 ->whereBetween('updated_at', [$from, $to])->count(),
+                ->whereBetween('updated_at', [$from, $to])->count(),
             'critical' => Ticket::where('priority', 'critical')
-                                 ->whereNotIn('status', ['resolved', 'closed'])->count(),
-            'total'    => Ticket::count(), // ✅ Task 5: total tickets (scoped per company)
+                ->whereNotIn('status', ['resolved', 'closed'])->count(),
+            'total' => Ticket::count(), // ✅ Task 5: total tickets (scoped per company)
         ];
 
         // ── Chart data ────────────────────────────────────────────────────
@@ -59,7 +59,7 @@ class HomeController extends Controller
 
         // ── Ticket Scheduling Summary (next 30 days) ─────────────────────
         $dueFrom = now()->startOfDay();
-        $dueTo   = now()->addDays(30)->endOfDay();
+        $dueTo = now()->addDays(30)->endOfDay();
 
         $taskScheduled = Task::whereNotNull('due_date')
             ->where('status', '!=', 'done')
@@ -126,15 +126,15 @@ class HomeController extends Controller
         $overdue = $taskOverdue + $ticketOverdue;
 
         // ── Search ────────────────────────────────────────────────────────
-        $search        = $request->input('q', '');
+        $search = $request->input('q', '');
         $searchResults = collect();
         if ($search !== '') {
             $searchResults = Ticket::with('user')
                 ->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%")
-                      ->orWhere('system', 'like', "%{$search}%")
-                      ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"));
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('system', 'like', "%{$search}%")
+                        ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$search}%"));
                 })
                 ->latest()
                 ->take(20)
@@ -148,10 +148,20 @@ class HomeController extends Controller
         }
 
         return view('dashboard', compact(
-            'stats', 'chartData', 'queueTickets',
-            'recentTickets', 'totalScheduled', 'activeInTesting', 'overdue',
-            'notStarted', 'completedInPeriod',
-            'search', 'searchResults', 'range', 'from', 'to'
+            'stats',
+            'chartData',
+            'queueTickets',
+            'recentTickets',
+            'totalScheduled',
+            'activeInTesting',
+            'overdue',
+            'notStarted',
+            'completedInPeriod',
+            'search',
+            'searchResults',
+            'range',
+            'from',
+            'to'
         ));
     }
 
@@ -166,22 +176,22 @@ class HomeController extends Controller
         // export links carry the exact dates the user was viewing, not a fresh recalculation.
         if ($fromParam && $toParam) {
             $from = Carbon::parse($fromParam)->startOfDay();
-            $to   = Carbon::parse($toParam)->endOfDay();
+            $to = Carbon::parse($toParam)->endOfDay();
             return [$from, $to];
         }
 
         // Legacy format: ?range=custom&custom=YYYY-MM-DD,YYYY-MM-DD
         if ($range === 'custom' && $custom) {
             $parts = explode(',', $custom);
-            $from  = Carbon::parse($parts[0])->startOfDay();
-            $to    = isset($parts[1]) ? Carbon::parse($parts[1])->endOfDay() : $to;
+            $from = Carbon::parse($parts[0])->startOfDay();
+            $to = isset($parts[1]) ? Carbon::parse($parts[1])->endOfDay() : $to;
             return [$from, $to];
         }
 
         $from = match ($range) {
-            '24h'  => Carbon::now()->subHours(24),
-            '30d'  => Carbon::now()->subDays(30)->startOfDay(),
-            '90d'  => Carbon::now()->subDays(90)->startOfDay(),
+            '24h' => Carbon::now()->subHours(24),
+            '30d' => Carbon::now()->subDays(30)->startOfDay(),
+            '90d' => Carbon::now()->subDays(90)->startOfDay(),
             default => Carbon::now()->subDays(6)->startOfDay(),
         };
         return [$from, $to];
@@ -190,28 +200,28 @@ class HomeController extends Controller
     private function buildChartData(Carbon $from, Carbon $to, string $range): array
     {
         $inflowRaw = Ticket::select(
-                DB::raw('DATE(created_at) as day'),
-                DB::raw('COUNT(*) as cnt')
-            )
+            DB::raw('DATE(created_at) as day'),
+            DB::raw('COUNT(*) as cnt')
+        )
             ->whereBetween('created_at', [$from, $to])
             ->groupBy('day')
             ->pluck('cnt', 'day')
             ->toArray();
 
         $resolvedRaw = Ticket::select(
-                DB::raw('DATE(updated_at) as day'),
-                DB::raw('COUNT(*) as cnt')
-            )
+            DB::raw('DATE(updated_at) as day'),
+            DB::raw('COUNT(*) as cnt')
+        )
             ->where('status', 'resolved')
             ->whereBetween('updated_at', [$from, $to])
             ->groupBy('day')
             ->pluck('cnt', 'day')
             ->toArray();
 
-        $labels   = [];
-        $inflow   = [];
+        $labels = [];
+        $inflow = [];
         $resolved = [];
-        $diff     = $from->diffInDays($to);
+        $diff = $from->diffInDays($to);
 
         $cursor = $from->copy()->startOfDay();
         while ($cursor->lte($to)) {
@@ -220,8 +230,8 @@ class HomeController extends Controller
                 ? strtoupper($cursor->format('D'))
                 : $cursor->format('d M');
 
-            $labels[]   = $label;
-            $inflow[]   = $inflowRaw[$key]  ?? 0;
+            $labels[] = $label;
+            $inflow[] = $inflowRaw[$key] ?? 0;
             $resolved[] = $resolvedRaw[$key] ?? 0;
 
             $cursor->addDay();
@@ -245,8 +255,8 @@ class HomeController extends Controller
     private function exportCsv($tickets, array $stats, Carbon $from, Carbon $to)
     {
         $filename = 'fixtora-report-' . $from->format('Ymd') . '-' . $to->format('Ymd') . '.csv';
-        $headers  = [
-            'Content-Type'        => 'text/csv',
+        $headers = [
+            'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
@@ -257,16 +267,19 @@ class HomeController extends Controller
             fputcsv($h, ['Generated', now()->format('Y-m-d H:i:s')]);
             fputcsv($h, []);
             fputcsv($h, ['SUMMARY']);
-            fputcsv($h, ['Active Tickets',    $stats['active']]);
+            fputcsv($h, ['Active Tickets', $stats['active']]);
             fputcsv($h, ['Resolved (period)', $stats['resolved']]);
-            fputcsv($h, ['Critical Open',     $stats['critical']]);
+            fputcsv($h, ['Critical Open', $stats['critical']]);
             fputcsv($h, []);
-            fputcsv($h, ['ID','Title','System','Priority','Impact','Status','Reporter','Created']);
+            fputcsv($h, ['ID', 'Title', 'System', 'Priority', 'Impact', 'Status', 'Reporter', 'Created']);
             foreach ($tickets as $t) {
                 fputcsv($h, [
-                    '#'.$t->id, $t->title, $t->system ?? '—',
-                    ucfirst($t->priority), ucfirst($t->impact),
-                    ucfirst(str_replace('_',' ',$t->status)),
+                    '#' . $t->id,
+                    $t->title,
+                    $t->system ?? '—',
+                    ucfirst($t->priority),
+                    ucfirst($t->impact),
+                    ucfirst(str_replace('_', ' ', $t->status)),
                     optional($t->user)->name ?? '—',
                     $t->created_at->format('Y-m-d H:i'),
                 ]);
@@ -281,24 +294,26 @@ class HomeController extends Controller
     {
         $rows = '';
         foreach ($tickets as $t) {
-            $color = match(strtolower($t->priority)) {
+            $color = match (strtolower($t->priority)) {
                 'critical' => '#dc2626', 'high' => '#f97316',
-                'medium'   => '#2563eb', default => '#6b7280',
+                'medium' => '#2563eb', default => '#6b7280',
             };
             $rows .= "<tr>
-                <td>#".e($t->id)."</td>
-                <td>".e($t->title)."</td>
-                <td>".e($t->system ?? '—')."</td>
-                <td style='color:{$color};font-weight:700'>".ucfirst(e($t->priority))."</td>
-                <td>".ucfirst(str_replace('_',' ',e($t->status)))."</td>
-                <td>".e(optional($t->user)->name ?? '—')."</td>
-                <td>".e($t->created_at->format('Y-m-d H:i'))."</td>
+                <td>#" . e($t->id) . "</td>
+                <td>" . e($t->title) . "</td>
+                <td>" . e($t->system ?? '—') . "</td>
+                <td style='color:{$color};font-weight:700'>" . ucfirst(e($t->priority)) . "</td>
+                <td>" . ucfirst(str_replace('_', ' ', e($t->status))) . "</td>
+                <td>" . e(optional($t->user)->name ?? '—') . "</td>
+                <td>" . e($t->created_at->format('Y-m-d H:i')) . "</td>
             </tr>";
         }
 
-        $period  = $from->format('Y-m-d').' → '.$to->format('Y-m-d');
-        $genAt   = now()->format('Y-m-d H:i:s');
-        $a=$stats['active']; $r=$stats['resolved']; $c=$stats['critical'];
+        $period = $from->format('Y-m-d') . ' → ' . $to->format('Y-m-d');
+        $genAt = now()->format('Y-m-d H:i:s');
+        $a = $stats['active'];
+        $r = $stats['resolved'];
+        $c = $stats['critical'];
 
         $html = <<<HTML
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>

@@ -23,6 +23,17 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
+        // Block disabled users
+        if ($user->is_disabled) {
+            $this->guard()->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect('/login')->withErrors([
+                'email' => 'Your account has been disabled. Please contact support.',
+            ]);
+        }
+
         // Block if company doesn't exist or is inactive
         if (!$user->company || !$user->company->is_active) {
             $this->guard()->logout();

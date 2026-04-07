@@ -590,17 +590,9 @@ html, body {
       </a>
       @endif
 
-      {{-- Super Admin + Configuration (superadmin only) --}}
+      {{-- Configuration dropdown (superadmin only) --}}
       @if(Auth::user()->isSuperAdmin())
-      <a href="{{ route('superadmin.dashboard') }}" class="nav-item {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-        Super Admin
-      </a>
-
-      {{-- Configuration dropdown --}}
-      @php $configOpen = request()->routeIs('superadmin.companies.*', 'superadmin.configuration', 'superadmin.users.*', 'roles.*'); @endphp
+      @php $configOpen = request()->routeIs('superadmin.dashboard', 'superadmin.companies.*', 'superadmin.configuration', 'superadmin.users.*', 'roles.*'); @endphp
       <div class="nav-group">
         <button class="nav-group-toggle {{ $configOpen ? 'open' : '' }}" onclick="toggleNavGroup(this)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -610,6 +602,12 @@ html, body {
           <svg class="toggle-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
         <div class="nav-group-children {{ $configOpen ? 'open' : '' }}">
+          <a href="{{ route('superadmin.dashboard') }}" class="nav-item {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            Customer Ratings
+          </a>
           <a href="{{ route('superadmin.companies.index') }}" class="nav-item {{ request()->routeIs('superadmin.companies.*') ? 'active' : '' }}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>

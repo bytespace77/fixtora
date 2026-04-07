@@ -38,11 +38,11 @@
 /* Table */
 .ticket-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:visible;box-shadow:var(--shadow)}
 @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))
-.tt-header{display:grid;grid-template-columns:90px 1fr 130px 160px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
-.tt-row{display:grid;grid-template-columns:90px 1fr 130px 160px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
+.tt-header{display:grid;grid-template-columns:90px 1fr 130px 160px 130px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
+.tt-row{display:grid;grid-template-columns:90px 1fr 130px 160px 130px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
 @else
-.tt-header{display:grid;grid-template-columns:90px 1fr 130px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
-.tt-row{display:grid;grid-template-columns:90px 1fr 130px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
+.tt-header{display:grid;grid-template-columns:90px 1fr 130px 130px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
+.tt-row{display:grid;grid-template-columns:90px 1fr 130px 130px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
 @endif
 .tt-row:last-child{border-bottom:none}
 .tt-row:hover{background:#f7f9ff}
@@ -198,14 +198,16 @@ textarea.form-control{resize:vertical;min-height:80px}
     Unassigned <span class="tab-count" style="{{ request('unassigned') ? '' : 'background:#fee2e2;color:#b91c1c;' }}">{{ $unassignedCount }}</span>
   </a>
   @foreach(['open'=>'Open','in_progress'=>'In Progress','in_review'=>'In Review','resolved'=>'Resolved','closed'=>'Closed'] as $val=>$label)
-  <a href="{{ route('tickets.index', ['status' => $val]) }}" class="filter-tab {{ (request('status') === $val) ? 'active' : '' }}">{{ $label }}</a>
+  <a href="{{ route('tickets.index', ['status' => $val]) }}" class="filter-tab {{ (request('status') === $val) ? 'active' : '' }}">
+    {{ $label }} <span class="tab-count">{{ $statusCounts[$val] ?? 0 }}</span>
+  </a>
   @endforeach
 </div>
 
 <!-- Ticket Table -->
 <div class="ticket-table">
   <div class="tt-header">
-    <span>Ticket ID</span><span>Title</span><span>System name</span>@if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))<span>Company name</span>@endif<span>Priority</span><span>Status</span><span>Created</span><span></span>
+    <span>Ticket ID</span><span>Title</span><span>System name</span>@if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))<span>Company name</span>@endif<span>Developer</span><span>Priority</span><span>Status</span><span>Created</span><span></span>
   </div>
 
   @forelse($tickets as $ticket)
@@ -218,6 +220,7 @@ textarea.form-control{resize:vertical;min-height:80px}
     @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))
     <div class="tt-sys" title="{{ $ticket->company->name ?? $ticket->system }}">{{ $ticket->company->name ?? $ticket->system ?? '—' }}</div>
     @endif
+    <div class="tt-sys" style="color:var(--muted)">{{ $ticket->assignedDeveloper->name ?? '-' }}</div>
     <div><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></div>
     <div><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>
     <div class="tt-time">{{ $ticket->created_at->format('M d') }}</div>
@@ -339,6 +342,10 @@ textarea.form-control{resize:vertical;min-height:80px}
               <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>Due Date</label>
+            <input type="date" name="due_date" id="fDueDate" class="form-control">
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -354,10 +361,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             </select>
           </div>
         </div>
-        <div class="form-group" style="margin-top: 14px;">
-          <label>Due Date</label>
-          <input type="date" name="due_date" id="fDueDate" class="form-control">
-        </div>
+
         <div class="form-group" id="attachmentGroup">
           <label>Attachments <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(optional · JPG, PNG, LOG, JSON, ZIP · max 25MB)</span></label>
           <label for="modal_file_upload" style="display:block;cursor:pointer;">

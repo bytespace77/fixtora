@@ -108,7 +108,9 @@ a.stat-card.navy:hover { border-color:rgba(255,255,255,.35); box-shadow:0 6px 22
 .update-title-text { font-size:12.5px; font-weight:700; color:var(--text); margin-bottom:2px; }
 .update-desc  { font-size:11px; color:var(--muted); margin-bottom:4px; }
 .update-time  { font-size:10px; font-weight:700; letter-spacing:.4px; color:var(--muted-lt); text-transform:uppercase; }
-.update-time.alert { color:var(--red); }
+.update-time.red { color:var(--red, #ef4444); }
+.update-time.blue { color:var(--blue, #2563eb); }
+.update-time.green { color:var(--green, #16a34a); }
 
 /* Queue */
 .queue-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; box-shadow:var(--shadow-card); }
@@ -291,10 +293,10 @@ a.stat-card.navy:hover { border-color:rgba(255,255,255,.35); box-shadow:0 6px 22
     @php
       $updates = [];
       if ($stats['critical'] > 0) {
-          $updates[] = ['icon'=>'🔴','title'=>'Critical Tickets Open','desc'=>$stats['critical'].' ticket(s) marked critical still open.','time'=>'NOW','alert'=>true,'link'=>$ticketsUrlCritical];
+          $updates[] = ['icon'=>'🔴','title'=>'Critical Tickets Open','desc'=>$stats['critical'].' ticket(s) marked critical still open.','time'=>'NOW','color'=>'red','link'=>$ticketsUrlCritical];
       }
-      $updates[] = ['icon'=>'📋','title'=>'Queue Updated','desc'=>$queueTickets->count().' ticket(s) in priority queue.','time'=>'JUST NOW','alert'=>false,'link'=>route('tickets.index')];
-      $updates[] = ['icon'=>'✅','title'=>'Resolved This Period','desc'=>$stats['resolved'].' ticket(s) resolved in selected range.','time'=>'PERIOD','alert'=>false,'link'=>$ticketsUrlResolved];
+      $updates[] = ['icon'=>'📋','title'=>'Queue Updated','desc'=>$queueTickets->count().' ticket(s) in priority queue.','time'=>'JUST NOW','color'=>'blue','link'=>route('tickets.index')];
+      $updates[] = ['icon'=>'✅','title'=>'Resolved This Period','desc'=>$stats['resolved'].' ticket(s) resolved in selected range.','time'=>'PERIOD','color'=>'green','link'=>$ticketsUrlResolved];
     @endphp
     @foreach($updates as $u)
     <a href="{{ $u['link'] }}" class="update-item">
@@ -302,7 +304,7 @@ a.stat-card.navy:hover { border-color:rgba(255,255,255,.35); box-shadow:0 6px 22
       <div class="update-body">
         <div class="update-title-text">{{ $u['title'] }}</div>
         <div class="update-desc">{{ $u['desc'] }}</div>
-        <div class="update-time {{ $u['alert'] ? 'alert' : '' }}">{{ $u['time'] }}</div>
+        <div class="update-time {{ $u['color'] }}">{{ $u['time'] }}</div>
       </div>
     </a>
     @endforeach

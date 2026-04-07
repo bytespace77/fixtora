@@ -12,7 +12,7 @@
     <span>New Role</span>
   </div>
 
-  <h1 style="font-size:20px; font-weight:700; color:var(--text); margin-bottom:24px;">Create New Role</h1>
+  <h1 style="font-size:24px; font-weight:800; letter-spacing:-.6px; color:var(--navy); margin-bottom:24px;">Create New Role</h1>
 
   @if($errors->any())
     <div style="background:var(--red-bg); border:1px solid #fecaca; color:var(--red); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:18px;">

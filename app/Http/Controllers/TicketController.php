@@ -122,7 +122,13 @@ class TicketController extends Controller
             ->whereNotIn('status', ['resolved', 'closed'])
             ->count();
 
-        return view('tickets.index', compact('tickets', 'companySystems', 'companySystemMap', 'unassignedCount'));
+        // Count for each status tab
+        $statusCounts = Ticket::groupBy('status')
+            ->selectRaw('status, count(*) as count')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        return view('tickets.index', compact('tickets', 'companySystems', 'companySystemMap', 'unassignedCount', 'statusCounts'));
     }
 
     public function create()
