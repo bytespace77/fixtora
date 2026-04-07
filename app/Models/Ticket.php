@@ -16,6 +16,7 @@ class Ticket extends Model
         'title',
         'description',
         'system',
+        'system_name',
         'priority',
         'impact',
         'status',
@@ -88,6 +89,11 @@ class Ticket extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function assignedDeveloper()
+    {
+        return $this->belongsTo(User::class, 'assigned_developer_id');
     }
 
     public function company()

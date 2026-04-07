@@ -62,7 +62,11 @@
 /* Stats */
 .stats-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
 .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px 22px 20px; box-shadow:var(--shadow-card); }
+a.stat-card { display:block; text-decoration:none; color:inherit; cursor:pointer; transition:box-shadow .12s, transform .12s, border-color .12s; }
+a.stat-card:hover { box-shadow:0 4px 18px rgba(0,0,0,.08); transform:translateY(-1px); border-color:var(--blue); }
+a.stat-card:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
 .stat-card.navy { background:#1e3a6e; border-color:#1e3a6e; color:#fff; }
+a.stat-card.navy:hover { border-color:rgba(255,255,255,.35); box-shadow:0 6px 22px rgba(30,58,110,.35); }
 .stat-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }
 .stat-icon { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
 .stat-icon.blue  { background:var(--blue-bg); color:var(--blue); }
@@ -196,9 +200,25 @@
   </div>
 </div>
 
+@php
+  $dashFrom = $from->format('Y-m-d');
+  $dashTo = $to->format('Y-m-d');
+  $ticketsUrlActive = route('tickets.index') . '?' . http_build_query(['status' => ['open', 'in_progress', 'in_review']]);
+  $ticketsUrlResolved = route('tickets.index') . '?' . http_build_query([
+      'status' => 'resolved',
+      'updated_from' => $dashFrom,
+      'updated_to' => $dashTo,
+  ]);
+  $ticketsUrlCritical = route('tickets.index') . '?' . http_build_query([
+      'status' => ['open', 'in_progress', 'in_review'],
+      'priority' => ['critical'],
+  ]);
+  $ticketsUrlTotal = route('tickets.index');
+@endphp
+
 <!-- Stats — ✅ Task 5: 4 cards (active, resolved, critical, total) scoped per company -->
 <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
-  <div class="stat-card">
+  <a href="{{ $ticketsUrlActive }}" class="stat-card" title="View open and in-progress tickets">
     <div class="stat-top">
       <div class="stat-icon blue">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>
@@ -208,9 +228,9 @@
     <div class="stat-label">Active Tickets</div>
     <div class="stat-value">{{ $stats['active'] }}</div>
     <div class="stat-sub">Open &amp; in-progress</div>
-  </div>
+  </a>
 
-  <div class="stat-card">
+  <a href="{{ $ticketsUrlResolved }}" class="stat-card" title="View tickets resolved in this date range">
     <div class="stat-top">
       <div class="stat-icon green">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -220,9 +240,9 @@
     <div class="stat-label">Resolved</div>
     <div class="stat-value">{{ $stats['resolved'] }}</div>
     <div class="stat-sub">In selected period</div>
-  </div>
+  </a>
 
-  <div class="stat-card navy">
+  <a href="{{ $ticketsUrlCritical }}" class="stat-card navy" title="View critical tickets still open">
     <div class="stat-top">
       <div class="stat-icon white">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
@@ -232,10 +252,10 @@
     <div class="stat-label">Critical Open</div>
     <div class="stat-value">{{ $stats['critical'] }}</div>
     <div class="stat-sub">{{ $stats['critical'] === 0 ? 'No critical issues' : 'Requires immediate action' }}</div>
-  </div>
+  </a>
 
   {{-- ✅ Task 5: Total tickets stat — scoped per company via Ticket global scope --}}
-  <div class="stat-card">
+  <a href="{{ $ticketsUrlTotal }}" class="stat-card" title="View all tickets">
     <div class="stat-top">
       <div class="stat-icon blue" style="background:#f3f4f6;color:#374151">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
@@ -245,7 +265,7 @@
     <div class="stat-label">Total Tickets</div>
     <div class="stat-value">{{ $stats['total'] }}</div>
     <div class="stat-sub">All tickets in your company</div>
-  </div>
+  </a>
 </div>
 
 <!-- Middle row -->
@@ -271,10 +291,10 @@
     @php
       $updates = [];
       if ($stats['critical'] > 0) {
-          $updates[] = ['icon'=>'🔴','title'=>'Critical Tickets Open','desc'=>$stats['critical'].' ticket(s) marked critical still open.','time'=>'NOW','alert'=>true,'link'=>route('tickets.index').'?priority=critical'];
+          $updates[] = ['icon'=>'🔴','title'=>'Critical Tickets Open','desc'=>$stats['critical'].' ticket(s) marked critical still open.','time'=>'NOW','alert'=>true,'link'=>$ticketsUrlCritical];
       }
       $updates[] = ['icon'=>'📋','title'=>'Queue Updated','desc'=>$queueTickets->count().' ticket(s) in priority queue.','time'=>'JUST NOW','alert'=>false,'link'=>route('tickets.index')];
-      $updates[] = ['icon'=>'✅','title'=>'Resolved This Period','desc'=>$stats['resolved'].' ticket(s) resolved in selected range.','time'=>'PERIOD','alert'=>false,'link'=>route('tickets.index').'?status=resolved'];
+      $updates[] = ['icon'=>'✅','title'=>'Resolved This Period','desc'=>$stats['resolved'].' ticket(s) resolved in selected range.','time'=>'PERIOD','alert'=>false,'link'=>$ticketsUrlResolved];
     @endphp
     @foreach($updates as $u)
     <a href="{{ $u['link'] }}" class="update-item">

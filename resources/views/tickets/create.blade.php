@@ -113,28 +113,35 @@ textarea.form-input:focus{border:none;box-shadow:none}
         <div class="field-group">
           <label class="lbl" for="system">System (Company)</label>
           <select id="system" name="system" class="form-input {{ $errors->has('system') ? 'is-invalid' : '' }}">
-            <option value="">Select Company System</option>
+            <option value="">Select Company</option>
             @foreach($companies as $companyName)
             <option value="{{ $companyName }}" {{ old('system') == $companyName ? 'selected' : '' }}>{{ $companyName }}</option>
             @endforeach
           </select>
           @error('system')<div class="error-msg">{{ $message }}</div>@enderror
         </div>
+        <div class="field-group">
+          <label class="lbl" for="system_name">System name</label>
+          <select id="system_name" name="system_name" class="form-input {{ $errors->has('system_name') ? 'is-invalid' : '' }}">
+            <option value="">Select company first</option>
+          </select>
+          @error('system_name')<div class="error-msg">{{ $message }}</div>@enderror
+        </div>
         @else
         <div class="field-group">
-          <label class="lbl" for="system">System</label>
-          @if(!empty($companySystems))
-            <select id="system" name="system" class="form-input {{ $errors->has('system') ? 'is-invalid' : '' }}">
-              <option value="">Select System</option>
-              @foreach($companySystems as $sys)
-                <option value="{{ $sys }}" {{ old('system') == $sys ? 'selected' : '' }}>{{ $sys }}</option>
-              @endforeach
-            </select>
-            @error('system')<div class="error-msg">{{ $message }}</div>@enderror
-          @else
-            <input type="text" class="form-input" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
-            <input type="hidden" name="system" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" />
-          @endif
+          <label class="lbl">Company</label>
+          <input type="text" class="form-input" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
+          <input type="hidden" name="system" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" />
+        </div>
+        <div class="field-group">
+          <label class="lbl" for="system_name">System name</label>
+          <select id="system_name" name="system_name" class="form-input {{ $errors->has('system_name') ? 'is-invalid' : '' }}">
+            <option value="">— Optional —</option>
+            @foreach($companySystems as $sn)
+            <option value="{{ $sn }}" {{ old('system_name') == $sn ? 'selected' : '' }}>{{ $sn }}</option>
+            @endforeach
+          </select>
+          @error('system_name')<div class="error-msg">{{ $message }}</div>@enderror
         </div>
         @endif
         <div class="field-group">
@@ -357,4 +364,34 @@ textarea.form-input:focus{border:none;box-shadow:none}
     }).join('');
   }
 </script>
+@if(auth()->user()->isSuperAdmin())
+<script>
+  const createCompanySystemMap = @json($companySystemMap ?? []);
+  const createOldSystemName = @json(old('system_name'));
+  function refreshCreateSystemNames() {
+    const sys = document.getElementById('system');
+    const sn = document.getElementById('system_name');
+    if (!sys || !sn) return;
+    const company = sys.value;
+    const systems = (createCompanySystemMap && createCompanySystemMap[company]) ? createCompanySystemMap[company] : [];
+    sn.innerHTML = '<option value="">— Select —</option>';
+    systems.forEach(function(s) {
+      const o = document.createElement('option');
+      o.value = s;
+      o.textContent = s;
+      sn.appendChild(o);
+    });
+    if (createOldSystemName && systems.indexOf(createOldSystemName) !== -1) {
+      sn.value = createOldSystemName;
+    }
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    const sys = document.getElementById('system');
+    if (sys) {
+      refreshCreateSystemNames();
+      sys.addEventListener('change', refreshCreateSystemNames);
+    }
+  });
+</script>
+@endif
 @endsection

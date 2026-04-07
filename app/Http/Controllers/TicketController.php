@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Company;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\TicketAttachment;
@@ -59,14 +60,26 @@ class TicketController extends Controller
 
         $query = Ticket::with('user')->latest();
 
-        // Status filter — supports both ?status=open (legacy tab links) and ?status[]=open&status[]=in_progress (filter panel)
-        $statuses = array_filter((array) ($request->input('status[]') ?: ($request->status ? [$request->status] : [])));
+        // Status filter — supports ?status=open, ?status[]=…, and ?status[]=open&status[]=in_progress (also status[0]=… from http_build_query)
+        $statuses = [];
+        if ($request->has('status')) {
+            $s = $request->input('status');
+            $statuses = array_filter(is_array($s) ? $s : [$s]);
+        } elseif ($request->has('status[]')) {
+            $statuses = array_filter((array) $request->input('status[]'));
+        }
         if (!empty($statuses)) {
             $query->whereIn('status', $statuses);
         }
 
-        // Priority filter
-        $priorities = array_filter((array) $request->input('priority[]', []));
+        // Priority filter — supports ?priority[]=critical and ?priority=critical
+        $priorities = [];
+        if ($request->has('priority')) {
+            $p = $request->input('priority');
+            $priorities = array_filter(is_array($p) ? $p : [$p]);
+        } elseif ($request->has('priority[]')) {
+            $priorities = array_filter((array) $request->input('priority[]'));
+        }
         if (!empty($priorities)) {
             $query->whereIn('priority', $priorities);
         }
@@ -77,7 +90,7 @@ class TicketController extends Controller
             $query->whereIn('system', $systems);
         }
 
-        // Date range filter
+        // Date range filter (created_at)
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
@@ -85,10 +98,19 @@ class TicketController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $tickets = $query->paginate(10)->withQueryString();
-        $companySystems = auth()->user()->company?->systems ?? [];
+        // Updated-at range (e.g. dashboard "Resolved in selected period" drill-down)
+        if ($request->filled('updated_from')) {
+            $query->whereDate('updated_at', '>=', $request->updated_from);
+        }
+        if ($request->filled('updated_to')) {
+            $query->whereDate('updated_at', '<=', $request->updated_to);
+        }
 
-        return view('tickets.index', compact('tickets', 'companySystems'));
+        $tickets = $query->with('company')->paginate(10)->withQueryString();
+        $companySystems = auth()->user()->company?->systems ?? [];
+        $companySystemMap = Company::where('is_active', true)->orderBy('name')->get(['name', 'systems'])->mapWithKeys(fn ($c) => [$c->name => $c->systems ?? []]);
+
+        return view('tickets.index', compact('tickets', 'companySystems', 'companySystemMap'));
     }
 
     public function create()
@@ -100,8 +122,9 @@ class TicketController extends Controller
             : [];
 
         $companySystems = auth()->user()->company?->systems ?? [];
+        $companySystemMap = Company::where('is_active', true)->orderBy('name')->get(['name', 'systems'])->mapWithKeys(fn ($c) => [$c->name => $c->systems ?? []]);
 
-        return view('tickets.create', compact('companies', 'companySystems'));
+        return view('tickets.create', compact('companies', 'companySystems', 'companySystemMap'));
     }
 
     public function store(Request $request)
@@ -112,6 +135,7 @@ class TicketController extends Controller
             'title'         => 'required|string|max:255',
             'description'   => 'required|string',
             'system'        => 'required|string',
+            'system_name'   => 'nullable|string|max:255',
             'priority'      => 'required|in:low,medium,high,critical',
             'impact'        => 'required|in:low,medium,high,critical',
             'status'        => 'required|in:open,in_progress,in_review,resolved,closed',
@@ -125,11 +149,14 @@ class TicketController extends Controller
 
         $validated['company_id'] = auth()->user()->company_id;
         if (auth()->user()->isSuperAdmin()) {
-            $company = \App\Models\Company::where('name', $validated['system'])->first();
+            $company = Company::where('name', $validated['system'])->first();
             if ($company) {
                 $validated['company_id'] = $company->id;
             }
         }
+
+        $company = Company::find($validated['company_id']);
+        $this->assertSystemNameAllowed($company, $validated['system_name'] ?? null);
 
         $ticket = Ticket::create($validated);
 
@@ -167,18 +194,20 @@ class TicketController extends Controller
             'comments.user',
             'comments.attachments',
             'attachments' => fn($q) => $q->whereNull('comment_id'),
-            'tasks.assignee'
+            'tasks.assignee',
+            'assignedDeveloper',
+            'company',
         ]);
 
         $developers = collect();
-        if (auth()->user()->hasPermission('assign_developer')) {
+        if (auth()->user()->isSuperAdmin() || auth()->user()->hasPermission('assign_developer')) {
             $developerQuery = \App\Models\User::with('userRole')
                 ->whereHas('userRole', function ($q) {
                     $q->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
                 })
                 ->orderBy('name');
 
-            if (!auth()->user()->isSuperAdmin()) {
+            if ($ticket->company_id) {
                 $developerQuery->where('company_id', $ticket->company_id);
             }
 
@@ -195,23 +224,24 @@ class TicketController extends Controller
 
         $canEditTicket = $user->hasPermission('edit_tickets');
         $isAssignedDeveloper = (int) $ticket->assigned_developer_id === (int) $user->id;
+        $canAssignTicket = $user->isSuperAdmin() || $user->hasPermission('assign_developer');
 
         abort_unless(
-            $canEditTicket || $isAssignedDeveloper,
+            $canEditTicket || $isAssignedDeveloper || $canAssignTicket,
             403,
             'You do not have permission to update this ticket.'
         );
 
-        $rules = [
-            'estimated_delivery_date' => 'sometimes|nullable|date',
-            'actual_delivery_date'    => 'sometimes|nullable|date',
-        ];
+        $rules = [];
 
         if ($canEditTicket) {
             $rules = array_merge($rules, [
+                'estimated_delivery_date' => 'sometimes|nullable|date',
+                'actual_delivery_date'    => 'sometimes|nullable|date',
                 'title'       => 'sometimes|required|string|max:255',
                 'description' => 'sometimes|required|string',
                 'system'      => 'sometimes|nullable|string',
+                'system_name' => 'sometimes|nullable|string|max:255',
                 'priority'    => 'sometimes|required|in:low,medium,high,critical',
                 'impact'      => 'sometimes|required|in:low,medium,high,critical',
                 'status'      => 'sometimes|required|in:open,in_progress,in_review,resolved,closed',
@@ -219,28 +249,59 @@ class TicketController extends Controller
                 'assigned_developer_id' => 'sometimes|nullable|exists:users,id',
                 'sla_level'             => 'sometimes|nullable|in:Low,Medium,High,Critical',
                 'qc_test_date'          => 'sometimes|nullable|date',
+                'redirect_to'           => 'sometimes|nullable|in:tasks',
+            ]);
+        } elseif ($isAssignedDeveloper) {
+            $rules = array_merge($rules, [
+                'estimated_delivery_date' => 'sometimes|nullable|date',
+                'actual_delivery_date'    => 'sometimes|nullable|date',
+            ]);
+            if ($canAssignTicket) {
+                $rules = array_merge($rules, [
+                    'assigned_developer_id' => 'sometimes|nullable|exists:users,id',
+                    'sla_level'             => 'sometimes|nullable|in:Low,Medium,High,Critical',
+                    'redirect_to'           => 'sometimes|nullable|in:tasks',
+                ]);
+            }
+        } elseif ($canAssignTicket) {
+            $rules = array_merge($rules, [
+                'assigned_developer_id' => 'sometimes|nullable|exists:users,id',
+                'sla_level'             => 'sometimes|nullable|in:Low,Medium,High,Critical',
+                'redirect_to'           => 'sometimes|nullable|in:tasks',
             ]);
         }
 
         $validated = $request->validate($rules);
 
         if (!$canEditTicket) {
-            $validated = array_intersect_key($validated, array_flip(['estimated_delivery_date', 'actual_delivery_date']));
+            $allowedKeys = [];
+            if ($isAssignedDeveloper) {
+                $allowedKeys = array_merge($allowedKeys, ['estimated_delivery_date', 'actual_delivery_date']);
+            }
+            if ($canAssignTicket) {
+                $allowedKeys = array_merge($allowedKeys, ['assigned_developer_id', 'sla_level', 'redirect_to']);
+            }
+            $validated = array_intersect_key($validated, array_flip(array_unique($allowedKeys)));
         }
 
         if (array_key_exists('assigned_developer_id', $validated) || array_key_exists('sla_level', $validated)) {
-            abort_unless($user->isSuperAdmin(), 403, 'Only superadmin can assign developer and SLA.');
+            abort_unless($user->isSuperAdmin() || $user->hasPermission('assign_developer'), 403, 'You do not have permission to assign a developer or SLA.');
 
             $selectedDeveloper = $validated['assigned_developer_id'] ?? $ticket->assigned_developer_id;
             $selectedSla = $validated['sla_level'] ?? $ticket->sla_level;
-            if (empty($selectedDeveloper) || empty($selectedSla)) {
+            if (!empty($selectedDeveloper) && empty($selectedSla)) {
                 throw ValidationException::withMessages([
-                    'assigned_developer_id' => 'Assigned developer and SLA are required.',
-                    'sla_level' => 'Assigned developer and SLA are required.',
+                    'sla_level' => 'SLA level is required when a developer is assigned.',
+                ]);
+            }
+            if (!empty($selectedSla) && empty($selectedDeveloper)) {
+                throw ValidationException::withMessages([
+                    'assigned_developer_id' => 'Developer is required when SLA is set.',
                 ]);
             }
 
-            if ((int) $selectedDeveloper !== (int) $ticket->assigned_developer_id || $selectedSla !== $ticket->sla_level) {
+            if (!empty($selectedDeveloper) && !empty($selectedSla)
+                && ((int) $selectedDeveloper !== (int) $ticket->assigned_developer_id || $selectedSla !== $ticket->sla_level)) {
                 $validated['assigned_by'] = $user->id;
                 $validated['assigned_date'] = now();
 
@@ -253,6 +314,18 @@ class TicketController extends Controller
                     'target_role' => 'developer',
                 ]);
             }
+        }
+
+        if ($canEditTicket && (array_key_exists('system_name', $validated) || array_key_exists('system', $validated))) {
+            $companyForName = Company::find($ticket->company_id);
+            if (!empty($validated['system'])) {
+                $c = Company::where('name', $validated['system'])->first();
+                if ($c) {
+                    $companyForName = $c;
+                }
+            }
+            $sn = array_key_exists('system_name', $validated) ? $validated['system_name'] : $ticket->system_name;
+            $this->assertSystemNameAllowed($companyForName, $sn);
         }
 
         $oldStatus = $ticket->status;
@@ -401,6 +474,9 @@ class TicketController extends Controller
             }
         }
 
+        $redirectTo = $validated['redirect_to'] ?? null;
+        unset($validated['redirect_to']);
+
         $ticket->update($validated);
 
         if ($ticket->tasks()->exists()) {
@@ -453,6 +529,10 @@ class TicketController extends Controller
                 'role'      => 'system',
                 'type'      => 'status_change',
             ]);
+        }
+
+        if ($redirectTo === 'tasks') {
+            return redirect()->route('tasks.index')->with('success', 'Ticket updated!');
         }
 
         return redirect()->route('tickets.show', $ticket)->with('success', 'Ticket updated!');
@@ -589,5 +669,38 @@ class TicketController extends Controller
         }
         $comment->delete();
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * When a company defines `systems` (JSON), `system_name` must be one of those values.
+     * If `systems` is empty, any value is allowed (legacy / no catalog).
+     */
+    private function assertSystemNameAllowed(?Company $company, ?string $systemName): void
+    {
+        if (!$company) {
+            return;
+        }
+
+        $systems = $company->systems ?? [];
+        if (!is_array($systems)) {
+            $systems = [];
+        }
+
+        if (count($systems) === 0) {
+            return;
+        }
+
+        $name = $systemName !== null ? trim($systemName) : '';
+        if ($name === '') {
+            throw ValidationException::withMessages([
+                'system_name' => 'Select a system name for this company.',
+            ]);
+        }
+
+        if (!in_array($name, $systems, true)) {
+            throw ValidationException::withMessages([
+                'system_name' => 'That system name is not valid for the selected company.',
+            ]);
+        }
     }
 }

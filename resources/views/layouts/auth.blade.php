@@ -374,6 +374,7 @@
     </style>
 </head>
 <body>
+@includeWhen(str_contains(request()->getHost(), 'ngrok'), 'partials.ngrok-client-fix')
 
 <!-- LEFT -->
 <div class="l-panel">

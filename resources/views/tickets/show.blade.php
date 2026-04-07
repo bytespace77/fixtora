@@ -463,7 +463,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             </div>
           @endforeach
         @else
-          @php $assignedDev = $ticket->assigned_developer_id ? \App\Models\User::find($ticket->assigned_developer_id) : null; @endphp
+          @php $assignedDev = $ticket->assignedDeveloper; @endphp
           <div style="padding:16px;">
             <div class="meta-list">
               <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($assignedDev)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($assignedDev->avatar ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($assignedDev->avatar ?? null)<img src="{{ asset('storage/' . $assignedDev->avatar) }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($assignedDev->name,0,2)) }}@endif</div>{{ $assignedDev->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
@@ -478,25 +478,23 @@ textarea.form-control{resize:vertical;min-height:80px}
       </div>
     </div>
 
+    @if(auth()->user()->isSuperAdmin() || auth()->user()->hasPermission('assign_developer'))
     <div class="card">
-      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Update Status</div></div>
+      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Assignment</div></div>
       <div class="card-body">
-        @if(auth()->user()->hasPermission('edit_tickets') || (auth()->user()->isDeveloper() && $ticket->assigned_developer_id == auth()->id()))
-        <form action="{{ route('tickets.update', $ticket) }}" method="POST">
+        <form action="{{ route('tickets.update', $ticket) }}" method="POST" class="ticket-side-form">
           @csrf @method('PATCH')
-
-          @if(auth()->user()->isSuperAdmin())
           <div class="form-group">
-            <label>Assign Developer</label>
+            <label>Developer</label>
             <select name="assigned_developer_id" class="form-control" style="margin-bottom:12px">
               <option value="">Unassigned</option>
               @foreach($developers as $dev)
-                <option value="{{ $dev->id }}" {{ $ticket->assigned_developer_id == $dev->id ? 'selected' : '' }}>{{ $dev->name }}</option>
+                <option value="{{ $dev->id }}" {{ (int) $ticket->assigned_developer_id === (int) $dev->id ? 'selected' : '' }}>{{ $dev->name }}</option>
               @endforeach
             </select>
           </div>
           <div class="form-group">
-            <label>SLA Level</label>
+            <label>SLA level</label>
             <select name="sla_level" class="form-control" style="margin-bottom:12px">
               <option value="">None</option>
               <option value="Low" {{ $ticket->sla_level == 'Low' ? 'selected' : '' }}>Low</option>
@@ -505,7 +503,18 @@ textarea.form-control{resize:vertical;min-height:80px}
               <option value="Critical" {{ $ticket->sla_level == 'Critical' ? 'selected' : '' }}>Critical</option>
             </select>
           </div>
-          @endif
+          <button type="submit" class="btn-full"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Save assignment</button>
+        </form>
+      </div>
+    </div>
+    @endif
+
+    <div class="card">
+      <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Update Status</div></div>
+      <div class="card-body">
+        @if(auth()->user()->hasPermission('edit_tickets') || (auth()->user()->isDeveloper() && $ticket->assigned_developer_id == auth()->id()))
+        <form action="{{ route('tickets.update', $ticket) }}" method="POST">
+          @csrf @method('PATCH')
 
           @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
           <div class="form-group">
@@ -547,7 +556,8 @@ textarea.form-control{resize:vertical;min-height:80px}
       <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Ticket Details</div></div>
       <div class="card-body" style="padding-top:6px;padding-bottom:6px">
         <div class="meta-list">
-          <div class="meta-row"><span class="meta-key">System</span><span class="meta-val">{{ $ticket->system??'—' }}</span></div>
+          <div class="meta-row"><span class="meta-key">Company</span><span class="meta-val">{{ $ticket->company->name ?? $ticket->system ?? '—' }}</span></div>
+          <div class="meta-row"><span class="meta-key">System name</span><span class="meta-val">{{ $ticket->system_name ?? '—' }}</span></div>
           <div class="meta-row"><span class="meta-key">Priority</span><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></div>
           <div class="meta-row"><span class="meta-key">Impact</span><span class="pill pill-{{ $ticket->impact??'low' }}">{{ ucfirst($ticket->impact??'low') }}</span></div>
           <div class="meta-row"><span class="meta-key">Status</span><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>

@@ -216,6 +216,27 @@ class TaskController extends Controller
             ->orderByDesc('id')
             ->get(['id', 'title', 'company_id', 'created_at']);
 
+        $unassignedTickets = Ticket::with('company')
+            ->whereNull('assigned_developer_id')
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->latest()
+            ->get();
+
+        foreach ($unassignedTickets as $ticket) {
+            $ticket->ticket_company_code = $this->buildCompanyCode($ticket->company?->name);
+            $ticket->ticket_company_seq  = $this->computeCompanyTicketSeq($ticket);
+        }
+
+        $developersByCompany = [];
+        foreach ($unassignedTickets->pluck('company_id')->filter()->unique() as $cid) {
+            $developersByCompany[(int) $cid] = User::whereHas('userRole', function ($q) {
+                $q->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
+            })
+                ->where('company_id', (int) $cid)
+                ->orderBy('name')
+                ->get();
+        }
+
         // Build per-company sequences for tickets and tasks so display becomes #XX-0001.
         $ticketSeqById = [];
         $taskSeqById   = [];
@@ -275,7 +296,8 @@ class TaskController extends Controller
         }
 
         return view('tasks.index', compact(
-            'todo', 'doing', 'done', 'users', 'velocity', 'slaRate', 'deadlines', 'tickets'
+            'todo', 'doing', 'done', 'users', 'velocity', 'slaRate', 'deadlines', 'tickets',
+            'unassignedTickets', 'developersByCompany'
         ));
     }
 

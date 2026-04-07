@@ -38,14 +38,16 @@
 /* Table */
 .ticket-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:visible;box-shadow:var(--shadow)}
 @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))
-.tt-header{display:grid;grid-template-columns:90px 1fr 160px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
-.tt-row{display:grid;grid-template-columns:90px 1fr 160px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
+.tt-header{display:grid;grid-template-columns:90px 1fr 130px 160px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
+.tt-row{display:grid;grid-template-columns:90px 1fr 130px 160px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
 @else
-.tt-header{display:grid;grid-template-columns:90px 1fr 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
-.tt-row{display:grid;grid-template-columns:90px 1fr 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
+.tt-header{display:grid;grid-template-columns:90px 1fr 130px 120px 130px 90px 44px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-radius:var(--radius) var(--radius) 0 0;}
+.tt-row{display:grid;grid-template-columns:90px 1fr 130px 120px 130px 90px 44px;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);align-items:center;transition:background .12s;text-decoration:none;color:inherit;cursor:pointer}
 @endif
 .tt-row:last-child{border-bottom:none}
 .tt-row:hover{background:#f7f9ff}
+.tt-row.tt-row-critical-unassigned{background:#fef2f2;border-left:3px solid #dc2626}
+.tt-row.tt-row-critical-unassigned:hover{background:#fee2e2}
 .tt-id{font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .tt-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tt-sub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -200,17 +202,18 @@ textarea.form-control{resize:vertical;min-height:80px}
 <!-- Ticket Table -->
 <div class="ticket-table">
   <div class="tt-header">
-    <span>Ticket ID</span><span>Title</span>@if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))<span>Company Name</span>@endif<span>Priority</span><span>Status</span><span>Created</span><span></span>
+    <span>Ticket ID</span><span>Title</span><span>System name</span>@if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))<span>Company name</span>@endif<span>Priority</span><span>Status</span><span>Created</span><span></span>
   </div>
 
   @forelse($tickets as $ticket)
-  <div class="tt-row" onclick="window.location='{{ route('tickets.show', $ticket) }}'">
+  <div class="tt-row @if($ticket->priority === 'critical' && !$ticket->assigned_developer_id) tt-row-critical-unassigned @endif" onclick="window.location='{{ route('tickets.show', $ticket) }}'">
     <div class="tt-id">#TK-{{ str_pad($ticket->id, 4, '0', STR_PAD_LEFT) }}</div>
     <div style="min-width:0">
       <div class="tt-name" style="margin-bottom:0">{{ $ticket->title }}</div>
     </div>
+    <div class="tt-sys" title="{{ $ticket->system_name }}">{{ $ticket->system_name ?? '—' }}</div>
     @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('select_system'))
-    <div class="tt-sys" title="{{ $ticket->system }}">{{ $ticket->system ?? '—' }}</div>
+    <div class="tt-sys" title="{{ $ticket->company->name ?? $ticket->system }}">{{ $ticket->company->name ?? $ticket->system ?? '—' }}</div>
     @endif
     <div><span class="pill pill-{{ $ticket->priority }}">{{ ucfirst($ticket->priority) }}</span></div>
     <div><span class="pill pill-{{ $ticket->status }}">{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</span></div>
@@ -225,7 +228,7 @@ textarea.form-control{resize:vertical;min-height:80px}
         </a>
         @endif
         @if(Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('edit_tickets'))
-        <button class="dd-item" onclick="openModal('edit',{{ $ticket->id }},'{{ addslashes($ticket->title) }}','{{ addslashes($ticket->description) }}','{{ $ticket->system }}','{{ $ticket->priority }}','{{ $ticket->impact }}','{{ $ticket->status }}','{{ $ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format("Y-m-d") : "" }}')">
+        <button class="dd-item" onclick="openModal('edit',{{ $ticket->id }},@json($ticket->title),@json($ticket->description),@json($ticket->system),@json($ticket->system_name),@json($ticket->priority),@json($ticket->impact),@json($ticket->status),@json($ticket->due_date ? \Carbon\Carbon::parse($ticket->due_date)->format('Y-m-d') : ''))">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           Edit Ticket
         </button>
@@ -307,20 +310,26 @@ textarea.form-control{resize:vertical;min-height:80px}
           </div>
           @else
           <div class="form-group">
-            <label>System</label>
-            @if(!empty($companySystems))
-              <select name="system" id="fSystem" class="form-control">
-                <option value="">Select System</option>
-                @foreach($companySystems as $sys)
-                  <option value="{{ $sys }}">{{ $sys }}</option>
-                @endforeach
-              </select>
-            @else
-              <input type="text" id="fSystemText" class="form-control" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
-              <input type="hidden" name="system" id="fSystem" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" />
-            @endif
+            <label>Company</label>
+            <input type="text" class="form-control" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" disabled />
+            <input type="hidden" name="system" id="fSystem" value="{{ auth()->user()->company->name ?? 'Unknown Company' }}" />
           </div>
           @endif
+          <div class="form-group">
+            <label>System name</label>
+            @if(auth()->user()->isSuperAdmin())
+            <select name="system_name" id="fSystemName" class="form-control">
+              <option value="">Select company first</option>
+            </select>
+            @else
+            <select name="system_name" id="fSystemName" class="form-control">
+              <option value="">— Optional —</option>
+              @foreach($companySystems as $sn)
+              <option value="{{ $sn }}">{{ $sn }}</option>
+              @endforeach
+            </select>
+            @endif
+          </div>
           <div class="form-group">
             <label>Priority</label>
             <select name="priority" id="fPriority" class="form-control">
@@ -471,8 +480,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Modal
+const companySystemMap = @json($companySystemMap ?? []);
 let currentMode='new';
-function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
+function refreshModalSystemNames(preserveValue) {
+  const sysSel = document.getElementById('fSystem');
+  const nameEl = document.getElementById('fSystemName');
+  if (!nameEl || !sysSel || sysSel.tagName !== 'SELECT') return;
+  @if(auth()->user()->isSuperAdmin())
+  const company = sysSel.value;
+  const systems = (companySystemMap && companySystemMap[company]) ? companySystemMap[company] : [];
+  const prev = preserveValue !== undefined ? preserveValue : nameEl.value;
+  nameEl.innerHTML = '<option value="">— Select —</option>';
+  systems.forEach(function(s) {
+    const o = document.createElement('option');
+    o.value = s;
+    o.textContent = s;
+    nameEl.appendChild(o);
+  });
+  if (prev && systems.indexOf(prev) !== -1) nameEl.value = prev;
+  @endif
+}
+function openModal(mode,id,title,desc,system,system_name,priority,impact,status,due_date){
   currentMode=mode;
   document.querySelectorAll('.dropdown-menu').forEach(m=>m.classList.remove('open'));
   document.querySelectorAll('.more-btn').forEach(b=>b.classList.remove('active'));
@@ -494,6 +522,8 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
     if(document.getElementById('fSystemText')) {
       document.getElementById('fSystemText').value='{{ auth()->user()->company->name ?? "Unknown Company" }}';
     }
+    const sn = document.getElementById('fSystemName');
+    if (sn) { sn.value = ''; @if(auth()->user()->isSuperAdmin()) refreshModalSystemNames(''); @endif }
     document.getElementById('fPriority').value='medium';
     document.getElementById('fImpact').value='low';
     document.getElementById('fStatus').value='open';
@@ -515,6 +545,11 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
       if(document.getElementById('fSystem')) document.getElementById('fSystem').value=system;
       if(document.getElementById('fSystemText')) document.getElementById('fSystemText').value=system;
     }
+    @if(auth()->user()->isSuperAdmin())
+    refreshModalSystemNames(system_name || '');
+    @else
+    if (document.getElementById('fSystemName')) document.getElementById('fSystemName').value = system_name || '';
+    @endif
     if(priority)document.getElementById('fPriority').value=priority;
     if(impact)document.getElementById('fImpact').value=impact;
     if(status)document.getElementById('fStatus').value=status;
@@ -523,6 +558,12 @@ function openModal(mode,id,title,desc,system,priority,impact,status,due_date){
   }
   document.getElementById('ticketModal').classList.add('open');
 }
+document.addEventListener('DOMContentLoaded', function() {
+  const fs = document.getElementById('fSystem');
+  if (fs && fs.tagName === 'SELECT') {
+    fs.addEventListener('change', function() { refreshModalSystemNames(); });
+  }
+});
 function closeModal(){document.getElementById('ticketModal').classList.remove('open');}
 
 // Delete

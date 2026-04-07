@@ -35,7 +35,7 @@
 .vt-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
 
 /* ── Kanban Board ──────────────────────────────────────────────── */
-.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.kanban{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
 .kanban-col{min-height:200px;display:flex;flex-direction:column}
 .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .col-label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--text-sub)}
@@ -43,7 +43,11 @@
 .ci-gray{background:var(--muted-lt)}
 .ci-blue{background:var(--blue)}
 .ci-green{background:var(--green)}
+.ci-amber{background:#f59e0b}
 .col-count{font-size:11px;font-weight:700;background:var(--bg);border:1px solid var(--border);padding:1px 7px;border-radius:20px;color:var(--muted)}
+.ut-card{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.ut-card-critical{background:#fef2f2;border-color:#fecaca;border-width:2px}
+.ut-label{font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px}
 .col-more{background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted);padding:2px 6px;border-radius:5px}
 .col-more:hover{background:var(--bg)}
 .k-cards-container{min-height:80px;max-height:520px;overflow-y:auto;padding-right:6px}
@@ -60,6 +64,7 @@
 .pb-low{background:#f0fdf4;color:#15803d}
 .pb-medium{background:#fffbeb;color:#b45309}
 .pb-high{background:#fff1f2;color:#be123c}
+.pb-critical{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}
 .pb-urgent{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
 .k-title{font-size:13px;font-weight:600;line-height:1.4;margin-bottom:6px;color:var(--text)}
 .k-desc{font-size:11.5px;color:var(--muted);margin-bottom:8px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
@@ -237,6 +242,22 @@ textarea.form-control{resize:vertical;min-height:80px}
 {{-- ── BOARD VIEW ──────────────────────────────────────────────── --}}
 <div id="boardView">
   <div class="kanban">
+    {{-- UNASSIGNED TICKETS --}}
+    <div class="kanban-col" id="col-unassigned" data-status="unassigned" data-no-task-drop="1">
+      <div class="col-header">
+        <div class="col-label">
+          <div class="col-indicator ci-amber"></div>
+          Unassigned
+          <span class="col-count" id="count-unassigned">{{ $unassignedTickets->count() }}</span>
+        </div>
+      </div>
+      <div class="k-cards-container" id="cards-unassigned">
+        @foreach($unassignedTickets as $ticket)
+          @include('tasks._unassigned_ticket_card', ['ticket' => $ticket, 'developersByCompany' => $developersByCompany])
+        @endforeach
+      </div>
+    </div>
+
     {{-- TO DO --}}
     <div class="kanban-col" id="col-todo" data-status="todo">
       <div class="col-header">
@@ -759,6 +780,10 @@ boardView.addEventListener('dragend', function(e) {
 document.querySelectorAll('.kanban-col').forEach(col => {
   col.addEventListener('dragover', function(e) {
     e.preventDefault();
+    if (this.dataset.status === 'unassigned') {
+      this.classList.remove('drag-over');
+      return;
+    }
     this.classList.add('drag-over');
   });
   col.addEventListener('dragleave', function(e) {
@@ -768,6 +793,10 @@ document.querySelectorAll('.kanban-col').forEach(col => {
     e.preventDefault();
     this.classList.remove('drag-over');
     const newStatus = this.dataset.status;
+    if (newStatus === 'unassigned') {
+      dragId = null;
+      return;
+    }
     if (!dragId || dragFromStatus === newStatus) { dragId = null; return; }
 
     const card = document.querySelector(`.k-card[data-id="${dragId}"]`);
@@ -1127,7 +1156,12 @@ async function deleteTask(id) {
 function updateCount(status) {
   const container = document.getElementById(`cards-${status}`);
   const badge     = document.getElementById(`count-${status}`);
-  if (container && badge) badge.textContent = container.querySelectorAll('.k-card').length;
+  if (!container || !badge) return;
+  if (status === 'unassigned') {
+    badge.textContent = container.querySelectorAll('.ut-card').length;
+    return;
+  }
+  badge.textContent = container.querySelectorAll('.k-card').length;
 }
 
 /* ── Task Filter Panel ───────────────────────────────────────── */
@@ -1169,7 +1203,7 @@ function applyTaskFilters() {
   });
 
   // Update column counts to reflect visible cards only
-  ['todo','doing','done'].forEach(status => {
+  ['unassigned','todo','doing','done'].forEach(status => {
     const container = document.getElementById(`cards-${status}`);
     const badge     = document.getElementById(`count-${status}`);
     if (container && badge) {
