@@ -60,10 +60,7 @@
         @error('password') <div class="f-error">{{ $message }}</div> @enderror
     </div>
 
-    <label class="f-check">
-        <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-        <label for="remember">Keep me signed in for 30 days</label>
-    </label>
+
 
     <button type="submit" class="f-btn">Sign In</button>
 
