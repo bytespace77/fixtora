@@ -41,6 +41,9 @@
 .badge-active   { background:var(--green-bg); color:var(--green); }
 .badge-inactive { background:var(--red-bg); color:var(--red); }
 
+.sys-chip-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.sys-chip { font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-lt); }
+
 table { width:100%; border-collapse:collapse; }
 thead th { padding:10px 16px; text-align:left; font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; border-bottom:1px solid var(--border); background:var(--bg); }
 tbody td { padding:12px 16px; font-size:13px; color:var(--text-2); border-bottom:1px solid var(--border); vertical-align:middle; }
@@ -52,6 +55,8 @@ tbody tr:hover td { background:#fafbfd; }
 @section('content')
 <div class="breadcrumb">
   <a href="{{ route('superadmin.dashboard') }}">Super Admin</a>
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  <a href="{{ route('superadmin.configuration') }}">Configuration</a>
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
   <a href="{{ route('superadmin.companies.index') }}">Companies</a>
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
@@ -105,6 +110,19 @@ tbody tr:hover td { background:#fafbfd; }
       <div class="field-row">
         <span class="field-label">Updated</span>
         <span class="field-value">{{ $company->updated_at->format('d M Y') }}</span>
+      </div>
+      <div class="field-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+        <span class="field-label">Ticket system names</span>
+        @php $syss = is_array($company->systems) ? $company->systems : []; @endphp
+        @if(count($syss))
+          <div class="sys-chip-list">
+            @foreach($syss as $s)
+              <span class="sys-chip">{{ $s }}</span>
+            @endforeach
+          </div>
+        @else
+          <span class="field-value" style="color:var(--muted); font-weight:500;">None yet — <a href="{{ route('superadmin.companies.edit', $company) }}" style="color:var(--blue)">edit company</a> to add.</span>
+        @endif
       </div>
     </div>
   </div>

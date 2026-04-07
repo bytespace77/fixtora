@@ -104,7 +104,30 @@ class SuperAdminController extends Controller
         ));
     }
 
+    /**
+     * Configuration hub: links to company list (system names per company), etc.
+     */
+    public function configuration()
+    {
+        $companyCount = Company::count();
+
+        return view('superadmin.configuration', compact('companyCount'));
+    }
+
     // ── Task 34: Company Management ───────────────────────────────────────
+
+    /**
+     * @return list<string>
+     */
+    private function normalizedSystemsFromRequest(Request $request): array
+    {
+        return collect($request->input('systems', []))
+            ->map(fn ($s) => trim((string) $s))
+            ->filter(fn ($s) => $s !== '')
+            ->unique()
+            ->values()
+            ->all();
+    }
 
     // List all companies
     public function companiesIndex()
@@ -146,9 +169,12 @@ class SuperAdminController extends Controller
             'name'      => 'required|string|max:255',
             'slug'      => 'required|string|max:255|unique:companies,slug|alpha_dash',
             'is_active' => 'nullable|boolean',
+            'systems'   => 'nullable|array',
+            'systems.*' => 'nullable|string|max:255',
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['systems'] = $this->normalizedSystemsFromRequest($request);
 
         Company::create($data);
 
@@ -169,9 +195,12 @@ class SuperAdminController extends Controller
             'name'      => 'required|string|max:255',
             'slug'      => 'required|string|max:255|unique:companies,slug,' . $company->id . '|alpha_dash',
             'is_active' => 'nullable|boolean',
+            'systems'   => 'nullable|array',
+            'systems.*' => 'nullable|string|max:255',
         ]);
 
         $data['is_active'] = $request->boolean('is_active', false);
+        $data['systems'] = $this->normalizedSystemsFromRequest($request);
 
         $company->update($data);
 

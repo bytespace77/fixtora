@@ -170,10 +170,8 @@ class TaskController extends Controller
         $doing = Task::with(['assignee', 'ticket.company', 'company'])->doing()->latest()->get();
         $done  = Task::with(['assignee', 'ticket.company', 'company'])->done()->latest()->get();
 
-        // ✅ Step 14: Only show users from the same company in the assignee dropdown (Filtered by Developer role)
-        $usersQuery = User::whereHas('userRole', function ($q) {
-                         $q->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
-                     })->orderBy('name');
+        // ✅ Step 14: Only show users from the same company in the assignee dropdown (filtered like User::isDeveloper())
+        $usersQuery = User::assignableDevelopers()->orderBy('name');
 
         if (!auth()->user()->isSuperAdmin()) {
             $usersQuery->where('company_id', auth()->user()->company_id);
@@ -229,9 +227,7 @@ class TaskController extends Controller
 
         $developersByCompany = [];
         foreach ($unassignedTickets->pluck('company_id')->filter()->unique() as $cid) {
-            $developersByCompany[(int) $cid] = User::whereHas('userRole', function ($q) {
-                $q->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
-            })
+            $developersByCompany[(int) $cid] = User::assignableDevelopers()
                 ->where('company_id', (int) $cid)
                 ->orderBy('name')
                 ->get();

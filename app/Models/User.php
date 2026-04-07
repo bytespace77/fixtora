@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -78,6 +79,22 @@ class User extends Authenticatable
     public function userRole()
     {
         return $this->belongsTo(\App\Models\Role::class, 'role_id');
+    }
+
+    /**
+     * Users who count as developers for assignment dropdowns.
+     * Matches {@see self::isDeveloper()}: either the linked Role is named "developer"
+     * or the legacy `users.role` column is "developer" (many installs use one or the other).
+     */
+    public function scopeAssignableDevelopers(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query->where(function (Builder $q) use ($table) {
+            $q->whereHas('userRole', function ($r) {
+                $r->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
+            })->orWhereRaw('LOWER(TRIM(COALESCE(' . $table . '.role, \'\'))) = ?', ['developer']);
+        });
     }
 
     // Check if user has a specific permission via their assigned role

@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\TicketAttachment;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -202,9 +203,7 @@ class TicketController extends Controller
         $developers = collect();
         if (auth()->user()->isSuperAdmin() || auth()->user()->hasPermission('assign_developer')) {
             $developerQuery = \App\Models\User::with('userRole')
-                ->whereHas('userRole', function ($q) {
-                    $q->whereRaw('LOWER(TRIM(name)) = ?', ['developer']);
-                })
+                ->assignableDevelopers()
                 ->orderBy('name');
 
             if ($ticket->company_id) {
@@ -212,6 +211,14 @@ class TicketController extends Controller
             }
 
             $developers = $developerQuery->get();
+
+            // Superadmin: prefer ticket company, but avoid an empty list when no devs match that company.
+            if ($developers->isEmpty() && auth()->user()->isSuperAdmin()) {
+                $developers = \App\Models\User::with('userRole')
+                    ->assignableDevelopers()
+                    ->orderBy('name')
+                    ->get();
+            }
         }
 
         return view('tickets.show', compact('ticket', 'developers'));
@@ -284,6 +291,8 @@ class TicketController extends Controller
             $validated = array_intersect_key($validated, array_flip(array_unique($allowedKeys)));
         }
 
+        $shouldCreateTaskFromTicket = false;
+
         if (array_key_exists('assigned_developer_id', $validated) || array_key_exists('sla_level', $validated)) {
             abort_unless($user->isSuperAdmin() || $user->hasPermission('assign_developer'), 403, 'You do not have permission to assign a developer or SLA.');
 
@@ -313,6 +322,13 @@ class TicketController extends Controller
                     'type'      => 'workflow_notification',
                     'target_role' => 'developer',
                 ]);
+
+                // When a ticket is newly assigned and it has no related tasks yet,
+                // automatically create a corresponding task so it appears on the
+                // Kanban board.
+                if (!$ticket->tasks()->exists()) {
+                    $shouldCreateTaskFromTicket = true;
+                }
             }
         }
 
@@ -519,6 +535,32 @@ class TicketController extends Controller
             if (!empty($taskUpdates)) {
                 $ticket->tasks()->update($taskUpdates);
             }
+        } elseif ($shouldCreateTaskFromTicket) {
+            // Map ticket priority to task priority scale.
+            $priorityMap = [
+                'low'      => 'low',
+                'medium'   => 'medium',
+                'high'     => 'high',
+                'critical' => 'urgent',
+            ];
+
+            $taskPriority = $priorityMap[$ticket->priority] ?? 'medium';
+
+            Task::create([
+                'title'       => $ticket->title,
+                'description' => $ticket->description,
+                'priority'    => $taskPriority,
+                'status'      => 'todo',
+                'assigned_to' => $ticket->assigned_developer_id,
+                'ticket_id'   => $ticket->id,
+                'due_date'    => $ticket->due_date,
+                'sla_level'   => $ticket->sla_level,
+                'estimated_delivery_date' => $ticket->estimated_delivery_date,
+                'actual_delivery_date'    => $ticket->actual_delivery_date,
+                'qc_test_date'            => $ticket->qc_test_date,
+                'company_id'  => $ticket->company_id,
+                'user_id'     => $user->id,
+            ]);
         }
 
         if (isset($validated['status']) && $validated['status'] !== $oldStatus) {

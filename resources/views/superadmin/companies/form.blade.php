@@ -11,7 +11,7 @@
 .breadcrumb a { color:var(--blue); text-decoration:none; }
 .breadcrumb a:hover { text-decoration:underline; }
 
-.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); max-width:600px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); max-width:720px; }
 .card-header { padding:18px 24px; border-bottom:1px solid var(--border); }
 .card-header h2 { font-size:15px; font-weight:700; color:var(--text); }
 .card-body { padding:24px; display:flex; flex-direction:column; gap:20px; }
@@ -39,12 +39,22 @@
 .btn-primary:hover { background:var(--blue-2); }
 .btn-outline { background:transparent; color:var(--text-2); border:1px solid var(--border-2); }
 .btn-outline:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-bg); }
+.btn-ghost { background:var(--bg); color:var(--text-2); border:1px solid var(--border-2); font-size:12px; padding:6px 12px; border-radius:var(--radius-sm); cursor:pointer; font-family:inherit; font-weight:600; }
+.btn-ghost:hover { border-color:var(--blue); color:var(--blue); }
+.systems-wrap { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+.system-row { display:flex; gap:8px; align-items:center; }
+.system-row input { flex:1; padding:10px 14px; border:1px solid var(--border-2); border-radius:var(--radius-sm); font-size:13.5px; font-family:inherit; }
+.system-row input:focus { border-color:var(--blue); outline:none; box-shadow:0 0 0 3px rgba(37,99,235,.08); }
+.btn-icon-remove { flex-shrink:0; width:36px; height:36px; border:1px solid var(--border-2); background:var(--surface); border-radius:var(--radius-sm); cursor:pointer; color:var(--muted); font-size:18px; line-height:1; display:flex; align-items:center; justify-content:center; }
+.btn-icon-remove:hover { color:var(--red); border-color:#fecaca; background:var(--red-bg); }
 </style>
 @endsection
 
 @section('content')
 <div class="breadcrumb">
   <a href="{{ route('superadmin.dashboard') }}">Super Admin</a>
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  <a href="{{ route('superadmin.configuration') }}">Configuration</a>
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
   <a href="{{ route('superadmin.companies.index') }}">Companies</a>
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
@@ -103,6 +113,29 @@
         </label>
       </div>
 
+      <div class="field" style="margin-top:20px; padding-top:20px; border-top:1px solid var(--border);">
+        <label>Ticket system names</label>
+        <span class="hint">These appear as the <strong>System name</strong> dropdown when creating tickets and assigning from the task board. Add one row per product/system (e.g. CRM Portal, API Gateway).</span>
+        @error('systems')<div class="error">{{ $message }}</div>@enderror
+        <div id="systems-container" class="systems-wrap" style="margin-top:10px;">
+          @php
+            $sysRows = old('systems');
+            if ($sysRows === null) {
+              $sysRows = isset($company) ? ($company->systems ?? []) : [];
+            }
+            if (!is_array($sysRows)) { $sysRows = []; }
+            if (count($sysRows) === 0) { $sysRows = ['']; }
+          @endphp
+          @foreach($sysRows as $sysVal)
+          <div class="system-row">
+            <input type="text" name="systems[]" value="{{ $sysVal }}" placeholder="e.g. Payment Gateway" maxlength="255">
+            <button type="button" class="btn-icon-remove js-remove-system" title="Remove">&times;</button>
+          </div>
+          @endforeach
+        </div>
+        <button type="button" class="btn-ghost" id="btn-add-system" style="margin-top:6px;">+ Add system name</button>
+      </div>
+
       <div class="footer">
         <button type="submit" class="btn btn-primary">
           {{ isset($company) ? 'Save Changes' : 'Create Company' }}
@@ -125,5 +158,28 @@ document.getElementById('name').addEventListener('input', function () {
   document.getElementById('slug').value = slug;
 });
 @endunless
+
+document.getElementById('btn-add-system')?.addEventListener('click', function () {
+  const container = document.getElementById('systems-container');
+  const row = document.createElement('div');
+  row.className = 'system-row';
+  row.innerHTML = '<input type="text" name="systems[]" value="" placeholder="e.g. Payment Gateway" maxlength="255">' +
+    '<button type="button" class="btn-icon-remove js-remove-system" title="Remove">&times;</button>';
+  container.appendChild(row);
+  row.querySelector('input').focus();
+});
+
+document.getElementById('systems-container')?.addEventListener('click', function (e) {
+  const btn = e.target.closest('.js-remove-system');
+  if (!btn) return;
+  const row = btn.closest('.system-row');
+  const rows = this.querySelectorAll('.system-row');
+  if (rows.length <= 1) {
+    const inp = row?.querySelector('input');
+    if (inp) inp.value = '';
+    return;
+  }
+  row?.remove();
+});
 </script>
 @endsection

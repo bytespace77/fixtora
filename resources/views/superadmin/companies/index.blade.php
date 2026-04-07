@@ -28,6 +28,8 @@ tbody tr:hover td { background:#fafbfd; }
 
 .company-name { font-weight:700; color:var(--text); font-size:13.5px; }
 .company-slug { font-size:11px; color:var(--muted); font-family:monospace; margin-top:2px; }
+.sys-count { font-size:11px; font-weight:700; color:var(--text-2); }
+.sys-preview { font-size:10px; color:var(--muted); margin-top:4px; max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .badge { display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; }
 .badge-active   { background:var(--green-bg); color:var(--green); }
@@ -49,13 +51,15 @@ tbody tr:hover td { background:#fafbfd; }
 <div class="breadcrumb">
   <a href="{{ route('superadmin.dashboard') }}">Super Admin</a>
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+  <a href="{{ route('superadmin.configuration') }}">Configuration</a>
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
   Companies
 </div>
 
 <div class="page-header">
   <div>
     <h1>Manage Companies</h1>
-    <p>CRUD interface — list, view, edit plan, and deactivate companies.</p>
+    <p>List companies, edit details, and set <strong>ticket system names</strong> per company (Configuration → edit company).</p>
   </div>
   <a href="{{ route('superadmin.companies.create') }}" class="btn btn-primary">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -84,6 +88,7 @@ tbody tr:hover td { background:#fafbfd; }
     <thead>
       <tr>
         <th>Company</th>
+        <th>Systems</th>
         <th>Status</th>
         <th>Users</th>
         <th>Tickets</th>
@@ -97,6 +102,15 @@ tbody tr:hover td { background:#fafbfd; }
         <td>
           <div class="company-name">{{ $company->name }}</div>
           <div class="company-slug">{{ $company->slug }}</div>
+        </td>
+        <td>
+          @php $syss = is_array($company->systems) ? $company->systems : []; @endphp
+          <span class="sys-count">{{ count($syss) }} {{ count($syss) === 1 ? 'system' : 'systems' }}</span>
+          @if(count($syss))
+            <div class="sys-preview" title="{{ implode(', ', $syss) }}">{{ implode(', ', $syss) }}</div>
+          @else
+            <div class="sys-preview" style="color:var(--muted-lt)">None — edit company</div>
+          @endif
         </td>
         <td>
           @if($company->is_active)

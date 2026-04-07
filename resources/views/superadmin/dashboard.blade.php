@@ -261,7 +261,10 @@ tbody tr:hover td { background:#fafbfd; }
 <div class="card">
   <div class="card-header">
     <h2>All Companies</h2>
-    <a href="{{ route('superadmin.companies.index') }}" class="btn btn-outline btn-sm">Manage Companies</a>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <a href="{{ route('superadmin.configuration') }}" class="btn btn-outline btn-sm">Configuration</a>
+      <a href="{{ route('superadmin.companies.index') }}" class="btn btn-outline btn-sm">Manage Companies</a>
+    </div>
   </div>
 
   @if($companyStats->isEmpty())

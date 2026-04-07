@@ -87,6 +87,9 @@ Route::middleware(['auth'])->group(function () {
         // Task 33: Super Admin dashboard
         Route::get('/', [SuperAdminController::class, 'dashboard'])->name('dashboard');
 
+        // Configuration hub (companies, system names, etc.)
+        Route::get('/configuration', [SuperAdminController::class, 'configuration'])->name('configuration');
+
         // Task 34: Company management CRUD
         Route::get('/companies', [SuperAdminController::class, 'companiesIndex'])->name('companies.index');
         Route::get('/companies/create', [SuperAdminController::class, 'companiesCreate'])->name('companies.create');
