@@ -64,6 +64,19 @@
     </div>
 
     <div class="f-group">
+        <label class="f-label" for="phone">Phone Number <span style="font-weight:400;opacity:.6">(optional)</span></label>
+        <div class="f-wrap">
+            <svg class="f-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.16 6.16l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <input id="phone" type="tel" name="phone" value="{{ old('phone') }}"
+                autocomplete="tel" placeholder="+60 12-345 6789"
+                class="f-input {{ $errors->has('phone') ? 'is-invalid' : '' }}">
+        </div>
+        @error('phone') <div class="f-error">{{ $message }}</div> @enderror
+    </div>
+
+    <div class="f-group">
         <label class="f-label" for="password">Password</label>
         <div class="f-wrap">
             <svg class="f-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

@@ -28,6 +28,7 @@ class RegisterController extends Controller
             'company_name' => ['required', 'string', 'max:255'],
             'name'         => ['required', 'string', 'max:255'],
             'email'        => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone'        => ['nullable', 'string', 'max:30'],
             'password'     => ['required', 'string', 'min:8', 'confirmed'],
         ]);
     }
@@ -58,6 +59,7 @@ class RegisterController extends Controller
         return User::create([
             'name'       => $data['name'],
             'email'      => $data['email'],
+            'phone'      => $data['phone'] ?? null,
             'password'   => Hash::make($data['password']),
             'company_id' => $company->id,
             'role'       => 'user',    // ← all self-registered users are 'user', only superadmin is seeded manually

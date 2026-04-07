@@ -98,5 +98,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/companies/{company}/edit', [SuperAdminController::class, 'companiesEdit'])->name('companies.edit');
         Route::patch('/companies/{company}', [SuperAdminController::class, 'companiesUpdate'])->name('companies.update');
         Route::patch('/companies/{company}/toggle', [SuperAdminController::class, 'companiesToggle'])->name('companies.toggle');
+
+        // User management
+        Route::get('/users', [SuperAdminController::class, 'usersIndex'])->name('users.index');
+        Route::patch('/users/{user}/toggle', [SuperAdminController::class, 'usersToggle'])->name('users.toggle');
+        Route::post('/users/{user}/reset-password', [SuperAdminController::class, 'usersResetPassword'])->name('users.resetPassword');
     });
 });

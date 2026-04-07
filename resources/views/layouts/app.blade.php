@@ -600,7 +600,7 @@ html, body {
       </a>
 
       {{-- Configuration dropdown --}}
-      @php $configOpen = request()->routeIs('superadmin.companies.*', 'superadmin.configuration', 'roles.*'); @endphp
+      @php $configOpen = request()->routeIs('superadmin.companies.*', 'superadmin.configuration', 'superadmin.users.*', 'roles.*'); @endphp
       <div class="nav-group">
         <button class="nav-group-toggle {{ $configOpen ? 'open' : '' }}" onclick="toggleNavGroup(this)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -615,6 +615,13 @@ html, body {
               <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
             </svg>
             Companies
+          </a>
+          <a href="{{ route('superadmin.users.index') }}" class="nav-item {{ request()->routeIs('superadmin.users.*') ? 'active' : '' }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            Users
           </a>
           <a href="{{ route('roles.index') }}" class="nav-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">

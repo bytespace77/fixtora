@@ -20,6 +20,8 @@ class User extends Authenticatable
         'company_id',
         'role',
         'role_id',
+        'phone',
+        'is_disabled',
     ];
 
     protected $hidden = ['password', 'remember_token'];

@@ -6,6 +6,8 @@ use App\Models\Company;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class SuperAdminController extends Controller
 {
@@ -90,6 +92,9 @@ class SuperAdminController extends Controller
             ];
         });
 
+        // All users for the inline Users tab
+        $allUsers = User::with('company')->latest()->get();
+
         return view('superadmin.dashboard', compact(
             'companyStats',
             'totalCompanies',
@@ -100,7 +105,8 @@ class SuperAdminController extends Controller
             'csatAvg',
             'csatCount',
             'csatDistribution',
-            'recentCsat'
+            'recentCsat',
+            'allUsers'
         ));
     }
 
@@ -113,6 +119,53 @@ class SuperAdminController extends Controller
 
         return view('superadmin.configuration', compact('companyCount'));
     }
+
+    // ── User Management ───────────────────────────────────────────────────
+
+    public function usersIndex(Request $request)
+    {
+        $query = User::with('company')->latest();
+
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($companyId = $request->input('company_id')) {
+            $query->where('company_id', $companyId);
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('is_disabled', $status === 'disabled');
+        }
+
+        $users     = $query->paginate(20);
+        $companies = Company::orderBy('name')->get();
+
+        return view('superadmin.users.index', compact('users', 'companies'));
+    }
+
+    public function usersToggle(User $user)
+    {
+        abort_if($user->isSuperAdmin(), 403, 'Cannot disable super admin accounts.');
+        $user->update(['is_disabled' => !$user->is_disabled]);
+        $status = $user->is_disabled ? 'disabled' : 'enabled';
+        return back()->with('success', "User \"{$user->name}\" has been {$status}.");
+    }
+
+    public function usersResetPassword(User $user)
+    {
+        $tempPassword = Str::random(10);
+        $user->update([
+            'password'            => Hash::make($tempPassword),
+            'password_changed_at' => null,
+        ]);
+        return back()->with('temp_password', $tempPassword)
+                     ->with('success', "Password reset for \"{$user->name}\".");
+    }
+
 
     // ── Task 34: Company Management ───────────────────────────────────────
 

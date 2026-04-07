@@ -51,6 +51,12 @@ tbody tr:hover td { background:#fafbfd; }
 
 .actions-cell { display:flex; gap:6px; flex-wrap:wrap; }
 
+/* ── Inline tabs ─────────────────────────────────────────── */
+.dash-tab-btn { background:none; border:none; cursor:pointer; padding:10px 20px; font-size:13px; font-weight:700; color:var(--muted); border-bottom:2px solid transparent; margin-bottom:-2px; font-family:inherit; transition:color .12s; }
+.dash-tab-btn:hover { color:var(--text); }
+.dash-tab-btn.active { color:var(--blue); border-bottom-color:var(--blue); }
+.dash-panel { margin-top:16px; }
+
 /* Alert */
 .alert { padding:12px 18px; border-radius:var(--radius-sm); margin-bottom:18px; font-size:13px; font-weight:500; }
 .alert-success { background:var(--green-bg); color:var(--green); border:1px solid #bbf7d0; }
@@ -257,14 +263,24 @@ tbody tr:hover td { background:#fafbfd; }
   @endif
 </div>
 
-{{-- ── Companies table ── --}}
+{{-- ── Companies / Users Tabs ── --}}
+<div style="margin-bottom:0;border-bottom:2px solid var(--border);display:flex;gap:0">
+  <button onclick="switchTab('companies')" id="tab-btn-companies"
+    class="dash-tab-btn active">
+    Companies
+  </button>
+  <button onclick="switchTab('users')" id="tab-btn-users"
+    class="dash-tab-btn">
+    Users
+  </button>
+</div>
+
+{{-- ── Companies Panel ── --}}
+<div id="panel-companies" class="dash-panel">
 <div class="card">
   <div class="card-header">
     <h2>All Companies</h2>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <a href="{{ route('superadmin.configuration') }}" class="btn btn-outline btn-sm">Configuration</a>
-      <a href="{{ route('superadmin.companies.index') }}" class="btn btn-outline btn-sm">Manage Companies</a>
-    </div>
+    <a href="{{ route('superadmin.companies.index') }}" class="btn btn-outline btn-sm">Manage Companies</a>
   </div>
 
   @if($companyStats->isEmpty())
@@ -334,4 +350,162 @@ tbody tr:hover td { background:#fafbfd; }
   </table>
   @endif
 </div>
+</div>{{-- /panel-companies --}}
+
+{{-- ── Users Panel ── --}}
+<div id="panel-users" class="dash-panel" style="display:none">
+<div class="card">
+  <div class="card-header">
+    <h2>All Users</h2>
+    <a href="{{ route('superadmin.users.index') }}" class="btn btn-outline btn-sm">Manage Users</a>
+  </div>
+  @if($allUsers->isEmpty())
+    <div style="padding:40px;text-align:center;color:var(--muted)">No users found.</div>
+  @else
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>User ID</th>
+        <th>Company</th>
+        <th>User Role</th>
+        <th>Date Joined</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach($allUsers as $user)
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,#2563eb,#7c3aed);flex-shrink:0">
+              {{ strtoupper(substr($user->name,0,2)) }}
+            </div>
+            <div>
+              <div class="company-name">{{ $user->name }}</div>
+              <div class="company-slug">{{ $user->email }}</div>
+              @if($user->phone)<div class="company-slug">📞 {{ $user->phone }}</div>@endif
+            </div>
+          </div>
+        </td>
+        <td style="font-family:monospace;font-size:12px;color:var(--muted)">#{{ str_pad($user->id,5,'0',STR_PAD_LEFT) }}</td>
+        <td>{{ $user->company->name ?? '—' }}</td>
+        <td>
+          @if($user->role === 'superadmin')
+            <span class="badge" style="background:#fef3c7;color:#92400e">Super Admin</span>
+          @else
+            <span class="badge" style="background:var(--blue-bg,#eff6ff);color:var(--blue)">{{ ucfirst($user->role ?? 'User') }}</span>
+          @endif
+        </td>
+        <td>{{ $user->created_at->format('d M Y') }}</td>
+        <td>
+          @if(!$user->is_disabled)
+            <span class="badge badge-active">Active</span>
+          @else
+            <span class="badge badge-inactive">Disabled</span>
+          @endif
+        </td>
+        <td>
+          <div class="actions-cell">
+            <button type="button" class="btn btn-outline btn-sm"
+              onclick="openViewModal({{ json_encode(['name'=>$user->name,'email'=>$user->email,'phone'=>$user->phone ?? '—','company'=>$user->company->name ?? '—','role'=>$user->role,'joined'=>$user->created_at->format('d M Y')]) }})">
+              View
+            </button>
+            <form method="POST" action="{{ route('superadmin.users.resetPassword', $user) }}" style="display:inline"
+              onsubmit="return confirm('Reset password for {{ addslashes($user->name) }}?')">
+              @csrf
+              <button type="submit" class="btn btn-outline btn-sm">Reset PW</button>
+            </form>
+            @if($user->role !== 'superadmin')
+            <form method="POST" action="{{ route('superadmin.users.toggle', $user) }}" style="display:inline"
+              onsubmit="return confirm('{{ $user->is_disabled ? 'Enable' : 'Disable' }} {{ addslashes($user->name) }}?')">
+              @csrf @method('PATCH')
+              <button type="submit" class="btn btn-sm {{ $user->is_disabled ? 'btn-outline' : 'btn-danger' }}" style="{{ $user->is_disabled ? 'color:var(--green);border-color:var(--green)' : '' }}">
+                {{ $user->is_disabled ? 'Enable' : 'Disable' }}
+              </button>
+            </form>
+            @endif
+          </div>
+        </td>
+      </tr>
+      @endforeach
+    </tbody>
+  </table>
+  @endif
+</div>
+</div>{{-- /panel-users --}}
+
+{{-- View User Modal --}}
+<div id="viewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius);width:100%;max-width:440px;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.18)">
+    <button onclick="closeViewModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:var(--muted)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3 id="vm-name" style="font-size:17px;font-weight:800;color:var(--navy);margin-bottom:4px"></h3>
+    <p id="vm-role" style="font-size:13px;color:var(--muted);margin-bottom:20px"></p>
+    <div style="display:grid;gap:14px">
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Email</div><div id="vm-email" style="font-size:13px;color:var(--text)"></div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Phone</div><div id="vm-phone" style="font-size:13px;color:var(--text)"></div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Company</div><div id="vm-company" style="font-size:13px;color:var(--text)"></div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">Date Joined</div><div id="vm-joined" style="font-size:13px;color:var(--text)"></div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:20px">
+      <button onclick="closeViewModal()" class="btn btn-outline">Close</button>
+    </div>
+  </div>
+</div>
+
+{{-- Temp password modal --}}
+@if(session('temp_password'))
+<div id="pwModal" style="display:flex;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius);width:100%;max-width:400px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.18)">
+    <h3 style="font-size:17px;font-weight:800;color:var(--navy);margin-bottom:6px">Password Reset</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Share this temporary password with the user. It will not be shown again.</p>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px;font-family:monospace;font-size:20px;font-weight:700;color:var(--navy);text-align:center;letter-spacing:3px">
+      {{ session('temp_password') }}
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-primary" onclick="document.getElementById('pwModal').style.display='none'">Done</button>
+    </div>
+  </div>
+</div>
+@endif
+
+@endsection
+
+@section('scripts')
+<script>
+function switchTab(tab) {
+  ['companies','users'].forEach(function(t) {
+    document.getElementById('panel-' + t).style.display  = t === tab ? '' : 'none';
+    var btn = document.getElementById('tab-btn-' + t);
+    if (t === tab) { btn.classList.add('active'); }
+    else           { btn.classList.remove('active'); }
+  });
+  // persist across soft-reload
+  history.replaceState(null,'', location.pathname + '?tab=' + tab);
+}
+
+// Restore tab from URL on load
+(function(){
+  var params = new URLSearchParams(location.search);
+  if (params.get('tab') === 'users') switchTab('users');
+})();
+
+function openViewModal(data) {
+  document.getElementById('vm-name').textContent    = data.name;
+  document.getElementById('vm-role').textContent    = data.role + ' · ' + data.company;
+  document.getElementById('vm-email').textContent   = data.email;
+  document.getElementById('vm-phone').textContent   = data.phone || '—';
+  document.getElementById('vm-company').textContent = data.company;
+  document.getElementById('vm-joined').textContent  = data.joined;
+  var m = document.getElementById('viewModal');
+  m.style.display = 'flex';
+}
+function closeViewModal() {
+  document.getElementById('viewModal').style.display = 'none';
+}
+document.getElementById('viewModal').addEventListener('click', function(e){ if(e.target===this) closeViewModal(); });
+</script>
 @endsection
