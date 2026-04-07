@@ -9,13 +9,59 @@
 .breadcrumb { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); margin-bottom:16px; }
 .breadcrumb a { color:var(--blue); text-decoration:none; }
 .breadcrumb a:hover { text-decoration:underline; }
-.grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:18px; max-width:900px; }
-.hub-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px 24px; text-decoration:none; color:inherit; display:block; transition:box-shadow .15s, border-color .15s; }
-.hub-card:hover { box-shadow:var(--shadow-md); border-color:var(--blue-lt); }
-.hub-card h2 { font-size:15px; font-weight:800; color:var(--navy); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
-.hub-card p { font-size:13px; color:var(--muted); line-height:1.55; margin-bottom:14px; }
-.hub-card .hub-meta { font-size:11px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:.5px; }
-.hub-card svg.icon { color:var(--blue); flex-shrink:0; }
+.config-layout { display:flex; gap:20px; align-items:flex-start; }
+.config-sidebar { width:220px; flex-shrink:0; }
+.config-sidebar-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:8px; }
+.config-nav { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px 0; }
+.config-nav a {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 14px;
+  font-size:13px; font-weight:500;
+  color:var(--text-2); text-decoration:none;
+  border-left:3px solid transparent;
+}
+.config-nav a span.icon {
+  width:22px; height:22px;
+  border-radius:7px;
+  background:var(--blue-bg); color:var(--blue);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700;
+}
+.config-nav a.active {
+  background:#eff6ff;
+  border-left-color:var(--blue);
+  color:var(--navy);
+}
+.config-nav a:hover { background:#f8fafc; }
+.config-main { flex:1; }
+.config-panel {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:22px 24px;
+}
+.config-panel h2 {
+  font-size:15px;
+  font-weight:800;
+  color:var(--navy);
+  margin-bottom:8px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.config-panel p {
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.55;
+  margin-bottom:14px;
+}
+.config-panel .meta {
+  font-size:11px;
+  font-weight:700;
+  color:var(--blue);
+  text-transform:uppercase;
+  letter-spacing:.5px;
+}
 </style>
 @endsection
 
@@ -32,15 +78,27 @@
     <p>Set up companies and the product <strong>system names</strong> used on tickets and assignments.</p>
   </div>
 </div>
+<div class="config-layout">
+  <div class="config-sidebar">
+    <div class="config-sidebar-title">Configuration modules</div>
+    <div class="config-nav">
+      <a href="{{ route('superadmin.companies.index') }}" class="active">
+        <span class="icon">Co</span>
+        <div>
+          <div style="font-weight:600;">Companies</div>
+          <div style="font-size:11px;color:var(--muted);">Tenants &amp; ticket system names</div>
+        </div>
+      </a>
+      {{-- Future modules can be added here (e.g. SLA presets, notification templates, etc.) --}}
+    </div>
+  </div>
 
-<div class="grid">
-  <a href="{{ route('superadmin.companies.index') }}" class="hub-card">
-    <h2>
-      <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M7 16h10"/><path d="M6 10h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z"/><path d="M8 10V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/></svg>
-      Companies &amp; system names
-    </h2>
-    <p>Open the company list. When you create or edit a company, add each <strong>system name</strong> (e.g. CRM Portal, Payment GW). Those names appear in ticket forms and on the task board.</p>
-    <span class="hub-meta">{{ $companyCount }} {{ $companyCount === 1 ? 'company' : 'companies' }} on file →</span>
-  </a>
+  <div class="config-main">
+    <div class="config-panel">
+      <h2>Companies &amp; system names</h2>
+      <p>Manage companies and the <strong>system names</strong> that appear in ticket forms and on the task board. Each company can define its own catalog of systems (for example, <em>CRM Portal</em>, <em>Client App</em>, or <em>Payment Gateway</em>).</p>
+      <p class="meta">{{ $companyCount }} {{ $companyCount === 1 ? 'company' : 'companies' }} on file · <a href="{{ route('superadmin.companies.index') }}" style="color:var(--blue);text-decoration:none;">Open company list →</a></p>
+    </div>
+  </div>
 </div>
 @endsection

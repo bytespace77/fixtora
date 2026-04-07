@@ -569,19 +569,19 @@ html, body {
       </a>
       @endif
 
-      {{-- Configuration + Super Admin (superadmin only) --}}
+      {{-- Super Admin + Configuration (superadmin only) --}}
       @if(Auth::user()->isSuperAdmin())
-      <a href="{{ route('superadmin.configuration') }}" class="nav-item {{ request()->routeIs('superadmin.configuration', 'superadmin.companies.*') ? 'active' : '' }}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>
-        Configuration
-      </a>
       <a href="{{ route('superadmin.dashboard') }}" class="nav-item {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
         </svg>
         Super Admin
+      </a>
+      <a href="{{ route('superadmin.configuration') }}" class="nav-item {{ request()->routeIs('superadmin.configuration', 'superadmin.companies.*') ? 'active' : '' }}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        Configuration
       </a>
       @endif
     </nav>
