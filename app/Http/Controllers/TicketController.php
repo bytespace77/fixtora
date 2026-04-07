@@ -61,6 +61,12 @@ class TicketController extends Controller
 
         $query = Ticket::with('user')->latest();
 
+        // Unassigned filter — ?unassigned=1
+        $filterUnassigned = $request->boolean('unassigned');
+        if ($filterUnassigned) {
+            $query->whereNull('assigned_developer_id');
+        }
+
         // Status filter — supports ?status=open, ?status[]=…, and ?status[]=open&status[]=in_progress (also status[0]=… from http_build_query)
         $statuses = [];
         if ($request->has('status')) {
@@ -111,7 +117,12 @@ class TicketController extends Controller
         $companySystems = auth()->user()->company?->systems ?? [];
         $companySystemMap = Company::where('is_active', true)->orderBy('name')->get(['name', 'systems'])->mapWithKeys(fn ($c) => [$c->name => $c->systems ?? []]);
 
-        return view('tickets.index', compact('tickets', 'companySystems', 'companySystemMap'));
+        // Count for Unassigned tab
+        $unassignedCount = Ticket::whereNull('assigned_developer_id')
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->count();
+
+        return view('tickets.index', compact('tickets', 'companySystems', 'companySystemMap', 'unassignedCount'));
     }
 
     public function create()

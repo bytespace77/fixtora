@@ -226,11 +226,14 @@ class TaskController extends Controller
         }
 
         $developersByCompany = [];
+        $isSuperAdmin = auth()->user()->isSuperAdmin();
         foreach ($unassignedTickets->pluck('company_id')->filter()->unique() as $cid) {
-            $developersByCompany[(int) $cid] = User::assignableDevelopers()
-                ->where('company_id', (int) $cid)
-                ->orderBy('name')
-                ->get();
+            $query = User::assignableDevelopers()->orderBy('name');
+            // SuperAdmin can assign any developer across all companies
+            if (!$isSuperAdmin) {
+                $query->where('company_id', (int) $cid);
+            }
+            $developersByCompany[(int) $cid] = $query->get();
         }
 
         // Build per-company sequences for tickets and tasks so display becomes #XX-0001.

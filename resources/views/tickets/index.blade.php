@@ -191,8 +191,11 @@ textarea.form-control{resize:vertical;min-height:80px}
 
 <!-- Status Tabs -->
 <div class="filter-row">
-  <a href="{{ route('tickets.index') }}" class="filter-tab {{ !request('status') && !request('status[]') ? 'active' : '' }}">
+  <a href="{{ route('tickets.index') }}" class="filter-tab {{ !request('status') && !request('status[]') && !request('unassigned') ? 'active' : '' }}">
     All Tickets <span class="tab-count">{{ $tickets->total() }}</span>
+  </a>
+  <a href="{{ route('tickets.index', ['unassigned' => 1]) }}" class="filter-tab {{ request('unassigned') ? 'active' : '' }}" style="{{ request('unassigned') ? '' : 'color:#b91c1c;border-color:#fecaca;background:#fef2f2;' }}">
+    Unassigned <span class="tab-count" style="{{ request('unassigned') ? '' : 'background:#fee2e2;color:#b91c1c;' }}">{{ $unassignedCount }}</span>
   </a>
   @foreach(['open'=>'Open','in_progress'=>'In Progress','in_review'=>'In Review','resolved'=>'Resolved','closed'=>'Closed'] as $val=>$label)
   <a href="{{ route('tickets.index', ['status[]' => [$val]]) }}" class="filter-tab {{ (request('status[]') === [$val] || request('status') === $val) ? 'active' : '' }}">{{ $label }}</a>

@@ -160,6 +160,40 @@ html, body {
     width: 3px; border-radius: 0 3px 3px 0;
     background: #60a5fa;
 }
+.nav-group { margin-bottom: 2px; }
+.nav-group-toggle {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    border: none; background: transparent;
+    width: 100%; text-align: left;
+    font-family: 'Monsterra', 'Montserrat', sans-serif;
+}
+.nav-group-toggle:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.07); }
+.nav-group-toggle svg.toggle-icon { margin-left: auto; flex-shrink: 0; opacity: 0.5; transition: transform 0.2s; }
+.nav-group-toggle svg:first-child { flex-shrink: 0; opacity: 0.65; }
+.nav-group-toggle:hover svg { opacity: 0.9; }
+.nav-group-toggle.open svg.toggle-icon { transform: rotate(180deg); }
+.nav-group-toggle.open { color: rgba(255,255,255,0.85); }
+.nav-group-children {
+    display: none;
+    flex-direction: column;
+    padding-left: 14px;
+    margin-top: 1px;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    margin-left: 19px;
+}
+.nav-group-children.open { display: flex; }
+.nav-group-children .nav-item {
+    font-size: 12.5px;
+    padding: 7px 10px;
+    margin-bottom: 1px;
+}
 
 .nav-badge {
     margin-left: auto;
@@ -556,19 +590,6 @@ html, body {
       </a>
       @endif
 
-      {{-- User Roles: superadmin only --}}
-      @if((Auth::user()->isSuperAdmin() || Auth::user()->hasPermission('view_roles')) && !Auth::user()->isDeveloper())
-      <a href="{{ route('roles.index') }}" class="nav-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        User Roles
-      </a>
-      @endif
-
       {{-- Super Admin + Configuration (superadmin only) --}}
       @if(Auth::user()->isSuperAdmin())
       <a href="{{ route('superadmin.dashboard') }}" class="nav-item {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}">
@@ -577,12 +598,35 @@ html, body {
         </svg>
         Super Admin
       </a>
-      <a href="{{ route('superadmin.configuration') }}" class="nav-item {{ request()->routeIs('superadmin.configuration', 'superadmin.companies.*') ? 'active' : '' }}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>
-        Configuration
-      </a>
+
+      {{-- Configuration dropdown --}}
+      @php $configOpen = request()->routeIs('superadmin.companies.*', 'superadmin.configuration', 'roles.*'); @endphp
+      <div class="nav-group">
+        <button class="nav-group-toggle {{ $configOpen ? 'open' : '' }}" onclick="toggleNavGroup(this)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          Configuration
+          <svg class="toggle-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="nav-group-children {{ $configOpen ? 'open' : '' }}">
+          <a href="{{ route('superadmin.companies.index') }}" class="nav-item {{ request()->routeIs('superadmin.companies.*') ? 'active' : '' }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            </svg>
+            Companies
+          </a>
+          <a href="{{ route('roles.index') }}" class="nav-item {{ request()->routeIs('roles.*') ? 'active' : '' }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            User Roles
+          </a>
+        </div>
+      </div>
       @endif
     </nav>
 
@@ -817,6 +861,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+function toggleNavGroup(btn) {
+    btn.classList.toggle('open');
+    const children = btn.nextElementSibling;
+    children.classList.toggle('open');
+}
 </script>
 @yield('scripts')
 </body>
