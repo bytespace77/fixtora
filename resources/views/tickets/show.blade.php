@@ -304,10 +304,19 @@ textarea.form-control{resize:vertical;min-height:80px}
           @endif
           @foreach($statusTimelineItems as $st)
           <div class="tl-item">
-            <div class="tl-dot orange">↔</div>
+            <div class="tl-dot orange" style="{{ ($st->user->avatar_url ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
+              @if($st->user->avatar_url ?? null)
+                <img src="{{ $st->user->avatar_url }}" alt="{{ $st->user->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+              @else
+                {{ strtoupper(substr($st->user->name ?? 'U', 0, 1)) }}
+              @endif
+            </div>
             <div>
               <div class="tl-title">{{ $st->body }}</div>
               <div class="tl-time">{{ $st->created_at->format('M d, Y · H:i') }}</div>
+              @if($st->user ?? null)
+                <div class="tl-desc">By {{ $st->user->name }}</div>
+              @endif
             </div>
           </div>
           @endforeach
