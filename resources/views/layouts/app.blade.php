@@ -489,7 +489,7 @@ html, body {
 @yield('styles')
 </head>
 <body>
-@includeWhen(str_contains(request()->getHost(), 'ngrok'), 'partials.ngrok-client-fix')
+
 <div class="shell">
 
   <!-- SIDEBAR -->
