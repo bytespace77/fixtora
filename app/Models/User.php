@@ -86,7 +86,7 @@ class User extends Authenticatable
      */
     public function hasGlobalDataAccess(): bool
     {
-        return $this->isSuperAdmin();
+        return $this->isSuperAdmin() || $this->isQc();
     }
 
     // A user belongs to one assigned role

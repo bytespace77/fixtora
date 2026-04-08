@@ -676,18 +676,6 @@ textarea.form-control{resize:vertical;min-height:80px}
         @endif
         @endif
 
-        {{-- QC users: only show QC Test Date field --}}
-        @if(auth()->user()->isQc())
-        <div style="margin:20px 0 16px;border-top:1px dashed var(--border);padding-top:16px;display:flex;align-items:center;gap:6px">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          <strong style="font-size:13px;color:var(--navy);font-weight:800;letter-spacing:-.2px;font-family:inherit">QC Testing</strong>
-        </div>
-        <div class="form-group">
-          <label>QC Test Date</label>
-          <input type="datetime-local" id="edit-qc_test_date" class="form-control">
-          <small style="color:var(--muted-lt);font-size:11px">Set this date when you have completed QC testing on this task.</small>
-        </div>
-        @endif
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button>

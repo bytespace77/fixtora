@@ -174,7 +174,7 @@ class TaskController extends Controller
         // ✅ Step 14: Only show users from the same company in the assignee dropdown (filtered like User::isDeveloper())
         $usersQuery = User::assignableDevelopers()->orderBy('name');
 
-        if (!auth()->user()->isSuperAdmin()) {
+        if (!auth()->user()->hasGlobalDataAccess()) {
             $usersQuery->where('company_id', auth()->user()->company_id);
         }
 
@@ -227,7 +227,7 @@ class TaskController extends Controller
         }
 
         $developersByCompany = [];
-        $isSuperAdmin = auth()->user()->isSuperAdmin();
+        $isSuperAdmin = auth()->user()->hasGlobalDataAccess();
         foreach ($unassignedTickets->pluck('company_id')->filter()->unique() as $cid) {
             $query = User::assignableDevelopers()->orderBy('name');
             // SuperAdmin can assign any developer across all companies

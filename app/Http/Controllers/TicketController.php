@@ -29,8 +29,8 @@ class TicketController extends Controller
     {
         $user = auth()->user();
 
-        // Superadmin can access all companies
-        if ($user->isSuperAdmin()) {
+        // Superadmin and QC can access all companies
+        if ($user->hasGlobalDataAccess()) {
             return;
         }
 
@@ -135,7 +135,7 @@ class TicketController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('create_tickets'), 403, 'You do not have permission to create tickets.');
 
-        $companies = auth()->user()->isSuperAdmin()
+        $companies = auth()->user()->hasGlobalDataAccess()
             ? \App\Models\Company::where('is_active', true)->pluck('name')
             : [];
 
@@ -172,7 +172,7 @@ class TicketController extends Controller
         }
 
         $validated['company_id'] = auth()->user()->company_id;
-        if (auth()->user()->isSuperAdmin()) {
+        if (auth()->user()->hasGlobalDataAccess()) {
             $company = Company::where('name', $validated['system'])->first();
             if ($company) {
                 $validated['company_id'] = $company->id;

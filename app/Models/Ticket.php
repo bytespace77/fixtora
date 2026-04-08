@@ -49,7 +49,7 @@ class Ticket extends Model
         static::addGlobalScope('company', function ($query) {
             if (Auth::check()) {
                 $user = Auth::user();
-                if ($user->isSuperAdmin()) {
+                if ($user->hasGlobalDataAccess()) {
                     return;
                 }
                 if ($user->isDeveloper()) {
@@ -59,9 +59,6 @@ class Ticket extends Model
                               $taskQ->where('assigned_to', $user->id);
                           });
                     });
-                    return;
-                }
-                if ($user->hasGlobalDataAccess()) {
                     return;
                 }
                 if ($user->company_id) {

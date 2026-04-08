@@ -27,7 +27,7 @@ class ReportController extends Controller
         $user = auth()->user();
         $query = Task::withoutGlobalScopes();
 
-        if ($user->isSuperAdmin()) {
+        if ($user->hasGlobalDataAccess()) {
             return $query; // sees everything
         }
 
@@ -145,7 +145,7 @@ class ReportController extends Controller
         $distribution = [$openCount, $inProgressCount, $resolvedCount];
 
         // Team Performance — superadmin only, grouped by role
-        $isSuperAdmin = auth()->user()->isSuperAdmin();
+        $isSuperAdmin = auth()->user()->hasGlobalDataAccess();
         $agentsByRole = [];
 
         if ($isSuperAdmin) {

@@ -251,41 +251,66 @@ class AppServiceProvider extends ServiceProvider
         // ══════════════════════════════════════════════════════
         // QC-SPECIFIC NOTIFICATION FEED
         // ══════════════════════════════════════════════════════
-        if ($user->isQc() && !$hasGlobalDataAccess) {
-            // 1. Tickets that are in_review (QC needs to test these)
+        if ($user->isQc()) {
+            // 1. Tickets updated to in_progress, in_review, or resolved
             $qcTickets = Ticket::withoutGlobalScope('company')
-                ->where('status', 'in_review')
+                ->whereIn('status', ['in_progress', 'in_review', 'resolved'])
                 ->orderByDesc('updated_at')
-                ->take(20)
+                ->take(30)
                 ->get();
 
             foreach ($qcTickets as $ticket) {
                 $ticketRef = '#TK-' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT);
+                $statusLabel = match ($ticket->status) {
+                    'in_progress' => 'In Progress (Development Started)',
+                    'in_review'   => 'In Review (Ready for QC)',
+                    'resolved'    => 'Resolved',
+                    default       => ucfirst(str_replace('_', ' ', $ticket->status))
+                };
+                
                 $items->push([
-                    'unique_id'   => 'qc_review_' . $ticket->id . '_' . $ticket->updated_at->timestamp,
-                    'title'       => 'QC Testing Required — ' . $ticketRef,
-                    'description' => $ticket->title . ' · Ready for QC testing',
+                    'unique_id'   => 'qc_ticket_' . $ticket->id . '_' . $ticket->updated_at->timestamp,
+                    'title'       => 'Ticket Status Changed — ' . $ticketRef,
+                    'description' => $ticket->title . ' · Status: ' . $statusLabel,
                     'time'        => $ticket->updated_at,
                     'time_human'  => $this->humanTime($ticket->updated_at),
                     'is_new'      => $ticket->updated_at && $ticket->updated_at->greaterThan(now()->subDay()),
-                    'type'        => 'orange',
-                    'category'    => 'QC Testing',
+                    'type'        => $this->mapTicketType($ticket->priority),
+                    'category'    => 'Ticket Update',
                     'url'         => route('tickets.show', $ticket),
                 ]);
             }
 
-            // 2. Workflow notifications targeted at QC role
-            $qcTicketIds = $qcTickets->pluck('id')->toArray();
-
-            // Also get recently resolved tickets (QC may have just processed)
-            $recentTicketIds = Ticket::withoutGlobalScope('company')
-                ->whereIn('status', ['in_review', 'resolved'])
+            // 2. Tasks updated to doing or done
+            $qcTasks = Task::with('ticket')
+                ->withoutGlobalScopes()
+                ->whereIn('status', ['doing', 'done'])
                 ->orderByDesc('updated_at')
                 ->take(30)
-                ->pluck('id')
-                ->toArray();
+                ->get();
 
-            $allQcTicketIds = array_unique(array_merge($qcTicketIds, $recentTicketIds));
+            foreach ($qcTasks as $task) {
+                $ticketRef = $task->ticket ? '#TK-' . str_pad((string) $task->ticket->id, 4, '0', STR_PAD_LEFT) : '';
+                $statusLabel = $task->status === 'doing' ? 'In Progress' : 'Resolved (Ready for QC)';
+
+                $items->push([
+                    'unique_id'   => 'qc_task_' . $task->id . '_' . $task->updated_at->timestamp,
+                    'title'       => 'Task Status Updated — ' . ($ticketRef ?: '#TASK-' . str_pad((string) $task->id, 4, '0', STR_PAD_LEFT)),
+                    'description' => ($task->title ?: 'Untitled task') . ' · Status changed to ' . $statusLabel,
+                    'time'        => $task->updated_at,
+                    'time_human'  => $this->humanTime($task->updated_at),
+                    'is_new'      => $task->updated_at && $task->updated_at->greaterThan(now()->subDay()),
+                    'type'        => $this->mapTaskType($task->status),
+                    'category'    => 'Task Update',
+                    'url'         => $task->ticket_id ? route('tickets.show', $task->ticket_id) : route('tasks.index'),
+                ]);
+            }
+
+            // 3. Workflow notifications targeted at QC role
+            $allQcTicketIds = array_unique(array_merge(
+                $qcTickets->pluck('id')->toArray(), 
+                $qcTasks->whereNotNull('ticket_id')->pluck('ticket_id')->toArray()
+            ));
 
             if (!empty($allQcTicketIds)) {
                 $workflowComments = \App\Models\TicketComment::with('ticket')
@@ -293,7 +318,7 @@ class AppServiceProvider extends ServiceProvider
                     ->where('type', 'workflow_notification')
                     ->where('target_role', 'qc')
                     ->orderByDesc('created_at')
-                    ->take(15)
+                    ->take(20)
                     ->get();
 
                 foreach ($workflowComments as $comment) {
@@ -312,7 +337,7 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
-            // 3. DB notifications for this QC user
+            // 4. DB notifications for this QC user
             $dbNotifications = $user->notifications()->take(10)->get()->map(function ($notif) {
                 $data  = $notif->data;
                 $isNew = $notif->unread() || ($notif->created_at && $notif->created_at->greaterThan(now()->subDay()));
@@ -337,7 +362,6 @@ class AppServiceProvider extends ServiceProvider
                 ->sortByDesc('time')
                 ->values();
         }
-
 
 
         // --- TICKETS ---
