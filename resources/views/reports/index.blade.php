@@ -253,7 +253,13 @@
                     <tr>
                         <td>
                             <div class="agent-cell">
-                                <div class="agent-avatar" style="background:{{ $a['color'] }}">{{ $a['initials'] }}</div>
+                                <div class="agent-avatar" style="{{ !empty($a['avatar_url']) ? 'background:none;padding:0;overflow:hidden' : 'background:' . $a['color'] }}">
+                                    @if(!empty($a['avatar_url']))
+                                        <img src="{{ $a['avatar_url'] }}" alt="{{ $a['name'] }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+                                    @else
+                                        {{ $a['initials'] }}
+                                    @endif
+                                </div>
                                 <div class="agent-name">{{ $a['name'] }}</div>
                             </div>
                         </td>

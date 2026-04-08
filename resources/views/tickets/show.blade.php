@@ -258,11 +258,24 @@ textarea.form-control{resize:vertical;min-height:80px}
         </div>
       </div>
       <div class="card-body">
+        @php
+          $statusTimelineItems = $ticket->comments
+            ->where('type', 'status_change')
+            ->filter(function ($c) {
+              $body = strtolower((string) $c->body);
+              return str_contains($body, 'status changed to in progress')
+                  || str_contains($body, 'status changed to in review')
+                  || str_contains($body, 'status changed to resolved')
+                  || str_contains($body, 'status changed to closed');
+            })
+            ->sortByDesc('created_at')
+            ->values();
+        @endphp
         <div class="timeline">
           <div class="tl-item">
-            <div class="tl-dot blue" style="{{ ($ticket->user->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
-              @if($ticket->user->avatar ?? null)
-                <img src="{{ asset('storage/' . $ticket->user->avatar) }}" alt="{{ $ticket->user->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+            <div class="tl-dot blue" style="{{ ($ticket->user->avatar_url ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
+              @if($ticket->user->avatar_url ?? null)
+                <img src="{{ $ticket->user->avatar_url }}" alt="{{ $ticket->user->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
               @else
                 {{ strtoupper(substr($ticket->user->name??'U',0,1)) }}
               @endif
@@ -273,9 +286,9 @@ textarea.form-control{resize:vertical;min-height:80px}
           @foreach($ticket->tasks as $task)
             @if($task->assigned_to)
             <div class="tl-item">
-              <div class="tl-dot orange" style="{{ ($task->assignee->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
-                @if($task->assignee->avatar ?? null)
-                  <img src="{{ asset('storage/' . $task->assignee->avatar) }}" alt="{{ $task->assignee->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
+              <div class="tl-dot orange" style="{{ ($task->assignee->avatar_url ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
+                @if($task->assignee->avatar_url ?? null)
+                  <img src="{{ $task->assignee->avatar_url }}" alt="{{ $task->assignee->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">
                 @else
                   {{ strtoupper(substr($task->assignee->name??'A',0,1)) }}
                 @endif
@@ -289,18 +302,15 @@ textarea.form-control{resize:vertical;min-height:80px}
             @endif
           @endforeach
           @endif
-          @if($ticket->status!=='open')
+          @foreach($statusTimelineItems as $st)
           <div class="tl-item">
             <div class="tl-dot orange">↔</div>
-            <div><div class="tl-title">Status changed to {{ ucfirst(str_replace('_',' ',$ticket->status)) }}</div><div class="tl-time">{{ $ticket->updated_at->format('M d, Y · H:i') }}</div></div>
+            <div>
+              <div class="tl-title">{{ $st->body }}</div>
+              <div class="tl-time">{{ $st->created_at->format('M d, Y · H:i') }}</div>
+            </div>
           </div>
-          @endif
-          @if($ticket->status==='resolved')
-          <div class="tl-item">
-            <div class="tl-dot green">✓</div>
-            <div><div class="tl-title">Ticket Resolved</div><div class="tl-time">{{ $ticket->updated_at->format('M d, Y · H:i') }}</div></div>
-          </div>
-          @endif
+          @endforeach
         </div>
       </div>
     </div>
@@ -309,16 +319,21 @@ textarea.form-control{resize:vertical;min-height:80px}
     <div class="card">
       <div class="card-head">
         <div class="card-head-left">
+          @php
+            $discussionComments = $ticket->comments
+              ->where('type', 'comment')
+              ->values();
+          @endphp
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Comments
-          <span style="background:var(--navy);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:2px">{{ $ticket->comments->count() }}</span>
+          <span style="background:var(--navy);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:2px">{{ $discussionComments->count() }}</span>
         </div>
         <span style="font-size:11px;color:var(--muted-lt);font-weight:600">Admin & user communication</span>
       </div>
 
       <div class="card-body" style="padding-bottom:0">
         <div class="comment-list">
-          @forelse($ticket->comments as $comment)
+          @forelse($discussionComments as $comment)
             @php
               $cmtUser     = $comment->user;
               $cmtUserRole = $cmtUser?->userRole?->name ?? null;
@@ -338,9 +353,9 @@ textarea.form-control{resize:vertical;min-height:80px}
               }
             @endphp
             <div class="comment-item">
-              <div class="cmt-av" style="{{ ($cmtUser->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : 'background:' . $cmtAvColor }}">
-                @if($cmtUser->avatar ?? null)
-                  <img src="{{ asset('storage/' . $cmtUser->avatar) }}" alt="{{ $cmtUser->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">
+              <div class="cmt-av" style="{{ ($cmtUser->avatar_url ?? null) ? 'background:none;padding:0;overflow:hidden' : 'background:' . $cmtAvColor }}">
+                @if($cmtUser->avatar_url ?? null)
+                  <img src="{{ $cmtUser->avatar_url }}" alt="{{ $cmtUser->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">
                 @else
                   {{ strtoupper(substr($cmtUser->name??'U',0,2)) }}
                 @endif
@@ -391,9 +406,9 @@ textarea.form-control{resize:vertical;min-height:80px}
         @csrf
         <div class="cmt-input-wrap">
           <div class="cmt-sender">
-            <div class="cmt-sender-av" style="{{ auth()->user()->avatar ? 'background:none;padding:0;overflow:hidden' : '' }}">
-              @if(auth()->user()->avatar)
-                <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">
+            <div class="cmt-sender-av" style="{{ auth()->user()->avatar_url ? 'background:none;padding:0;overflow:hidden' : '' }}">
+              @if(auth()->user()->avatar_url)
+                <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">
               @else
                 {{ strtoupper(substr(auth()->user()->name??'SA',0,2)) }}
               @endif
@@ -454,7 +469,7 @@ textarea.form-control{resize:vertical;min-height:80px}
                 <span class="pill pill-{{ $t->status }}">{{ ucfirst(str_replace('_',' ',$t->status)) }}</span>
               </div>
               <div class="meta-list" style="margin-top:10px">
-                <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($t->assignee)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($t->assignee->avatar ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($t->assignee->avatar ?? null)<img src="{{ asset('storage/' . $t->assignee->avatar) }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($t->assignee->name,0,2)) }}@endif</div>{{ $t->assignee->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
+                <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($t->assignee)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($t->assignee->avatar_url ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($t->assignee->avatar_url ?? null)<img src="{{ $t->assignee->avatar_url }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($t->assignee->name,0,2)) }}@endif</div>{{ $t->assignee->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
                 <div class="meta-row"><span class="meta-key">SLA</span><span class="meta-val">{{ $t->sla_level ?? '—' }}</span></div>
                 <div class="meta-row"><span class="meta-key">Estimated Delivery</span><span class="meta-val">{{ $t->estimated_delivery_date ? $t->estimated_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
                 <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $t->actual_delivery_date ? $t->actual_delivery_date->format('M d, Y · H:i') : '—' }}</span></div>
@@ -466,7 +481,7 @@ textarea.form-control{resize:vertical;min-height:80px}
           @php $assignedDev = $ticket->assignedDeveloper; @endphp
           <div style="padding:16px;">
             <div class="meta-list">
-              <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($assignedDev)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($assignedDev->avatar ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($assignedDev->avatar ?? null)<img src="{{ asset('storage/' . $assignedDev->avatar) }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($assignedDev->name,0,2)) }}@endif</div>{{ $assignedDev->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
+              <div class="meta-row"><span class="meta-key">Assigned To</span><span class="meta-val" style="display:flex;align-items:center;gap:6px">@if($assignedDev)<div style="width:18px;height:18px;border-radius:4px;overflow:hidden;{{ ($assignedDev->avatar_url ?? null) ? 'background:none' : 'background:#2563eb' }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700">@if($assignedDev->avatar_url ?? null)<img src="{{ $assignedDev->avatar_url }}" style="width:100%;height:100%;object-fit:cover">@else{{ strtoupper(substr($assignedDev->name,0,2)) }}@endif</div>{{ $assignedDev->name }}@else <span style="color:var(--muted-lt)">Unassigned</span> @endif</span></div>
               <div class="meta-row"><span class="meta-key">SLA Level</span><span class="meta-val">{{ $ticket->sla_level ?? '—' }}</span></div>
               <div class="meta-row"><span class="meta-key">Est. Delivery</span><span class="meta-val">{{ $ticket->estimated_delivery_date ? \Carbon\Carbon::parse($ticket->estimated_delivery_date)->format('M d, Y · H:i') : '—' }}</span></div>
               <div class="meta-row"><span class="meta-key">Actual Delivery</span><span class="meta-val">{{ $ticket->actual_delivery_date ? \Carbon\Carbon::parse($ticket->actual_delivery_date)->format('M d, Y · H:i') : '—' }}</span></div>
@@ -573,9 +588,9 @@ textarea.form-control{resize:vertical;min-height:80px}
       <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Reported By</div></div>
       <div class="card-body">
         <div class="reporter-row">
-          <div class="rep-av" style="{{ ($ticket->user->avatar ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
-            @if($ticket->user->avatar ?? null)
-              <img src="{{ asset('storage/' . $ticket->user->avatar) }}" alt="{{ $ticket->user->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">
+          <div class="rep-av" style="{{ ($ticket->user->avatar_url ?? null) ? 'background:none;padding:0;overflow:hidden' : '' }}">
+            @if($ticket->user->avatar_url ?? null)
+              <img src="{{ $ticket->user->avatar_url }}" alt="{{ $ticket->user->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">
             @else
               {{ strtoupper(substr($ticket->user->name??'U',0,2)) }}
             @endif

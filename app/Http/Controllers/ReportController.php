@@ -234,6 +234,7 @@ class ReportController extends Controller
                     'name'            => $u->name,
                     'initials'        => strtoupper(substr($u->name, 0, 2)),
                     'color'           => $cfg['color'],
+                    'avatar_url'      => $u->avatar_url,
                     'resolved'        => $s['resolved'],
                     'avg_response'    => $s['avg_response'],
                     'load'            => $s['load'],

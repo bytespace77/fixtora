@@ -149,7 +149,7 @@ class TicketController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('create_tickets'), 403, 'You do not have permission to create tickets.');
 
-        $validated = $request->validate([
+        $rules = [
             'title'         => 'required|string|max:255',
             'description'   => 'required|string',
             'system'        => 'required|string',
@@ -160,10 +160,16 @@ class TicketController extends Controller
             'due_date'      => 'nullable|date',
             'attachments'   => 'nullable|array|max:10',
             'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
-        ]);
+        ];
+
+        $validated = $request->validate($rules);
 
         $validated['user_id'] = auth()->id();
         unset($validated['attachments']);
+
+        if (empty($validated['status'])) {
+            $validated['status'] = 'open';
+        }
 
         $validated['company_id'] = auth()->user()->company_id;
         if (auth()->user()->isSuperAdmin()) {

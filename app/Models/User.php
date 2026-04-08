@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -81,6 +82,22 @@ class User extends Authenticatable
     public function userRole()
     {
         return $this->belongsTo(\App\Models\Role::class, 'role_id');
+    }
+
+    /**
+     * Public avatar URL with cache-busting so latest upload shows immediately.
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (empty($this->avatar)) {
+            return null;
+        }
+
+        $path = ltrim((string) $this->avatar, '/');
+        $url = Storage::disk('public')->url($path);
+        $v = optional($this->updated_at)->timestamp ?? time();
+
+        return $url . '?v=' . $v;
     }
 
     /**

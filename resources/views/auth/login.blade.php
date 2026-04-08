@@ -64,12 +64,6 @@
 
     <button type="submit" class="f-btn">Sign In</button>
 
-    @if (Route::has('register'))
-    <div class="f-footer">
-        No account yet? <a href="{{ route('register') }}">Create one</a>
-    </div>
-    @endif
-
 </form>
 
 @endsection

@@ -3,15 +3,12 @@
 
 @section('styles')
 <style>
-.breadcrumb{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--muted);margin-bottom:8px}
-.breadcrumb a{color:var(--muted);text-decoration:none}.breadcrumb a:hover{color:var(--blue)}
-.sep{color:var(--border-dark)}
-.current{color:var(--text-sub)}
-.page-header{margin-bottom:24px}
+.page-header{margin-bottom:16px}
 .page-header h1{font-size:22px;font-weight:800;letter-spacing:-.5px;color:var(--navy)}
 
 .form-grid{display:grid;grid-template-columns:1fr 280px;gap:18px}
 .form-col{display:flex;flex-direction:column;gap:14px}
+.right-col{margin-top:-6px}
 
 /* CARD BOX */
 .card-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
@@ -77,14 +74,7 @@ textarea.form-input:focus{border:none;box-shadow:none}
 
 @section('content')
 <div class="page-header">
-  <div class="breadcrumb">
-    <a href="{{ route('home') }}">Dashboard</a>
-    <span class="sep">/</span>
-    <a href="{{ route('tickets.index') }}">Tickets</a>
-    <span class="sep">/</span>
-    <span class="current">New Ticket</span>
-  </div>
-  <h1>Create New Service Request</h1>
+  <h1>Create New Ticket</h1>
 </div>
 
 <form action="{{ route('tickets.store') }}" method="POST" enctype="multipart/form-data">
@@ -155,8 +145,12 @@ textarea.form-input:focus{border:none;box-shadow:none}
           @error('priority')<div class="error-msg">{{ $message }}</div>@enderror
         </div>
       </div>
+      <style>
+        /* Nudge Priority section upward slightly */
+        #priority { margin-top: -2px; }
+      </style>
 
-      <div class="field-row">
+      <div class="field-row" style="margin-top:6px">
         <div class="field-group">
           <label class="lbl" for="status">Ticket Status</label>
           <select id="status" name="status" class="form-input {{ $errors->has('status') ? 'is-invalid' : '' }}">
@@ -222,7 +216,7 @@ textarea.form-input:focus{border:none;box-shadow:none}
   </div>
 
   <!-- RIGHT COLUMN -->
-  <div class="form-col">
+  <div class="form-col right-col">
 
     <!-- Impact Level -->
     <div class="card-box">
@@ -269,23 +263,7 @@ textarea.form-input:focus{border:none;box-shadow:none}
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         Submit Ticket
       </button>
-      <button type="button" class="btn-full btn-outline-full">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
-        Save as Draft
-      </button>
       <a href="{{ route('tickets.index') }}" class="btn-full btn-cancel" style="color:var(--muted)">Cancel &amp; Discard</a>
-    </div>
-
-    <!-- System Health -->
-    <div class="card-box">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">System Health</div>
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite"></div>
-      </div>
-      <div class="health-row"><span class="health-name">CRM Portal</span><span class="health-badge stable">Stable</span></div>
-      <div class="health-row"><span class="health-name">Payment GW</span><span class="health-badge stable">Stable</span></div>
-      <div class="health-row"><span class="health-name">API v2</span><span class="health-badge degraded">Degraded</span></div>
-      <div class="health-row"><span class="health-name">Auth Service</span><span class="health-badge stable">Stable</span></div>
     </div>
 
   </div>
