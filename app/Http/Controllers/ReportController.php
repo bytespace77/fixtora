@@ -197,9 +197,16 @@ class ReportController extends Controller
             };
 
             $roleConfig = [
-                'superadmin' => ['label' => 'Super Admin', 'color' => '#1e3a6e'],
-                'developer'  => ['label' => 'Developer',   'color' => '#2a7a5e'],
-                'admin'      => ['label' => 'Admin',        'color' => '#5a3e8a'],
+                'superadmin'        => ['label' => 'Super Admin', 'color' => '#1e3a6e'],
+                'developer'         => ['label' => 'Developer',   'color' => '#2a7a5e'],
+                'admin'             => ['label' => 'Admin',        'color' => '#5a3e8a'],
+                'qc'                => ['label' => 'QC',           'color' => '#b45309'],
+                'qa / qc'           => ['label' => 'QC',           'color' => '#b45309'],
+                'qa/qc'             => ['label' => 'QC',           'color' => '#b45309'],
+                'qa'                => ['label' => 'QC',           'color' => '#b45309'],
+                'quality control'   => ['label' => 'QC',           'color' => '#b45309'],
+                'quality assurance' => ['label' => 'QC',           'color' => '#b45309'],
+                'tester'            => ['label' => 'QC',           'color' => '#b45309'],
             ];
 
             // Superadmin row first (current user)
@@ -217,8 +224,15 @@ class ReportController extends Controller
 
             // All staff — match by the `role` string column OR by the linked custom role name
             $staffUsers = User::where(function ($q) {
-                    $q->whereIn('role', ['developer', 'admin'])
-                      ->orWhereHas('userRole', fn($r) => $r->whereRaw('LOWER(name) IN (?,?)', ['developer', 'admin']));
+                    $q->whereIn('role', ['developer', 'admin', 'qc', 'qa', 'tester'])
+                      ->orWhereHas('userRole', function ($r) {
+                          $r->where(function ($rq) {
+                              $rq->whereRaw('LOWER(name) IN (?,?,?)', ['developer', 'admin', 'tester'])
+                                 ->orWhereRaw('LOWER(name) LIKE ?', ['%qc%'])
+                                 ->orWhereRaw('LOWER(name) LIKE ?', ['%qa%'])
+                                 ->orWhereRaw('LOWER(name) LIKE ?', ['%quality%']);
+                          });
+                      });
                 })
                 ->with('userRole')
                 ->orderBy('name')
@@ -229,21 +243,50 @@ class ReportController extends Controller
                 $rawRole   = strtolower(trim((string) (optional($u->userRole)->name ?: $u->role)));
                 $cfg       = $roleConfig[$rawRole] ?? ['label' => ucfirst($rawRole), 'color' => '#3b6ea8'];
                 $roleLabel = $cfg['label'];
-                $s = $buildStats([$u->id]);
-                $agentsByRole[$roleLabel][] = [
-                    'name'            => $u->name,
-                    'initials'        => strtoupper(substr($u->name, 0, 2)),
-                    'color'           => $cfg['color'],
-                    'avatar_url'      => $u->avatar_url,
-                    'resolved'        => $s['resolved'],
-                    'avg_response'    => $s['avg_response'],
-                    'load'            => $s['load'],
-                    'pending_tickets' => $s['pending_tickets'],
-                ];
+
+                // QC stats: pending = tickets in_review, resolved = tickets they moved to resolved
+                if ($roleLabel === 'QC') {
+                    $pendingTickets = Ticket::withoutGlobalScope('company')
+                        ->where('status', 'in_review')
+                        ->whereBetween('updated_at', [$from, $to])
+                        ->count();
+
+                    $resolvedByQc = \App\Models\TicketComment::where('user_id', $u->id)
+                        ->where('type', 'status_change')
+                        ->whereRaw("LOWER(body) LIKE ?", ['%resolved%'])
+                        ->whereBetween('created_at', [$from, $to])
+                        ->count();
+
+                    $avgResponse = '—';
+                    $loadPct = min(100, $pendingTickets * 10);
+
+                    $agentsByRole[$roleLabel][] = [
+                        'name'            => $u->name,
+                        'initials'        => strtoupper(substr($u->name, 0, 2)),
+                        'color'           => $cfg['color'],
+                        'avatar_url'      => $u->avatar_url,
+                        'resolved'        => $resolvedByQc,
+                        'avg_response'    => $avgResponse,
+                        'load'            => $loadPct,
+                        'pending_tickets' => $pendingTickets,
+                    ];
+                } else {
+                    $s = $buildStats([$u->id]);
+                    $agentsByRole[$roleLabel][] = [
+                        'name'            => $u->name,
+                        'initials'        => strtoupper(substr($u->name, 0, 2)),
+                        'color'           => $cfg['color'],
+                        'avatar_url'      => $u->avatar_url,
+                        'resolved'        => $s['resolved'],
+                        'avg_response'    => $s['avg_response'],
+                        'load'            => $s['load'],
+                        'pending_tickets' => $s['pending_tickets'],
+                    ];
+                }
             }
 
-            // Ensure consistent role order: Developer before Admin
-            $roleOrder = ['Developer', 'Admin'];
+            // Ensure consistent role order: Developer → QC → Admin → Super Admin
+            $roleOrder = ['Developer', 'QC', 'Admin', 'Super Admin'];
             uksort($agentsByRole, function ($a, $b) use ($roleOrder) {
                 $posA = array_search($a, $roleOrder);
                 $posB = array_search($b, $roleOrder);

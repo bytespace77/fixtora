@@ -536,10 +536,18 @@ textarea.form-control{resize:vertical;min-height:80px}
     <div class="card">
       <div class="card-head"><div class="card-head-left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Update Status</div></div>
       <div class="card-body">
-        @if(auth()->user()->hasPermission('edit_tickets') || (auth()->user()->isDeveloper() && $ticket->assigned_developer_id == auth()->id()))
+        @php
+          $isQcUser = auth()->user()->isQc();
+          $canEditTicket = auth()->user()->hasPermission('edit_tickets');
+          $isDeveloperAssigned = auth()->user()->isDeveloper() && $ticket->assigned_developer_id == auth()->id();
+          $qcCanAct = $isQcUser && $ticket->status === 'in_review';
+        @endphp
+
+        @if($canEditTicket || $isDeveloperAssigned || $qcCanAct)
         <form action="{{ route('tickets.update', $ticket) }}" method="POST">
           @csrf @method('PATCH')
 
+          {{-- Delivery date fields: visible to admin/superadmin/developer only --}}
           @if(auth()->user()->hasGlobalDataAccess() || auth()->user()->isDeveloper())
           <div class="form-group">
             <label>Estimated Delivery</label>
@@ -557,7 +565,26 @@ textarea.form-control{resize:vertical;min-height:80px}
           @endif
           @endif
 
-          @if(auth()->user()->hasPermission('edit_tickets'))
+          {{-- QC user: show QC test date field + limited status options --}}
+          @if($isQcUser && !auth()->user()->hasGlobalDataAccess())
+          <div class="form-group">
+            <label>QC Test Date</label>
+            <input type="datetime-local" class="form-control" name="qc_test_date" value="{{ $ticket->qc_test_date ? \Carbon\Carbon::parse($ticket->qc_test_date)->format('Y-m-d\TH:i') : now()->format('Y-m-d\TH:i') }}" style="margin-bottom:12px">
+          </div>
+          @if($qcCanAct)
+          <label style="display:block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Status</label>
+          <select name="status" class="status-select">
+            <option value="in_review" {{ $ticket->status=='in_review'?'selected':'' }}>In Review (current)</option>
+            <option value="resolved">Resolved — QC Passed ✓</option>
+          </select>
+          <p style="font-size:11px;color:var(--muted-lt);margin-top:6px;margin-bottom:0">Set to <strong>Resolved</strong> once testing is complete and passed.</p>
+          @else
+          <p style="font-size:13px;color:var(--muted)">No action needed — ticket is <strong>{{ ucfirst(str_replace('_',' ',$ticket->status)) }}</strong>. QC can update status when ticket reaches <em>In Review</em>.</p>
+          @endif
+          @endif
+
+          {{-- Admin / superadmin: full status dropdown --}}
+          @if($canEditTicket && !$isQcUser)
           <label style="display:block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Status</label>
           <select name="status" class="status-select">
             <option value="open" {{ $ticket->status=='open'?'selected':'' }}>Open</option>
@@ -568,7 +595,10 @@ textarea.form-control{resize:vertical;min-height:80px}
           </select>
           @endif
 
+          {{-- Only show save button if there's something actionable --}}
+          @if($canEditTicket || $isDeveloperAssigned || $qcCanAct)
           <button type="submit" class="btn-full" style="margin-top: 8px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Save Updates</button>
+          @endif
         </form>
         @else
         <p style="font-size:13px;color:var(--muted)">You do not have permission to update the status.</p>

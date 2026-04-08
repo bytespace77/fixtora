@@ -360,7 +360,23 @@ class TaskController extends Controller
             return $this->destroy($task);
         }
 
-        abort_unless(auth()->user()->hasPermission('edit_tasks'), 403, 'You do not have permission to edit tasks.');
+        abort_unless(
+            auth()->user()->hasPermission('edit_tasks') || auth()->user()->isQc(),
+            403,
+            'You do not have permission to edit tasks.'
+        );
+
+        // QC users can only update qc_test_date — restrict all other fields
+        if (auth()->user()->isQc() && !auth()->user()->hasPermission('edit_tasks')) {
+            $validated = $request->validate([
+                'qc_test_date' => 'nullable|date',
+            ]);
+            $task->update($validated);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'task' => $task->fresh()->load('assignee', 'ticket.company', 'company')]);
+            }
+            return redirect()->route('tasks.index')->with('success', 'QC test date updated!');
+        }
 
         $validated = $request->validate([
             'title'       => 'sometimes|required|string|max:255',

@@ -61,13 +61,6 @@ tbody tr:hover td { background:#fafbfd; }
     @endif
   </div>
 
-  {{-- Flash --}}
-  @if(session('success'))
-    <div class="alert alert-success">
-      {{ session('success') }}
-    </div>
-  @endif
-
   {{-- Roles Table --}}
   <div class="card">
     @if($roles->isEmpty())

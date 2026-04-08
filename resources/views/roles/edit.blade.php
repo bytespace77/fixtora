@@ -14,13 +14,6 @@
 
   <h1 style="font-size:24px; font-weight:800; letter-spacing:-.6px; color:var(--navy); margin-bottom:24px;">User role – {{ $role->name }}</h1>
 
-  {{-- Flash --}}
-  @if(session('success'))
-    <div style="background:var(--green-bg); border:1px solid #bbf7d0; color:var(--green); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:18px;">
-      {{ session('success') }}
-    </div>
-  @endif
-
   @if($errors->any())
     <div style="background:var(--red-bg); border:1px solid #fecaca; color:var(--red); padding:10px 14px; border-radius:var(--radius-sm); font-size:13px; margin-bottom:18px;">
       @foreach($errors->all() as $error) {{ $error }}<br> @endforeach

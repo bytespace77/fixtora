@@ -255,9 +255,10 @@ class TicketController extends Controller
         $canEditTicket = $user->hasPermission('edit_tickets');
         $isAssignedDeveloper = (int) $ticket->assigned_developer_id === (int) $user->id;
         $canAssignTicket = $user->isSuperAdmin() || $user->hasPermission('assign_developer');
+        $isQcUser = $user->isQc() && $ticket->status === 'in_review';
 
         abort_unless(
-            $canEditTicket || $isAssignedDeveloper || $canAssignTicket,
+            $canEditTicket || $isAssignedDeveloper || $canAssignTicket || $isQcUser,
             403,
             'You do not have permission to update this ticket.'
         );
@@ -299,6 +300,12 @@ class TicketController extends Controller
                 'sla_level'             => 'sometimes|nullable|in:Low,Medium,High,Critical',
                 'redirect_to'           => 'sometimes|nullable|in:tasks',
             ]);
+        } elseif ($isQcUser) {
+            // QC users can only update status (in_review → resolved) and qc_test_date
+            $rules = array_merge($rules, [
+                'status'       => 'sometimes|required|in:in_review,resolved',
+                'qc_test_date' => 'sometimes|nullable|date',
+            ]);
         }
 
         $validated = $request->validate($rules);
@@ -310,6 +317,9 @@ class TicketController extends Controller
             }
             if ($canAssignTicket) {
                 $allowedKeys = array_merge($allowedKeys, ['assigned_developer_id', 'sla_level', 'redirect_to']);
+            }
+            if ($isQcUser) {
+                $allowedKeys = array_merge($allowedKeys, ['status', 'qc_test_date']);
             }
             $validated = array_intersect_key($validated, array_flip(array_unique($allowedKeys)));
         }
@@ -406,6 +416,16 @@ class TicketController extends Controller
                         ]);
                     }
                 }
+
+                // Notify QC that ticket is now in progress (they can monitor)
+                TicketComment::create([
+                    'ticket_id'   => $ticket->id,
+                    'user_id'     => $user->id,
+                    'body'        => 'Ticket #' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT) . ' is now in progress. QC testing will be required once development is complete.',
+                    'role'        => 'system',
+                    'type'        => 'workflow_notification',
+                    'target_role' => 'qc',
+                ]);
             }
 
             if ($validated['status'] === 'in_review') {

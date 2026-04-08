@@ -249,8 +249,96 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // ══════════════════════════════════════════════════════
-        // SUPERADMIN / ADMIN / OTHER ROLES NOTIFICATION FEED
+        // QC-SPECIFIC NOTIFICATION FEED
         // ══════════════════════════════════════════════════════
+        if ($user->isQc() && !$hasGlobalDataAccess) {
+            // 1. Tickets that are in_review (QC needs to test these)
+            $qcTickets = Ticket::withoutGlobalScope('company')
+                ->where('status', 'in_review')
+                ->orderByDesc('updated_at')
+                ->take(20)
+                ->get();
+
+            foreach ($qcTickets as $ticket) {
+                $ticketRef = '#TK-' . str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT);
+                $items->push([
+                    'unique_id'   => 'qc_review_' . $ticket->id . '_' . $ticket->updated_at->timestamp,
+                    'title'       => 'QC Testing Required — ' . $ticketRef,
+                    'description' => $ticket->title . ' · Ready for QC testing',
+                    'time'        => $ticket->updated_at,
+                    'time_human'  => $this->humanTime($ticket->updated_at),
+                    'is_new'      => $ticket->updated_at && $ticket->updated_at->greaterThan(now()->subDay()),
+                    'type'        => 'orange',
+                    'category'    => 'QC Testing',
+                    'url'         => route('tickets.show', $ticket),
+                ]);
+            }
+
+            // 2. Workflow notifications targeted at QC role
+            $qcTicketIds = $qcTickets->pluck('id')->toArray();
+
+            // Also get recently resolved tickets (QC may have just processed)
+            $recentTicketIds = Ticket::withoutGlobalScope('company')
+                ->whereIn('status', ['in_review', 'resolved'])
+                ->orderByDesc('updated_at')
+                ->take(30)
+                ->pluck('id')
+                ->toArray();
+
+            $allQcTicketIds = array_unique(array_merge($qcTicketIds, $recentTicketIds));
+
+            if (!empty($allQcTicketIds)) {
+                $workflowComments = \App\Models\TicketComment::with('ticket')
+                    ->whereIn('ticket_id', $allQcTicketIds)
+                    ->where('type', 'workflow_notification')
+                    ->where('target_role', 'qc')
+                    ->orderByDesc('created_at')
+                    ->take(15)
+                    ->get();
+
+                foreach ($workflowComments as $comment) {
+                    $ticketRef = '#TK-' . str_pad((string) $comment->ticket_id, 4, '0', STR_PAD_LEFT);
+                    $items->push([
+                        'unique_id'   => 'workflow_' . $comment->id,
+                        'title'       => 'QC Action Required — ' . $ticketRef,
+                        'description' => $comment->body,
+                        'time'        => $comment->created_at,
+                        'time_human'  => $this->humanTime($comment->created_at),
+                        'is_new'      => $comment->created_at && $comment->created_at->greaterThan(now()->subDay()),
+                        'type'        => 'orange',
+                        'category'    => 'Workflow',
+                        'url'         => route('tickets.show', $comment->ticket_id),
+                    ]);
+                }
+            }
+
+            // 3. DB notifications for this QC user
+            $dbNotifications = $user->notifications()->take(10)->get()->map(function ($notif) {
+                $data  = $notif->data;
+                $isNew = $notif->unread() || ($notif->created_at && $notif->created_at->greaterThan(now()->subDay()));
+                $type  = 'blue';
+                if (($data['type'] ?? '') === 'integration_request') $type = 'orange';
+                if (($data['type'] ?? '') === 'integration_request_status') $type = 'green';
+                return [
+                    'unique_id'   => 'db_' . $notif->id,
+                    'title'       => $data['title'] ?? 'System Notification',
+                    'description' => $data['message'] ?? '',
+                    'time'        => $notif->created_at,
+                    'time_human'  => $this->humanTime($notif->created_at),
+                    'is_new'      => $isNew,
+                    'type'        => $type,
+                    'category'    => 'System',
+                    'url'         => $data['link'] ?? route('notifications.index'),
+                ];
+            });
+
+            return $items->merge($dbNotifications)
+                ->unique('unique_id')
+                ->sortByDesc('time')
+                ->values();
+        }
+
+
 
         // --- TICKETS ---
         $ticketQuery = Ticket::query()->latest();
@@ -419,8 +507,9 @@ class AppServiceProvider extends ServiceProvider
             return 'developer';
         }
 
-        if (in_array($roleName, ['qc', 'quality control', 'quality assurance', 'tester'], true) ||
-            in_array($accountRole, ['qc', 'tester'], true)) {
+        if (in_array($roleName, ['qc', 'qa', 'qa / qc', 'qa/qc', 'quality control', 'quality assurance', 'tester'], true) ||
+            in_array($accountRole, ['qc', 'qa', 'tester'], true) ||
+            str_contains($roleName, 'qc') || str_contains($roleName, 'qa')) {
             return 'qc';
         }
 

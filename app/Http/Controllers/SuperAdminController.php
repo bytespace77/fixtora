@@ -142,8 +142,9 @@ class SuperAdminController extends Controller
 
         $users     = $query->paginate(20);
         $companies = Company::orderBy('name')->get();
+        $roles     = \App\Models\Role::orderBy('name')->get();
 
-        return view('superadmin.users.index', compact('users', 'companies'));
+        return view('superadmin.users.index', compact('users', 'companies', 'roles'));
     }
 
     public function usersToggle(User $user)
@@ -173,8 +174,9 @@ class SuperAdminController extends Controller
             'email'      => 'required|email|unique:users,email',
             'phone'      => 'nullable|regex:/^[0-9]+$/|max:50',
             'password'   => 'required|string|min:8',
-            'company_id' => 'required|exists:companies,id',
-            'role'       => 'required|string|in:user,admin,developer',
+            'company_id' => 'nullable|exists:companies,id',
+            'role'       => 'required|string|max:100',
+            'role_id'    => 'nullable|exists:roles,id',
         ]);
 
         $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
@@ -183,6 +185,23 @@ class SuperAdminController extends Controller
 
         return redirect()->route('superadmin.users.index')
                          ->with('success', "User \"{$data['name']}\" created successfully.");
+    }
+
+    public function usersUpdate(Request $request, \App\Models\User $user)
+    {
+        $data = $request->validate([
+            'name'       => 'required|string|max:255',
+            'email'      => 'required|email|unique:users,email,' . $user->id,
+            'phone'      => 'nullable|regex:/^[0-9]+$/|max:50',
+            'company_id' => 'nullable|exists:companies,id',
+            'role'       => 'required|string|max:100',
+            'role_id'    => 'nullable|exists:roles,id',
+        ]);
+
+        $user->update($data);
+
+        return redirect()->route('superadmin.users.index')
+                         ->with('success', "User \"{$user->name}\" updated successfully.");
     }
 
 

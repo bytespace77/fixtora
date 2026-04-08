@@ -161,6 +161,14 @@ tbody tr:hover td { background:#fafbfd; }
         </td>
         <td>
           <div class="actions-cell">
+            {{-- Edit user --}}
+            @if($user->role !== 'superadmin')
+            <button type="button" class="btn btn-outline btn-sm"
+              onclick="openEditModal({{ json_encode(['id'=>$user->id,'name'=>$user->name,'email'=>$user->email,'phone'=>$user->phone ?? '','company_id'=>$user->company_id ?? '','role'=>$user->role ?? '','role_id'=>$user->role_id ?? '']) }})">
+              Edit
+            </button>
+            @endif
+
             {{-- View contact details --}}
             <button type="button" class="btn btn-outline btn-sm"
               onclick="openViewModal({{ json_encode(['name'=>$user->name,'email'=>$user->email,'phone'=>$user->phone ?? '—','company'=>$user->company->name ?? '—','role'=>$user->role,'joined'=>$user->created_at->format('d M Y')]) }})">
@@ -262,9 +270,9 @@ tbody tr:hover td { background:#fafbfd; }
         <input type="password" name="password" class="f-input" placeholder="Min. 8 characters" required minlength="8">
       </div>
       <div class="f-group">
-        <label class="f-label">Company *</label>
-        <select name="company_id" class="f-select" required>
-          <option value="">— Select Company —</option>
+        <label class="f-label">Company</label>
+        <select name="company_id" class="f-select">
+          <option value="">— No Company —</option>
           @foreach($companies as $company)
             <option value="{{ $company->id }}" {{ old('company_id') == $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
           @endforeach
@@ -272,11 +280,17 @@ tbody tr:hover td { background:#fafbfd; }
       </div>
       <div class="f-group">
         <label class="f-label">Role *</label>
-        <select name="role" class="f-select" required>
-          <option value="user" {{ old('role') === 'user' ? 'selected' : '' }}>User</option>
-          <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin</option>
-          <option value="developer" {{ old('role') === 'developer' ? 'selected' : '' }}>Developer</option>
+        <select name="role" class="f-select" required onchange="syncRoleId(this)">
+          <option value="">— Select Role —</option>
+          @foreach($roles as $r)
+            <option value="{{ strtolower($r->name) }}"
+                    data-role-id="{{ $r->id }}"
+                    {{ old('role') === strtolower($r->name) ? 'selected' : '' }}>
+              {{ ucfirst($r->name) }}
+            </option>
+          @endforeach
         </select>
+        <input type="hidden" name="role_id" id="role_id_input" value="{{ old('role_id') }}">
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" onclick="document.getElementById('addUserModal').classList.remove('open')">Cancel</button>
@@ -286,10 +300,92 @@ tbody tr:hover td { background:#fafbfd; }
   </div>
 </div>
 
+{{-- Edit User Modal --}}
+<div class="modal-backdrop" id="editUserModal">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" onclick="document.getElementById('editUserModal').classList.remove('open')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3>Edit User</h3>
+    <p class="sub">Update user account details.</p>
+    <form method="POST" id="editUserForm" action="">
+      @csrf @method('PATCH')
+      <div class="f-group">
+        <label class="f-label">Full Name *</label>
+        <input type="text" name="name" id="eu-name" class="f-input" required>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Email Address *</label>
+        <input type="email" name="email" id="eu-email" class="f-input" required>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Phone</label>
+        <input type="text" name="phone" id="eu-phone" class="f-input" placeholder="0123456789" pattern="[0-9]+" title="Numbers only">
+      </div>
+      <div class="f-group">
+        <label class="f-label">Company</label>
+        <select name="company_id" id="eu-company_id" class="f-select">
+          <option value="">— No Company —</option>
+          @foreach($companies as $company)
+            <option value="{{ $company->id }}">{{ $company->name }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div class="f-group">
+        <label class="f-label">Role *</label>
+        <select name="role" id="eu-role" class="f-select" required onchange="syncEditRoleId(this)">
+          <option value="">— Select Role —</option>
+          @foreach($roles as $r)
+            <option value="{{ strtolower($r->name) }}" data-role-id="{{ $r->id }}">{{ ucfirst($r->name) }}</option>
+          @endforeach
+        </select>
+        <input type="hidden" name="role_id" id="eu-role_id">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('editUserModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 @endsection
 
 @section('scripts')
 <script>
+function syncRoleId(select) {
+  const opt = select.options[select.selectedIndex];
+  document.getElementById('role_id_input').value = opt ? (opt.dataset.roleId || '') : '';
+}
+function syncEditRoleId(select) {
+  const opt = select.options[select.selectedIndex];
+  document.getElementById('eu-role_id').value = opt ? (opt.dataset.roleId || '') : '';
+}
+function openEditModal(data) {
+  document.getElementById('eu-name').value      = data.name || '';
+  document.getElementById('eu-email').value     = data.email || '';
+  document.getElementById('eu-phone').value     = data.phone || '';
+  document.getElementById('eu-role_id').value   = data.role_id || '';
+
+  // Set company
+  const compSel = document.getElementById('eu-company_id');
+  compSel.value = data.company_id || '';
+
+  // Set role dropdown and sync role_id
+  const roleSel = document.getElementById('eu-role');
+  roleSel.value = data.role || '';
+  // Try to match by data-role-id if role string doesn't match exactly
+  if (!roleSel.value && data.role_id) {
+    Array.from(roleSel.options).forEach(opt => {
+      if (opt.dataset.roleId == data.role_id) roleSel.value = opt.value;
+    });
+  }
+
+  // Set form action to the correct user update route
+  document.getElementById('editUserForm').action = `/superadmin/users/${data.id}`;
+
+  document.getElementById('editUserModal').classList.add('open');
+}
 function openViewModal(data) {
   document.getElementById('vm-name').textContent    = data.name;
   document.getElementById('vm-role').textContent    = data.role + ' · ' + data.company;
@@ -302,6 +398,9 @@ function openViewModal(data) {
 function closeViewModal() {
   document.getElementById('viewModal').classList.remove('open');
 }
+document.getElementById('editUserModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
 document.getElementById('viewModal').addEventListener('click', function(e) {
   if (e.target === this) closeViewModal();
 });

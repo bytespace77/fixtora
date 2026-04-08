@@ -65,6 +65,17 @@ class User extends Authenticatable
         return $roleName === 'developer' || $accountRole === 'developer';
     }
 
+    public function isQc(): bool
+    {
+        $roleName    = strtolower(trim((string) optional($this->userRole)->name));
+        $accountRole = strtolower(trim((string) $this->role));
+        $qcKeywords  = ['qc', 'qa', 'qa / qc', 'qa/qc', 'quality control', 'quality assurance', 'tester'];
+        return in_array($roleName, $qcKeywords, true)
+            || in_array($accountRole, $qcKeywords, true)
+            || str_contains($roleName, 'qc')
+            || str_contains($roleName, 'qa');
+    }
+
     // Global data access users bypass company scoping in core modules.
     /**
      * Task 41 FIX: Only SuperAdmin has cross-company (global) data access.
