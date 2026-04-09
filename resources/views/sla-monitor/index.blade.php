@@ -82,8 +82,8 @@
 .chart-canvas-wrap{position:relative;height:200px}
 
 /* COMPLIANCE TABLE */
-.compliance-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
-.ct-header{display:grid;grid-template-columns:1fr 120px 120px 120px 130px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.compliance-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-y:auto;overflow-x:hidden;max-height:500px;box-shadow:var(--shadow)}
+.ct-header{display:grid;grid-template-columns:1fr 120px 120px 120px 130px;gap:12px;padding:11px 18px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);position:sticky;top:0;z-index:10}
 .ct-row{display:grid;grid-template-columns:1fr 120px 120px 120px 130px;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
 .ct-row:last-child{border-bottom:none}
 .ct-row:hover{background:#fafbff}

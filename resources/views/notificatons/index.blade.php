@@ -26,7 +26,7 @@
 .ov-value { font-size:24px; font-weight:800; color:var(--navy-3); letter-spacing:-.5px; line-height:1; }
 .ov-help { font-size:11px; color:var(--muted); margin-top:4px; }
 
-.noti-list { padding:4px 0; }
+.noti-list { padding:4px 0; max-height:800px; overflow-y:auto; overflow-x:hidden; }
 .n-group { padding:8px 0 2px; }
 .n-group-label { font-size:11px; font-weight:700; color:var(--muted-lt); text-transform:uppercase; letter-spacing:.6px; padding:0 16px 6px; }
 .n-item { display:flex; gap:10px; align-items:flex-start; padding:12px 16px; border-top:1px solid #f1f5f9; }

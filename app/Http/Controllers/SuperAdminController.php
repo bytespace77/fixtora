@@ -47,13 +47,14 @@ class SuperAdminController extends Controller
             1 => (clone $csatTickets)->where('csat_rating', 1)->count(),
         ];
 
-        // Recent CSAT submissions (paginated)
+        // Recent CSAT submissions (scroll list)
         $recentCsat = Ticket::withoutGlobalScope('company')
             ->with(['user', 'company'])
             ->whereNotNull('csat_rating')
             ->whereNotNull('csat_submitted_at')
             ->orderByDesc('csat_submitted_at')
-            ->paginate(10);
+            ->limit(50)
+            ->get();
 
         // Per-company stats for the table
         $companyStats = $companies->map(function ($company) {

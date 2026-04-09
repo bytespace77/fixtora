@@ -75,6 +75,9 @@ class RoleController extends Controller
             'description' => $request->description,
         ]);
 
+        // Sync legacy text role column for any assigned users
+        User::where('role_id', $role->id)->update(['role' => strtolower($request->name)]);
+
         return back()->with('success', 'Role updated.');
     }
 
@@ -103,10 +106,14 @@ class RoleController extends Controller
         ]);
 
         // Remove all users from this role first, then re-assign selected ones
-        User::where('role_id', $role->id)->update(['role_id' => null]);
+        // Also clear out the legacy text 'role' column (defaults to 'user') so it stays in sync.
+        User::where('role_id', $role->id)->update(['role_id' => null, 'role' => 'user']);
 
         if ($request->assigned_users) {
-            User::whereIn('id', $request->assigned_users)->update(['role_id' => $role->id]);
+            User::whereIn('id', $request->assigned_users)->update([
+                'role_id' => $role->id, 
+                'role' => strtolower($role->name)
+            ]);
         }
 
         return back()->with('success', 'User assignments saved.');
@@ -117,8 +124,8 @@ class RoleController extends Controller
     {
         abort_unless(auth()->user()->hasPermission('delete_roles'), 403, 'You do not have permission to delete roles.');
 
-        // Unassign users before deleting
-        $role->users()->update(['role_id' => null]);
+        // Unassign users before deleting and clear legacy role (defaults to 'user')
+        $role->users()->update(['role_id' => null, 'role' => 'user']);
         $role->delete();
 
         return redirect()->route('roles.index')->with('success', 'Role deleted.');

@@ -47,7 +47,7 @@
 .csat-bar-fill.s1 { background:#f87171; }
 .csat-bar-count { font-size:12px; font-weight:700; color:var(--text); width:24px; text-align:right; flex-shrink:0; }
 
-.csat-recent-list { display:flex; flex-direction:column; }
+.csat-recent-list { display:flex; flex-direction:column; max-height:500px; overflow-y:auto; overflow-x:hidden; }
 .csat-recent-item { display:flex; align-items:flex-start; gap:14px; padding:14px 22px; border-bottom:1px solid var(--border); transition:background .12s; }
 .csat-recent-item:last-child { border-bottom:none; }
 .csat-recent-item:hover { background:#fafbfd; }
@@ -166,9 +166,7 @@
         </div>
       @endforeach
     </div>
-    <div style="padding: 16px 22px; border-top: 1px solid var(--border);">
-      {{ $recentCsat->links() }}
-    </div>
+
   @endif
 </div>
 
