@@ -198,6 +198,31 @@ class TicketController extends Controller
                 ]);
             }
         }
+        
+        try {
+            if (auth()->user()->isSuperAdmin()) {
+                $companyUsers = \App\Models\User::where('is_disabled', false)
+                    ->where('company_id', $ticket->company_id)
+                    ->get();
+                if ($companyUsers->isNotEmpty()) {
+                    \Illuminate\Support\Facades\Notification::send($companyUsers, new \App\Notifications\TicketTaskCreatedNotification($ticket, 'Ticket', 'company'));
+                }
+            } else {
+                $superadmins = \App\Models\User::where('is_disabled', false)->get()->filter(fn($u) => $u->isSuperAdmin());
+                if ($superadmins->isNotEmpty()) {
+                    \Illuminate\Support\Facades\Notification::send($superadmins, new \App\Notifications\TicketTaskCreatedNotification($ticket, 'Ticket', 'superadmin'));
+                }
+            }
+
+            if ($ticket->assigned_developer_id) {
+                $developer = \App\Models\User::find($ticket->assigned_developer_id);
+                if ($developer && !$developer->is_disabled) {
+                    $developer->notify(new \App\Notifications\TicketTaskAssignedNotification($ticket, 'Ticket'));
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send Ticket Creation notification: ' . $e->getMessage());
+        }
 
         return redirect()->route('tickets.index')->with('success', 'Ticket created successfully!');
     }
@@ -536,6 +561,7 @@ class TicketController extends Controller
         $redirectTo = $validated['redirect_to'] ?? null;
         unset($validated['redirect_to']);
 
+        $oldAssignee = $ticket->assigned_developer_id;
         $ticket->update($validated);
 
         if ($ticket->tasks()->exists()) {
@@ -614,12 +640,42 @@ class TicketController extends Controller
                 'role'      => 'system',
                 'type'      => 'status_change',
             ]);
+            
+            try {
+                if (in_array($ticket->status, ['in_progress', 'in_review'])) {
+                    $qcUsers = \App\Models\User::where('is_disabled', false)->get()->filter(fn($u) => $u->isQc());
+                    if ($qcUsers->isNotEmpty()) {
+                        \Illuminate\Support\Facades\Notification::send($qcUsers, new \App\Notifications\TicketStatusUpdatedForQcNotification($ticket, 'Ticket'));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send Ticket QC notification: ' . $e->getMessage());
+            }
+        }
+        
+        try {
+            if ($ticket->assigned_developer_id && $ticket->assigned_developer_id != $oldAssignee) {
+                $developer = \App\Models\User::find($ticket->assigned_developer_id);
+                if ($developer && !$developer->is_disabled) {
+                    $developer->notify(new \App\Notifications\TicketTaskAssignedNotification($ticket, 'Ticket'));
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send Ticket Update notification: ' . $e->getMessage());
         }
 
         if ($redirectTo === 'tasks') {
+            if ($request->wantsJson()) {
+                session()->flash('success', 'Ticket updated!');
+                return response()->json(['success' => true, 'redirect' => route('tasks.index')]);
+            }
             return redirect()->route('tasks.index')->with('success', 'Ticket updated!');
         }
 
+        if ($request->wantsJson()) {
+            session()->flash('success', 'Ticket updated!');
+            return response()->json(['success' => true, 'redirect' => route('tickets.show', $ticket)]);
+        }
         return redirect()->route('tickets.show', $ticket)->with('success', 'Ticket updated!');
     }
 

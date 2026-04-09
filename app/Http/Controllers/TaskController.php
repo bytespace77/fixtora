@@ -344,6 +344,29 @@ class TaskController extends Controller
             $task->task_company_code = $this->buildCompanyCode($companyName);
             $task->task_company_seq  = $this->computeCompanyTaskSeq($task);
 
+            try {
+                if (auth()->user()->isSuperAdmin() && $task->company_id) {
+                    $companyUsers = \App\Models\User::where('is_disabled', false)->where('company_id', $task->company_id)->get();
+                    if ($companyUsers->isNotEmpty()) {
+                        \Illuminate\Support\Facades\Notification::send($companyUsers, new \App\Notifications\TicketTaskCreatedNotification($task, 'Task', 'company'));
+                    }
+                } elseif (!auth()->user()->isSuperAdmin()) {
+                    $superadmins = \App\Models\User::where('is_disabled', false)->get()->filter(fn($u) => $u->isSuperAdmin());
+                    if ($superadmins->isNotEmpty()) {
+                        \Illuminate\Support\Facades\Notification::send($superadmins, new \App\Notifications\TicketTaskCreatedNotification($task, 'Task', 'superadmin'));
+                    }
+                }
+
+                if ($task->assigned_to) {
+                    $developer = \App\Models\User::find($task->assigned_to);
+                    if ($developer && !$developer->is_disabled) {
+                        $developer->notify(new \App\Notifications\TicketTaskAssignedNotification($task, 'Task'));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send Task Creation notification: ' . $e->getMessage());
+            }
+
             return response()->json(['success' => true, 'task' => $task]);
         }
 
@@ -410,7 +433,20 @@ class TaskController extends Controller
             }
         }
 
+        $oldAssignee = $task->assigned_to;
         $task->update($validated);
+        
+        try {
+            if ($task->assigned_to && $task->assigned_to != $oldAssignee) {
+                $developer = \App\Models\User::find($task->assigned_to);
+                if ($developer && !$developer->is_disabled) {
+                    $developer->notify(new \App\Notifications\TicketTaskAssignedNotification($task, 'Task'));
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to send Task Update notification: ' . $e->getMessage());
+        }
+
         $this->syncTicketStatusFromTasks($task);
 
         if ($request->expectsJson()) {
