@@ -203,7 +203,8 @@ class TicketController extends Controller
             if (auth()->user()->isSuperAdmin()) {
                 $companyUsers = \App\Models\User::where('is_disabled', false)
                     ->where('company_id', $ticket->company_id)
-                    ->get();
+                    ->get()
+                    ->filter(fn($u) => !$u->isQc());
                 if ($companyUsers->isNotEmpty()) {
                     \Illuminate\Support\Facades\Notification::send($companyUsers, new \App\Notifications\TicketTaskCreatedNotification($ticket, 'Ticket', 'company'));
                 }

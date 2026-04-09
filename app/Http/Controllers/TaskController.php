@@ -153,10 +153,25 @@ class TaskController extends Controller
 
         $newStatus = $hasDone ? 'resolved' : ($hasDoing ? 'in_progress' : 'open');
 
-        Ticket::withoutGlobalScope('company')
+        $ticket = Ticket::withoutGlobalScope('company')
             ->where('company_id', $companyId)
             ->where('id', $ticketId)
-            ->update(['status' => $newStatus, 'updated_at' => now()]);
+            ->first();
+
+        if ($ticket && $ticket->status !== $newStatus) {
+            $ticket->update(['status' => $newStatus, 'updated_at' => now()]);
+
+            try {
+                if (in_array($newStatus, ['in_progress', 'in_review'])) {
+                    $qcUsers = \App\Models\User::where('is_disabled', false)->get()->filter(fn($u) => $u->isQc());
+                    if ($qcUsers->isNotEmpty()) {
+                        \Illuminate\Support\Facades\Notification::send($qcUsers, new \App\Notifications\TicketStatusUpdatedForQcNotification($ticket, 'Ticket'));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send Ticket QC notification from task sync: ' . $e->getMessage());
+            }
+        }
     }
 
     /**
@@ -346,7 +361,10 @@ class TaskController extends Controller
 
             try {
                 if (auth()->user()->isSuperAdmin() && $task->company_id) {
-                    $companyUsers = \App\Models\User::where('is_disabled', false)->where('company_id', $task->company_id)->get();
+                    $companyUsers = \App\Models\User::where('is_disabled', false)
+                        ->where('company_id', $task->company_id)
+                        ->get()
+                        ->filter(fn($u) => !$u->isQc());
                     if ($companyUsers->isNotEmpty()) {
                         \Illuminate\Support\Facades\Notification::send($companyUsers, new \App\Notifications\TicketTaskCreatedNotification($task, 'Task', 'company'));
                     }
