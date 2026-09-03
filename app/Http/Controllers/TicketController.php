@@ -7,6 +7,7 @@ use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\TicketAttachment;
 use App\Models\Task;
+use App\Services\TicketComplianceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -156,7 +157,7 @@ class TicketController extends Controller
             'system_name'   => 'nullable|string|max:255',
             'priority'      => 'required|in:low,medium,high,critical',
             'impact'        => 'required|in:low,medium,high,critical',
-            'status'        => 'required|in:open,in_progress,in_review,resolved,closed',
+            'status'        => 'required|in:open,in_progress,in_review,pending_user_response,escalated,resolved,closed',
             'due_date'      => 'nullable|date',
             'attachments'   => 'nullable|array|max:10',
             'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
@@ -301,7 +302,7 @@ class TicketController extends Controller
                 'system_name' => 'sometimes|nullable|string|max:255',
                 'priority'    => 'sometimes|required|in:low,medium,high,critical',
                 'impact'      => 'sometimes|required|in:low,medium,high,critical',
-                'status'      => 'sometimes|required|in:open,in_progress,in_review,resolved,closed',
+                'status'      => 'sometimes|required|in:open,in_progress,in_review,pending_user_response,escalated,resolved,closed',
                 'due_date'    => 'sometimes|nullable|date',
                 'assigned_developer_id' => 'sometimes|nullable|exists:users,id',
                 'sla_level'             => 'sometimes|nullable|in:Low,Medium,High,Critical',
@@ -372,6 +373,7 @@ class TicketController extends Controller
                 && ((int) $selectedDeveloper !== (int) $ticket->assigned_developer_id || $selectedSla !== $ticket->sla_level)) {
                 $validated['assigned_by'] = $user->id;
                 $validated['assigned_date'] = now();
+                app(TicketComplianceService::class)->snapshotAssignment($ticket, $validated);
 
                 TicketComment::create([
                     'ticket_id' => $ticket->id,
@@ -407,9 +409,11 @@ class TicketController extends Controller
 
         if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
             $allowedTransitions = [
-                'open' => ['in_progress'],
-                'in_progress' => ['in_review'],
-                'in_review' => ['resolved'],
+                'open' => ['in_progress', 'escalated'],
+                'in_progress' => ['in_review', 'pending_user_response', 'escalated'],
+                'in_review' => ['resolved', 'pending_user_response', 'escalated'],
+                'pending_user_response' => ['in_progress', 'resolved', 'escalated'],
+                'escalated' => ['in_progress', 'in_review', 'resolved'],
                 'resolved' => ['closed', 'in_progress'],
                 'closed' => ['in_progress'],
             ];
@@ -502,6 +506,7 @@ class TicketController extends Controller
             }
 
             if ($validated['status'] === 'resolved') {
+                app(TicketComplianceService::class)->snapshotResolution($ticket, $validated);
                 $hasRelatedTasks = $ticket->tasks()->exists();
                 if ($hasRelatedTasks) {
                     $ticket->tasks()
@@ -533,6 +538,7 @@ class TicketController extends Controller
             }
 
             if ($validated['status'] === 'in_progress' && in_array($oldStatus, ['resolved', 'closed'], true)) {
+                app(TicketComplianceService::class)->clearResolution($validated);
                 TicketComment::create([
                     'ticket_id' => $ticket->id,
                     'user_id'   => $user->id,
@@ -594,6 +600,8 @@ class TicketController extends Controller
                     'open'        => 'todo',
                     'in_progress' => 'doing',
                     'in_review'   => 'doing',
+                    'pending_user_response' => 'doing',
+                    'escalated'   => 'doing',
                     'resolved'    => 'done',
                     'closed'      => 'done',
                 ];
