@@ -45,6 +45,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::patch('/reports/tickets/{ticket}/compliance', [ReportController::class, 'updateCompliance'])->name('reports.compliance.update');
 
     // SLA Monitor
     Route::get('/sla-monitor', [SlaController::class, 'index'])->name('sla-monitor.index');

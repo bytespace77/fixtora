@@ -25,8 +25,15 @@ class Ticket extends Model
         'assigned_date',
         'assigned_by',
         'sla_level',
+        'sla_limit_hours',
+        'sla_due_at',
         'estimated_delivery_date',
         'actual_delivery_date',
+        'resolved_at',
+        'resolution_minutes',
+        'compliance_status',
+        'penalty_points',
+        'compliance_manually_overridden',
         'qc_test_date',
         'csat_rating',
         'csat_comment',
@@ -38,6 +45,12 @@ class Ticket extends Model
         'assigned_date' => 'datetime',
         'estimated_delivery_date' => 'datetime',
         'actual_delivery_date' => 'datetime',
+        'sla_due_at' => 'datetime',
+        'resolved_at' => 'datetime',
+        'sla_limit_hours' => 'integer',
+        'resolution_minutes' => 'integer',
+        'penalty_points' => 'integer',
+        'compliance_manually_overridden' => 'boolean',
         'qc_test_date' => 'datetime',
         'csat_submitted_at' => 'datetime',
         'csat_rating' => 'integer',
@@ -63,7 +76,12 @@ class Ticket extends Model
                 }
                 if ($user->company_id) {
                     $query->where('company_id', $user->company_id);
+                    return;
                 }
+
+                // A non-global user without a company must never fall through
+                // to an unrestricted ticket query.
+                $query->whereRaw('1 = 0');
             }
         });
     }

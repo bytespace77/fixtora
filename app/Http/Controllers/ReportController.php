@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Task;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\Company;
+use App\Services\TicketComplianceService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -54,6 +57,33 @@ class ReportController extends Controller
 
         [$from, $to] = $this->parseRange($range, $custom, $fromParam, $toParam);
 
+        $isSuperAdmin = auth()->user()->hasGlobalDataAccess();
+        $companyFilter = $isSuperAdmin ? $request->integer('company_id') : null;
+        $complianceFilter = trim((string) $request->input('compliance_status', ''));
+        if (!in_array($complianceFilter, ['compliant', 'breached', 'pending', 'not_applicable'], true)) {
+            $complianceFilter = '';
+        }
+        $statusFilter = !$isSuperAdmin ? trim((string) $request->input('status', '')) : '';
+        $allowedStatuses = ['open', 'in_progress', 'in_review', 'resolved', 'closed', 'pending_user_response', 'escalated'];
+        if (!in_array($statusFilter, $allowedStatuses, true)) {
+            $statusFilter = '';
+        }
+
+        $tableFrom = $request->filled('table_from') ? Carbon::parse($request->input('table_from'))->startOfDay() : $from->copy();
+        $tableTo = $request->filled('table_to') ? Carbon::parse($request->input('table_to'))->endOfDay() : $to->copy();
+        if ($tableFrom->gt($tableTo)) {
+            [$tableFrom, $tableTo] = [$tableTo->copy()->startOfDay(), $tableFrom->copy()->endOfDay()];
+        }
+
+        $tableQuery = Ticket::with(['user', 'company', 'assignedDeveloper', 'comments'])
+            ->whereBetween('created_at', [$tableFrom, $tableTo]);
+        if ($companyFilter) {
+            $tableQuery->where('company_id', $companyFilter);
+        }
+        if ($statusFilter !== '') {
+            $tableQuery->where('status', $statusFilter);
+        }
+
         $totalTickets = Ticket::whereBetween('created_at', [$from, $to])->count();
 
         // Total Tasks in period
@@ -64,6 +94,7 @@ class ReportController extends Controller
         // Avg Resolution Time — combined tickets (resolved/closed) + tasks (done)
         $resolvedTickets = Ticket::whereIn('status', ['resolved', 'closed'])
             ->whereBetween('updated_at', [$from, $to])->get();
+        $ticketsResolved = $resolvedTickets->where('status', 'resolved')->count();
 
         $doneTasks = $this->companyTask()
             ->where('status', 'done')
@@ -103,6 +134,17 @@ class ReportController extends Controller
             $slaCompliance = 0;
         }
 
+        // Ticket SLA compliance uses the assignment-time SLA snapshot. Active
+        // tickets are counted as breached only after their SLA deadline passes.
+        $complianceService = app(TicketComplianceService::class);
+        $complianceTickets = Ticket::whereBetween('created_at', [$from, $to])->get();
+        $complianceFollowed = $complianceTickets
+            ->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'compliant')
+            ->count();
+        $complianceNotFollowed = $complianceTickets
+            ->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'breached')
+            ->count();
+
         // Real CSAT — average of submitted ratings within the period
         $csatData = Ticket::whereNotNull('csat_rating')
             ->whereNotNull('csat_submitted_at')
@@ -126,12 +168,8 @@ class ReportController extends Controller
         $newTaskTrend  = $chartData['taskInflow'];
         $doneTaskTrend = $chartData['taskDone'];
 
-        // Issue Distribution Map (3 buckets)
-        // For your workflow: todo -> open, doing -> in_progress, done -> resolved
-        // Here we map ticket.status into:
-        // - Open
-        // - In Progress
-        // - Resolved (includes 'resolved' + 'closed')
+        // Ticket Status Overview. Internal review is grouped into In Progress,
+        // while Closed is grouped into Resolved as requested by the five-part chart.
         $distributionRaw = Ticket::select('status', DB::raw('count(*) as count'))
             ->whereBetween('created_at', [$from, $to])
             ->groupBy('status')
@@ -139,13 +177,14 @@ class ReportController extends Controller
             ->toArray();
 
         $openCount       = (int) ($distributionRaw['open'] ?? 0);
-        $inProgressCount = (int) ($distributionRaw['in_progress'] ?? 0);
+        $inProgressCount = (int) ($distributionRaw['in_progress'] ?? 0) + (int) ($distributionRaw['in_review'] ?? 0);
         $resolvedCount   = (int) ($distributionRaw['resolved'] ?? 0) + (int) ($distributionRaw['closed'] ?? 0);
+        $pendingUserResponseCount = (int) ($distributionRaw['pending_user_response'] ?? 0);
+        $escalatedCount = (int) ($distributionRaw['escalated'] ?? 0);
 
-        $distribution = [$openCount, $inProgressCount, $resolvedCount];
+        $distribution = [$openCount, $inProgressCount, $resolvedCount, $pendingUserResponseCount, $escalatedCount];
 
         // Team Performance — superadmin only, grouped by role
-        $isSuperAdmin = auth()->user()->hasGlobalDataAccess();
         $agentsByRole = [];
 
         if ($isSuperAdmin) {
@@ -296,23 +335,116 @@ class ReportController extends Controller
             });
         }
 
+        // Compliance tables. The same scoped and filtered query is reused by
+        // both the on-screen rows and export, preventing cross-company drift.
+        $filteredTickets = (clone $tableQuery)->latest('updated_at')->get();
+        if ($complianceFilter !== '') {
+            $filteredTickets = $filteredTickets
+                ->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === $complianceFilter)
+                ->values();
+        }
+        $companies = $isSuperAdmin ? Company::orderBy('name')->get(['id', 'name']) : collect();
+
+        $complianceSummary = collect();
+        if ($isSuperAdmin) {
+            $complianceSummary = $filteredTickets->groupBy(fn (Ticket $ticket) => $ticket->company_id ?: 0)
+                ->map(function ($tickets) use ($complianceService) {
+                    $resolved = $tickets->whereIn('status', ['resolved', 'closed']);
+                    $minutes = $resolved->map(fn (Ticket $ticket) => $complianceService->resolutionMinutes($ticket))->filter(fn ($value) => $value !== null);
+                    return [
+                        'company' => optional($tickets->first()->company)->name ?? 'No Company',
+                        'total' => $tickets->count(),
+                        'closed' => $tickets->where('status', 'closed')->count(),
+                        'pending' => $tickets->whereNotIn('status', ['resolved', 'closed'])->count(),
+                        'resolved' => $resolved->count(),
+                        'avg_resolution_minutes' => $minutes->isEmpty() ? null : (int) round($minutes->avg()),
+                        'first_response_minutes' => $this->averageFirstResponseMinutes($tickets),
+                        'compliant' => $tickets->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'compliant')->count(),
+                        'breached' => $tickets->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'breached')->count(),
+                        'penalty' => $tickets->sum(fn (Ticket $ticket) => $complianceService->penalty($ticket)),
+                    ];
+                })->sortBy('company')->values();
+        }
+
+        $page = LengthAwarePaginator::resolveCurrentPage('compliance_page');
+        $complianceTickets = new LengthAwarePaginator(
+            $filteredTickets->forPage($page, 7)->values(),
+            $filteredTickets->count(),
+            7,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query(), 'pageName' => 'compliance_page']
+        );
+        $complianceTickets->getCollection()->each(function (Ticket $ticket) use ($complianceService) {
+            $ticket->setAttribute('report_compliance', $complianceService->status($ticket));
+            $ticket->setAttribute('report_first_response_minutes', $this->firstResponseMinutes($ticket));
+            $ticket->setAttribute('report_resolution_minutes', $complianceService->resolutionMinutes($ticket));
+            $ticket->setAttribute('report_penalty_points', $complianceService->penalty($ticket));
+        });
+
         // ── Export ────────────────────────────────────────────────────────
         if ($request->has('export')) {
-            abort_unless(auth()->user()->hasPermission('export_reports') || auth()->user()->hasPermission('view_reports'), 403, 'Permission denied.');
+            abort_unless(auth()->user()->hasPermission('export_reports'), 403, 'You do not have permission to export reports.');
+            $exportResolutionMinutes = $filteredTickets
+                ->map(fn (Ticket $ticket) => $complianceService->resolutionMinutes($ticket))
+                ->filter(fn ($minutes) => $minutes !== null);
             $stats = [
-                'total' => $totalTickets,
-                'avgResolution' => $avgResolution,
-                'slaCompliance' => $slaCompliance
+                'total' => $filteredTickets->count(),
+                'avgResolution' => $exportResolutionMinutes->isEmpty()
+                    ? 0
+                    : round($exportResolutionMinutes->avg() / 60),
+                'slaCompliance' => $slaCompliance,
+                'complianceFollowed' => $filteredTickets
+                    ->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'compliant')->count(),
+                'complianceNotFollowed' => $filteredTickets
+                    ->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'breached')->count(),
             ];
-            return $this->handleExport($request->input('export'), $from, $to, $stats);
+            return $this->handleExport($request->input('export'), $from, $to, $stats, $filteredTickets);
         }
 
         return view('reports.index', compact(
-            'totalTickets', 'totalTasks', 'avgResolution', 'slaCompliance', 'csat', 'csatCount',
+            'totalTickets', 'totalTasks', 'ticketsResolved', 'avgResolution', 'slaCompliance', 'csat', 'csatCount',
+            'complianceFollowed', 'complianceNotFollowed',
             'labels', 'newTrend', 'closedTrend', 'newTaskTrend', 'doneTaskTrend', 'distribution',
             'isSuperAdmin', 'agentsByRole',
+            'companies', 'companyFilter', 'complianceFilter', 'statusFilter', 'tableFrom', 'tableTo',
+            'complianceSummary', 'complianceTickets',
             'range', 'from', 'to'
         ));
+    }
+
+    public function updateCompliance(Request $request, Ticket $ticket)
+    {
+        abort_unless(auth()->user()->isSuperAdmin(), 403, 'Only Superadmin can edit compliance results.');
+
+        $validated = $request->validate([
+            'compliance_status' => 'required|in:compliant,breached,pending,not_applicable',
+            'penalty_points' => 'required|integer|min:0|max:999999',
+        ]);
+
+        $ticket->forceFill($validated + ['compliance_manually_overridden' => true])->save();
+
+        return back()->with('success', 'Compliance and penalty points updated for ticket #'.str_pad((string) $ticket->id, 4, '0', STR_PAD_LEFT).'.');
+    }
+
+    private function averageFirstResponseMinutes($tickets): ?int
+    {
+        $responseTimes = $tickets->map(fn (Ticket $ticket) => $this->firstResponseMinutes($ticket))
+            ->filter(fn ($minutes) => $minutes !== null);
+
+        return $responseTimes->isEmpty() ? null : (int) round($responseTimes->avg());
+    }
+
+    private function firstResponseMinutes(Ticket $ticket): ?int
+    {
+        $firstResponse = $ticket->comments
+            ->where('user_id', '!=', $ticket->user_id)
+            ->where('role', '!=', 'system')
+            ->sortBy('created_at')
+            ->first();
+
+        return $firstResponse
+            ? max(0, $ticket->created_at->diffInMinutes($firstResponse->created_at))
+            : null;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -413,13 +545,8 @@ class ReportController extends Controller
         return compact('labels', 'inflow', 'resolved', 'taskInflow', 'taskDone');
     }
 
-    private function handleExport(string $type, Carbon $from, Carbon $to, array $stats)
+    private function handleExport(string $type, Carbon $from, Carbon $to, array $stats, $tickets)
     {
-        $tickets = Ticket::with('user')
-            ->whereBetween('created_at', [$from, $to])
-            ->latest()
-            ->get();
-
         return $type === 'excel'
             ? $this->exportCsv($tickets, $stats, $from, $to)
             : $this->exportPdf($tickets, $stats, $from, $to);
@@ -434,6 +561,8 @@ class ReportController extends Controller
         ];
 
         $callback = function () use ($tickets, $stats, $from, $to) {
+            $compliance = app(TicketComplianceService::class);
+            $showCompany = auth()->user()->isSuperAdmin();
             $h = fopen('php://output', 'w');
             fputcsv($h, ['Fixtora – Analytics Report']);
             fputcsv($h, ['Period', $from->format('Y-m-d') . ' to ' . $to->format('Y-m-d')]);
@@ -441,18 +570,40 @@ class ReportController extends Controller
             fputcsv($h, []);
             fputcsv($h, ['SUMMARY']);
             fputcsv($h, ['Total Tickets',    $stats['total']]);
+            fputcsv($h, ['Pending Tickets', $tickets->whereNotIn('status', ['resolved', 'closed'])->count()]);
+            fputcsv($h, ['Resolved Tickets', $tickets->whereIn('status', ['resolved', 'closed'])->count()]);
             fputcsv($h, ['Avg Resolution (h)', $stats['avgResolution']]);
-            fputcsv($h, ['SLA Compliance (%)', $stats['slaCompliance']]);
+            fputcsv($h, ['Compliance Followed', $stats['complianceFollowed']]);
+            fputcsv($h, ['Compliance Not Followed', $stats['complianceNotFollowed']]);
+            fputcsv($h, ['Total Penalty Points', $tickets->sum(fn (Ticket $ticket) => $compliance->penalty($ticket))]);
             fputcsv($h, []);
-            fputcsv($h, ['ID','Title','System','Priority','Impact','Status','Reporter','Created']);
+            fputcsv($h, ['BREAKDOWN']);
+            $columns = ['Ticket ID', 'Name'];
+            if ($showCompany) $columns[] = 'Company';
+            $columns = array_merge($columns, ['Resolver', 'Status', 'Start Date', 'End Date', 'Response Time', 'Resolution Time', 'Compliance', 'Penalty Points']);
+            fputcsv($h, $columns);
             foreach ($tickets as $t) {
-                fputcsv($h, [
-                    '#'.$t->id, $t->title, $t->system ?? '—',
-                    ucfirst($t->priority), ucfirst($t->impact),
-                    ucfirst(str_replace('_',' ',$t->status)),
+                $minutes = $compliance->resolutionMinutes($t);
+                $duration = $minutes === null ? 'Pending' : intdiv($minutes, 60).'h '.($minutes % 60).'m';
+                $responseMinutes = $this->firstResponseMinutes($t);
+                $responseDuration = $responseMinutes === null ? 'No response' : intdiv($responseMinutes, 60).'h '.($responseMinutes % 60).'m';
+                $status = $compliance->status($t);
+                $row = [
+                    '#'.str_pad((string) $t->id, 4, '0', STR_PAD_LEFT),
                     optional($t->user)->name ?? '—',
-                    $t->created_at->format('Y-m-d H:i'),
+                ];
+                if ($showCompany) $row[] = optional($t->company)->name ?? '—';
+                $row = array_merge($row, [
+                    optional($t->assignedDeveloper)->name ?? '—',
+                    ucfirst(str_replace('_',' ',$t->status)),
+                    optional($t->assigned_date)->format('Y-m-d H:i') ?? '—',
+                    optional($t->resolved_at ?: $t->actual_delivery_date)->format('Y-m-d H:i') ?? '—',
+                    $responseDuration,
+                    $duration,
+                    ucfirst(str_replace('_', ' ', $status)),
+                    $compliance->penalty($t),
                 ]);
+                fputcsv($h, $row);
             }
             fclose($h);
         };
@@ -462,62 +613,100 @@ class ReportController extends Controller
 
     private function exportPdf($tickets, array $stats, Carbon $from, Carbon $to)
     {
+        $compliance = app(TicketComplianceService::class);
+        $showCompany = auth()->user()->isSuperAdmin();
         $rows = '';
         foreach ($tickets as $t) {
-            $color = match(strtolower($t->priority)) {
-                'critical' => '#dc2626', 'high' => '#f97316',
-                'medium'   => '#2563eb', default => '#6b7280',
+            $minutes = $compliance->resolutionMinutes($t);
+            $duration = $minutes === null ? 'Pending' : intdiv($minutes, 60).'h '.($minutes % 60).'m';
+            $responseMinutes = $this->firstResponseMinutes($t);
+            $responseDuration = $responseMinutes === null ? 'No response' : intdiv($responseMinutes, 60).'h '.($responseMinutes % 60).'m';
+            $complianceStatus = $compliance->status($t);
+            $statusClass = match ($complianceStatus) {
+                'compliant' => 'ok', 'breached' => 'bad', 'pending' => 'wait', default => 'na',
             };
+            $companyCell = $showCompany ? '<td>'.e(optional($t->company)->name ?? '-').'</td>' : '';
             $rows .= "<tr>
-                <td>#".e($t->id)."</td>
-                <td>".e($t->title)."</td>
-                <td>".e($t->system ?? '—')."</td>
-                <td style='color:{$color};font-weight:700'>".ucfirst(e($t->priority))."</td>
-                <td>".ucfirst(str_replace('_',' ',e($t->status)))."</td>
-                <td>".e(optional($t->user)->name ?? '—')."</td>
-                <td>".e($t->created_at->format('Y-m-d H:i'))."</td>
+                <td>#".str_pad((string) $t->id, 4, '0', STR_PAD_LEFT)."</td>
+                <td>".e(optional($t->user)->name ?? '-')."</td>
+                {$companyCell}
+                <td>".e(optional($t->assignedDeveloper)->name ?? '-')."</td>
+                <td>".e(ucfirst(str_replace('_', ' ', $t->status)))."</td>
+                <td>".e(optional($t->assigned_date)->format('Y-m-d H:i') ?? '-')."</td>
+                <td>".e(optional($t->resolved_at ?: $t->actual_delivery_date)->format('Y-m-d H:i') ?? '-')."</td>
+                <td>".e($responseDuration)."</td>
+                <td>".e($duration)."</td>
+                <td><span class='badge {$statusClass}'>".e(ucfirst(str_replace('_', ' ', $complianceStatus)))."</span></td>
+                <td class='points'>".$compliance->penalty($t)."</td>
             </tr>";
         }
 
-        $period  = $from->format('Y-m-d').' → '.$to->format('Y-m-d');
+        if ($rows === '') {
+            $rows = '<tr><td colspan="'.($showCompany ? 11 : 10).'" class="empty">No tickets match the selected filters.</td></tr>';
+        }
+
+        $pending = $tickets->whereNotIn('status', ['resolved', 'closed'])->count();
+        $closed = $tickets->where('status', 'closed')->count();
+        $penalties = $tickets->sum(fn (Ticket $ticket) => $compliance->penalty($ticket));
+        $period  = $from->format('Y-m-d').' to '.$to->format('Y-m-d');
         $genAt   = now()->format('Y-m-d H:i:s');
-        $t_val=$stats['total']; $ar=$stats['avgResolution']; $sla=$stats['slaCompliance'];
+        $total = $stats['total'];
+        $followed = $stats['complianceFollowed'];
+        $notFollowed = $stats['complianceNotFollowed'];
+        $companyHeader = $showCompany ? '<th>Company</th>' : '';
+        $tableClass = $showCompany ? 'with-company' : 'without-company';
+        $statsClass = $showCompany ? 'stats' : 'stats six';
+        $closedCard = $showCompany ? '' : '<td><div class="stat-label">Closed Tickets</div><div class="stat-value">'.$closed.'</div></td>';
 
         $html = <<<HTML
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
 <title>Fixtora Analytics</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;font-size:12px;color:#111827;padding:36px 40px}
-h1{font-size:22px;font-weight:800;color:#1e3a8a;margin-bottom:4px}
-.sub{font-size:11px;color:#6b7280;margin-bottom:24px}
-.stats{width:100%;margin-bottom:28px}
-.stat{width:31%;float:left;border:1px solid #e5e7ef;border-radius:8px;padding:14px 20px;box-sizing:border-box}
-.stat:nth-child(2){margin-left:3.5%;margin-right:3.5%}
-.clear{clear:both;margin-bottom:10px}
-.stat-label{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#6b7280;margin-bottom:6px}
-.stat-value{font-size:26px;font-weight:800;color:#111827}
-table{width:100%;border-collapse:collapse}
-th{text-align:left;padding:8px 10px;font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6b7280;border-bottom:2px solid #e5e7ef}
-td{padding:9px 10px;border-bottom:1px solid #f3f4f6;font-size:11px;color:#374151}
-.footer{margin-top:28px;font-size:10px;color:#9ca3af;text-align:right}
+@page{margin:25px 28px 30px}
+*{box-sizing:border-box}
+body{font-family:DejaVu Sans,Arial,sans-serif;font-size:9px;color:#1f2937;margin:0}
+h1{font-size:20px;color:#102a56;margin:0 0 3px}
+.sub{font-size:9px;color:#6b7280;margin-bottom:15px}
+.section-title{font-size:12px;font-weight:700;color:#102a56;margin:15px 0 7px}
+.stats{width:100%;border-collapse:separate;border-spacing:6px;margin-left:-6px}
+.stats td{width:20%;border:1px solid #dbe3ef;border-radius:6px;padding:9px;background:#f8fafc;vertical-align:top}
+.stats.six td{width:16.66%;padding:8px 7px}
+.stat-label{font-size:6.8px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px}
+.stat-value{font-size:16px;font-weight:800;color:#102a56}
+.report{width:100%;table-layout:fixed;border-collapse:collapse}
+.report thead{display:table-header-group}
+.report th{background:#102a56;color:#fff;padding:6px 4px;font-size:6.5px;text-align:left;text-transform:uppercase}
+.report td{padding:6px 3px;border-bottom:1px solid #e5e7eb;font-size:6px;vertical-align:top;word-wrap:break-word}
+.report tbody tr:nth-child(even){background:#f8fafc}
+.with-company th:nth-child(1){width:6%}.with-company th:nth-child(2){width:8%}.with-company th:nth-child(3){width:10%}.with-company th:nth-child(4){width:9%}.with-company th:nth-child(5){width:9%}.with-company th:nth-child(6){width:12%}.with-company th:nth-child(7){width:12%}.with-company th:nth-child(8){width:8%}.with-company th:nth-child(9){width:8%}.with-company th:nth-child(10){width:11%}.with-company th:nth-child(11){width:7%}
+.without-company th:nth-child(1){width:7%}.without-company th:nth-child(2){width:11%}.without-company th:nth-child(3){width:10%}.without-company th:nth-child(4){width:10%}.without-company th:nth-child(5){width:14%}.without-company th:nth-child(6){width:14%}.without-company th:nth-child(7){width:9%}.without-company th:nth-child(8){width:9%}.without-company th:nth-child(9){width:10%}.without-company th:nth-child(10){width:6%}
+.badge{display:inline-block;padding:2px 4px;border-radius:8px;font-size:6px;font-weight:700;text-transform:uppercase}
+.ok{background:#dcfce7;color:#047857}.bad{background:#fee2e2;color:#b91c1c}.wait{background:#fef3c7;color:#b45309}.na{background:#e2e8f0;color:#475569}
+.points{font-weight:700}.empty{text-align:center;color:#64748b;padding:18px!important}
+.footer{position:fixed;bottom:-18px;left:0;right:0;color:#94a3b8;font-size:7px;text-align:right}
+.page:after{content:counter(page)}
 </style></head><body>
-<h1>Fixtora – Analytics Report</h1>
-<div class="sub">Period: {$period} &nbsp;|&nbsp; Generated: {$genAt}</div>
-<div class="stats">
-  <div class="stat"><div class="stat-label">Total Tickets</div><div class="stat-value">{$t_val}</div></div>
-  <div class="stat"><div class="stat-label">Avg Resolution (h)</div><div class="stat-value">{$ar}h</div></div>
-  <div class="stat"><div class="stat-label">SLA Compliance</div><div class="stat-value">{$sla}%</div></div>
-</div>
-<div class="clear"></div>
-<table><thead><tr><th>ID</th><th>Title</th><th>System</th><th>Priority</th><th>Status</th><th>Reporter</th><th>Created</th></tr></thead>
+<h1>Fixtora Analytics Report</h1>
+<div class="sub">Period: {$period} &nbsp; | &nbsp; Generated: {$genAt}</div>
+<div class="section-title">Summary</div>
+<table class="{$statsClass}"><tr>
+  <td><div class="stat-label">Total Tickets</div><div class="stat-value">{$total}</div></td>
+  <td><div class="stat-label">Pending Tickets</div><div class="stat-value">{$pending}</div></td>
+  {$closedCard}
+  <td><div class="stat-label">Compliance Followed</div><div class="stat-value">{$followed}</div></td>
+  <td><div class="stat-label">Compliance Not Followed</div><div class="stat-value">{$notFollowed}</div></td>
+  <td><div class="stat-label">Penalty Points</div><div class="stat-value">{$penalties}</div></td>
+</tr></table>
+<div class="section-title">Ticket Breakdown</div>
+<table class="report {$tableClass}"><thead><tr><th>Ticket ID</th><th>User</th>{$companyHeader}<th>Resolver</th><th>Status</th><th>Start Date</th><th>End Date</th><th>Response Time</th><th>Resolution Time</th><th>Compliance</th><th>Points</th></tr></thead>
 <tbody>{$rows}</tbody></table>
-<div class="footer">Fixtora Helpdesk &copy; {$genAt}</div>
+<div class="footer">Fixtora Helpdesk &nbsp; | &nbsp; Page <span class="page"></span></div>
 </body></html>
 HTML;
 
         if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
-            return \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->download('fixtora-analytics.pdf');
+            $filename = 'fixtora-analytics-'.$from->format('Ymd').'-'.$to->format('Ymd').'.pdf';
+            return \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4', 'portrait')->download($filename);
         }
         
         // Fallback if dompdf isn't somehow available

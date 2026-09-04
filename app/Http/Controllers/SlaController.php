@@ -19,10 +19,10 @@ class SlaController extends Controller
     private function slaLimits(): array
     {
         return session('sla_limits', [
-            'critical' => 4,
-            'high'     => 8,
-            'medium'   => 24,
-            'low'      => 72,
+            'critical' => config('compliance.sla_hours.critical'),
+            'high'     => config('compliance.sla_hours.high'),
+            'medium'   => config('compliance.sla_hours.medium'),
+            'low'      => config('compliance.sla_hours.low'),
         ]);
     }
 

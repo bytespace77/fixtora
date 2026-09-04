@@ -26,6 +26,8 @@
 .pill-in_progress,.pill-in-progress{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
 .pill-in_review{background:#fdf4ff;color:#c026d3;border:1px solid #fae8ff}
 .pill-closed{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.pill-pending_user_response{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.pill-escalated{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
 .detail-grid{display:grid;grid-template-columns:1fr 340px;gap:18px}
 .detail-col{display:flex;flex-direction:column;gap:14px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
@@ -590,6 +592,8 @@ textarea.form-control{resize:vertical;min-height:80px}
             <option value="open" {{ $ticket->status=='open'?'selected':'' }}>Open</option>
             <option value="in_progress" {{ $ticket->status=='in_progress'?'selected':'' }}>In Progress</option>
             <option value="in_review" {{ $ticket->status=='in_review'?'selected':'' }}>In Review</option>
+            <option value="pending_user_response" {{ $ticket->status=='pending_user_response'?'selected':'' }}>Pending User Response</option>
+            <option value="escalated" {{ $ticket->status=='escalated'?'selected':'' }}>Escalated</option>
             <option value="resolved" {{ $ticket->status=='resolved'?'selected':'' }}>Resolved</option>
             <option value="closed" {{ $ticket->status=='closed'?'selected':'' }}>Closed</option>
           </select>
@@ -732,7 +736,7 @@ textarea.form-control{resize:vertical;min-height:80px}
         </div>
         <div class="form-row">
           <div class="form-group"><label>Impact</label><select name="impact" class="form-control">@foreach(['low','medium','high','critical'] as $imp)<option value="{{ $imp }}" {{ ($ticket->impact??'low')===$imp?'selected':'' }}>{{ ucfirst($imp) }}</option>@endforeach</select></div>
-          <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="open" {{ $ticket->status==='open'?'selected':'' }}>Open</option><option value="in_progress" {{ $ticket->status==='in_progress'?'selected':'' }}>In Progress</option><option value="in_review" {{ $ticket->status==='in_review'?'selected':'' }}>In Review</option><option value="resolved" {{ $ticket->status==='resolved'?'selected':'' }}>Resolved</option><option value="closed" {{ $ticket->status==='closed'?'selected':'' }}>Closed</option></select></div>
+          <div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="open" {{ $ticket->status==='open'?'selected':'' }}>Open</option><option value="in_progress" {{ $ticket->status==='in_progress'?'selected':'' }}>In Progress</option><option value="in_review" {{ $ticket->status==='in_review'?'selected':'' }}>In Review</option><option value="pending_user_response" {{ $ticket->status==='pending_user_response'?'selected':'' }}>Pending User Response</option><option value="escalated" {{ $ticket->status==='escalated'?'selected':'' }}>Escalated</option><option value="resolved" {{ $ticket->status==='resolved'?'selected':'' }}>Resolved</option><option value="closed" {{ $ticket->status==='closed'?'selected':'' }}>Closed</option></select></div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Due Date</label><input type="date" name="due_date" class="form-control" value="{{ $ticket->due_date?\Carbon\Carbon::parse($ticket->due_date)->format('Y-m-d'):'' }}"></div>
         

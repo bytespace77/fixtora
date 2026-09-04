@@ -64,6 +64,8 @@
 .pill-in_progress,.pill-in-progress{background:#eff6ff;color:#2563eb;border:1px solid #dbeafe}
 .pill-in_review{background:#fdf4ff;color:#c026d3;border:1px solid #fae8ff}
 .pill-closed{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.pill-pending_user_response{background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.pill-escalated{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
 /* 3-dot */
 .more-wrap{position:relative;display:flex;justify-content:center}
 .more-btn{border:none;background:none;cursor:pointer;color:var(--muted-lt);padding:5px 7px;border-radius:7px;font-size:18px;line-height:1;opacity:0;transition:opacity .12s,background .12s}
@@ -156,6 +158,8 @@ textarea.form-control{resize:vertical;min-height:80px}
       <label class="filter-check"><input type="checkbox" class="filter-status" value="open"><span>Open</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="in_progress"><span>In Progress</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="in_review"><span>In Review</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="pending_user_response"><span>Pending User Response</span></label>
+      <label class="filter-check"><input type="checkbox" class="filter-status" value="escalated"><span>Escalated</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="resolved"><span>Resolved</span></label>
       <label class="filter-check"><input type="checkbox" class="filter-status" value="closed"><span>Closed</span></label>
     </div>
@@ -197,7 +201,7 @@ textarea.form-control{resize:vertical;min-height:80px}
   <a href="{{ route('tickets.index', ['unassigned' => 1]) }}" class="filter-tab {{ request('unassigned') ? 'active' : '' }}" style="{{ request('unassigned') ? '' : 'color:#b91c1c;border-color:#fecaca;background:#fef2f2;' }}">
     Unassigned <span class="tab-count" style="{{ request('unassigned') ? '' : 'background:#fee2e2;color:#b91c1c;' }}">{{ $unassignedCount }}</span>
   </a>
-  @foreach(['open'=>'Open','in_progress'=>'In Progress','in_review'=>'In Review','resolved'=>'Resolved','closed'=>'Closed'] as $val=>$label)
+  @foreach(['open'=>'Open','in_progress'=>'In Progress','in_review'=>'In Review','pending_user_response'=>'Pending User Response','escalated'=>'Escalated','resolved'=>'Resolved','closed'=>'Closed'] as $val=>$label)
   <a href="{{ route('tickets.index', ['status' => $val]) }}" class="filter-tab {{ (request('status') === $val) ? 'active' : '' }}">
     {{ $label }} <span class="tab-count">{{ $statusCounts[$val] ?? 0 }}</span>
   </a>
@@ -357,7 +361,7 @@ textarea.form-control{resize:vertical;min-height:80px}
           <div class="form-group" id="statusGroup">
             <label>Status</label>
             <select name="status" id="fStatus" class="form-control">
-              <option value="open">Open</option><option value="in_progress">In Progress</option><option value="in_review">In Review</option><option value="resolved">Resolved</option><option value="closed">Closed</option>
+              <option value="open">Open</option><option value="in_progress">In Progress</option><option value="in_review">In Review</option><option value="pending_user_response">Pending User Response</option><option value="escalated">Escalated</option><option value="resolved">Resolved</option><option value="closed">Closed</option>
             </select>
           </div>
         </div>
