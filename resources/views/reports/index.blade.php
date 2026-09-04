@@ -10,6 +10,9 @@
 .reports-head .subtitle { color:var(--muted); font-size:13px; margin:0; }
 /* Page header / Actions */
 .header-actions { display:flex; gap:10px; margin-top:4px; align-items:center; flex-wrap:wrap; }
+.overview-company-form { margin:0; }
+.overview-company-select { height:36px; min-width:180px; max-width:240px; padding:0 34px 0 12px; border:1px solid var(--border-2); border-radius:7px; background:var(--surface); color:#111827; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; outline:none; }
+.overview-company-select:hover, .overview-company-select:focus { border-color:var(--blue); color:#111827; }
 
 /* Range picker */
 .range-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid var(--border-2); border-radius:7px; font-size:12.5px; font-weight:600; color:var(--text-2); background:var(--surface); cursor:pointer; font-family:inherit; transition:all .12s; }
@@ -107,6 +110,9 @@
 .report-table td { padding:12px; color:var(--text-2); border-bottom:1px solid #f1f5f9; font-size:12px; vertical-align:middle; }
 .report-table tr:last-child td { border-bottom:0; }
 .report-table .ticket-ref { color:var(--blue); font-weight:800; text-decoration:none; }
+.ticket-title-cell { min-width:220px; max-width:300px; white-space:normal; }
+.ticket-title-link { color:var(--text); font-size:11px; font-weight:600; line-height:1.45; text-decoration:none; overflow-wrap:anywhere; }
+.ticket-title-link:hover { color:var(--blue); text-decoration:underline; }
 .compliance-badge { display:inline-flex; padding:4px 8px; border-radius:999px; font-size:9.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; white-space:nowrap; }
 .compliance-badge.compliant { color:#047857; background:#ecfdf5; }
 .compliance-badge.breached { color:#b91c1c; background:#fef2f2; }
@@ -136,6 +142,8 @@
 .pagination-link.disabled { color:#aab4c3; background:#f8fafc; cursor:not-allowed; }
 .pagination-ellipsis { display:inline-flex; align-items:center; justify-content:center; min-width:24px; height:32px; color:var(--muted); font-size:12px; }
 .compliance-panel + .team-panel { margin-top:20px; }
+#ticket-status-breakdown { scroll-margin-top:90px; }
+#superadmin-summary { scroll-margin-top:90px; }
 
 @media (max-width: 1120px) {
   .stats-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
@@ -163,6 +171,20 @@
             <p class="subtitle">Real-time performance overview for the last 30 days</p>
         </div>
         <div class="header-actions">
+            @if($isSuperAdmin)
+            <form method="GET" action="{{ route('reports.index') }}" class="overview-company-form">
+              <input type="hidden" name="range" value="{{ $range }}">
+              <input type="hidden" name="from" value="{{ $from->format('Y-m-d') }}">
+              <input type="hidden" name="to" value="{{ $to->format('Y-m-d') }}">
+              <select name="company_id" class="overview-company-select" onchange="this.form.submit()" aria-label="Filter reports by company">
+                <option value="">All Companies</option>
+                @foreach($companies as $company)
+                  <option value="{{ $company->id }}" @selected((int) $companyFilter === (int) $company->id)>{{ $company->name }}</option>
+                @endforeach
+              </select>
+            </form>
+            @endif
+
             <!-- Date range picker -->
             <div style="position:relative">
               <button class="range-btn" id="rangeBtn" onclick="toggleDropdown('rangeMenu','rangeBtn')">
@@ -288,14 +310,14 @@
     </div>
 
     @if($isSuperAdmin)
-    <div class="compliance-panel">
+    <div class="compliance-panel" id="superadmin-summary">
         <div class="compliance-head">
             <h3>Superadmin Summary</h3>
             <p>Company-level ticket and SLA performance for the selected period</p>
         </div>
         <div class="filter-area">
         <div class="filter-toggle-row"><button type="button" class="filter-toggle-btn {{ request('filter_panel') === 'summary' ? 'active' : '' }}" id="summaryFilterBtn" onclick="toggleReportFilter('summaryFilter','summaryFilterBtn')" aria-expanded="{{ request('filter_panel') === 'summary' ? 'true' : 'false' }}">Filter <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button></div>
-        <form method="GET" action="{{ route('reports.index') }}" class="advanced-filter auto-filter-form {{ request('filter_panel') === 'summary' ? 'open' : '' }}" id="summaryFilter">
+        <form method="GET" action="{{ route('reports.index') }}#superadmin-summary" class="advanced-filter auto-filter-form {{ request('filter_panel') === 'summary' ? 'open' : '' }}" id="summaryFilter">
             <input type="hidden" name="filter_panel" value="summary">
             <input type="hidden" name="range" value="{{ $range }}">
             <input type="hidden" name="from" value="{{ $from->format('Y-m-d') }}">
@@ -311,7 +333,7 @@
             </div>
             <div class="filter-field"><label for="summary_start">Start Date</label><input type="date" id="summary_start" name="table_from" value="{{ $tableFrom->format('Y-m-d') }}"></div>
             <div class="filter-field"><label for="summary_end">End Date</label><input type="date" id="summary_end" name="table_to" value="{{ $tableTo->format('Y-m-d') }}"></div>
-            <a class="filter-reset" href="{{ route('reports.index', ['range'=>$range, 'from'=>$from->format('Y-m-d'), 'to'=>$to->format('Y-m-d')]) }}">Reset</a>
+            <a class="filter-reset" href="{{ route('reports.index', ['range'=>$range, 'from'=>$from->format('Y-m-d'), 'to'=>$to->format('Y-m-d')]) }}#superadmin-summary">Reset</a>
         </form>
         </div>
         <div class="report-table-wrap">
@@ -337,14 +359,14 @@
     </div>
     @endif
 
-    <div class="compliance-panel">
+    <div class="compliance-panel" id="ticket-status-breakdown">
         <div class="compliance-head">
             <h3>{{ $isSuperAdmin ? 'Ticket Status Breakdown' : 'Summary' }}</h3>
             <p>{{ $isSuperAdmin ? 'Ticket-level SLA results across permitted companies' : 'SLA results for tickets you are permitted to access' }}</p>
         </div>
         <div class="filter-area">
         <div class="filter-toggle-row"><button type="button" class="filter-toggle-btn {{ request('filter_panel') === 'breakdown' ? 'active' : '' }}" id="breakdownFilterBtn" onclick="toggleReportFilter('breakdownFilter','breakdownFilterBtn')" aria-expanded="{{ request('filter_panel') === 'breakdown' ? 'true' : 'false' }}">Filter <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button></div>
-        <form method="GET" action="{{ route('reports.index') }}" class="advanced-filter auto-filter-form {{ request('filter_panel') === 'breakdown' ? 'open' : '' }}" id="breakdownFilter">
+        <form method="GET" action="{{ route('reports.index') }}#ticket-status-breakdown" class="advanced-filter auto-filter-form {{ request('filter_panel') === 'breakdown' ? 'open' : '' }}" id="breakdownFilter">
             <input type="hidden" name="filter_panel" value="breakdown">
             <input type="hidden" name="range" value="{{ $range }}">
             <input type="hidden" name="from" value="{{ $from->format('Y-m-d') }}">
@@ -378,20 +400,20 @@
             @endunless
             <div class="filter-field"><label for="breakdown_start">Start Date</label><input type="date" id="breakdown_start" name="table_from" value="{{ $tableFrom->format('Y-m-d') }}"></div>
             <div class="filter-field"><label for="breakdown_end">End Date</label><input type="date" id="breakdown_end" name="table_to" value="{{ $tableTo->format('Y-m-d') }}"></div>
-            <a class="filter-reset" href="{{ route('reports.index', ['range'=>$range, 'from'=>$from->format('Y-m-d'), 'to'=>$to->format('Y-m-d')]) }}">Reset</a>
+            <a class="filter-reset" href="{{ route('reports.index', ['range'=>$range, 'from'=>$from->format('Y-m-d'), 'to'=>$to->format('Y-m-d')]) }}#ticket-status-breakdown">Reset</a>
         </form>
         </div>
         <div class="report-table-wrap">
             <table class="report-table">
-                <thead><tr><th>Ticket ID</th><th>Name</th>@if($isSuperAdmin)<th>Company</th>@endif<th>Resolver</th><th>Status</th><th>Start Date</th><th>End Date</th><th>Response Time</th><th>Resolution Time</th><th>Compliance</th><th>Penalty Points</th>@if(auth()->user()->isSuperAdmin())<th>Action</th>@endif</tr></thead>
+                <thead><tr><th>Ticket ID</th><th>Title</th><th>Name</th>@if($isSuperAdmin)<th>Company</th>@endif<th>Status</th><th>Start Date</th><th>End Date</th><th>Response Time</th><th>Resolution Time</th><th>Compliance</th><th>Penalty Points</th>@if(auth()->user()->isSuperAdmin())<th>Action</th>@endif</tr></thead>
                 <tbody>
                 @forelse($complianceTickets as $ticket)
                     @php $minutes = $ticket->report_resolution_minutes; $responseMinutes = $ticket->report_first_response_minutes; $compliance = $ticket->report_compliance; @endphp
                     <tr>
                         <td><a class="ticket-ref" href="{{ route('tickets.show', $ticket) }}">#{{ str_pad((string)$ticket->id, 4, '0', STR_PAD_LEFT) }}</a></td>
+                        <td class="ticket-title-cell"><a class="ticket-title-link" href="{{ route('tickets.show', $ticket) }}">{{ $ticket->title }}</a></td>
                         <td>{{ optional($ticket->user)->name ?? '—' }}</td>
                         @if($isSuperAdmin)<td>{{ optional($ticket->company)->name ?? '—' }}</td>@endif
-                        <td>{{ optional($ticket->assignedDeveloper)->name ?? '—' }}</td>
                         <td>{{ ucfirst(str_replace('_', ' ', $ticket->status)) }}</td>
                         <td>{{ optional($ticket->assigned_date)->format('Y-m-d H:i') ?? '—' }}</td>
                         <td>{{ optional($ticket->resolved_at ?: $ticket->actual_delivery_date)->format('Y-m-d H:i') ?? '—' }}</td>
@@ -659,14 +681,23 @@ document.addEventListener('click', function(e) {
   }
 });
 
-function applyRange(r) { window.location.href = '{{ route('reports.index') }}?range=' + r; }
+const overviewCompanyId = @json($companyFilter);
+
+function reportOverviewUrl(params) {
+  if (overviewCompanyId) params.set('company_id', overviewCompanyId);
+  return '{{ route('reports.index') }}?' + params.toString();
+}
+
+function applyRange(r) {
+  window.location.href = reportOverviewUrl(new URLSearchParams({ range: r }));
+}
 
 function applyCustomRange() {
   const from = document.getElementById('customFrom').value;
   const to   = document.getElementById('customTo').value;
   if (!from || !to) { alert('Please select both dates.'); return; }
   if (from > to) { alert('Start date must be before end date.'); return; }
-  window.location.href = '{{ route('reports.index') }}?range=custom&from=' + from + '&to=' + to;
+  window.location.href = reportOverviewUrl(new URLSearchParams({ range: 'custom', from, to }));
 }
 
 function toggleReportFilter(panelId, buttonId) {
