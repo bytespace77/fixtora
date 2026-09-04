@@ -25,13 +25,13 @@ class ReportController extends Controller
      * Developers see only their own assigned tasks.
      * All others see tasks belonging to their company.
      */
-    private function companyTask(): \Illuminate\Database\Eloquent\Builder
+    private function companyTask(?int $companyId = null): \Illuminate\Database\Eloquent\Builder
     {
         $user = auth()->user();
         $query = Task::withoutGlobalScopes();
 
         if ($user->hasGlobalDataAccess()) {
-            return $query; // sees everything
+            return $query->when($companyId, fn ($builder) => $builder->where('company_id', $companyId));
         }
 
         if ($user->isDeveloper()) {
@@ -84,19 +84,21 @@ class ReportController extends Controller
             $tableQuery->where('status', $statusFilter);
         }
 
-        $totalTickets = Ticket::whereBetween('created_at', [$from, $to])->count();
+        $totalTickets = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
+            ->whereBetween('created_at', [$from, $to])->count();
 
         // Total Tasks in period
-        $totalTasks = $this->companyTask()
+        $totalTasks = $this->companyTask($companyFilter)
             ->whereBetween('created_at', [$from, $to])
             ->count();
 
         // Avg Resolution Time — combined tickets (resolved/closed) + tasks (done)
-        $resolvedTickets = Ticket::whereIn('status', ['resolved', 'closed'])
+        $resolvedTickets = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
+            ->whereIn('status', ['resolved', 'closed'])
             ->whereBetween('updated_at', [$from, $to])->get();
         $ticketsResolved = $resolvedTickets->where('status', 'resolved')->count();
 
-        $doneTasks = $this->companyTask()
+        $doneTasks = $this->companyTask($companyFilter)
             ->where('status', 'done')
             ->whereBetween('updated_at', [$from, $to])->get();
 
@@ -116,13 +118,13 @@ class ReportController extends Controller
 
         // SLA Task Success Rate — Task 24
         // % tasks completed on time (actual_delivery_date <= due_date) vs total tasks with due_date
-        $slaTotalTasks = $this->companyTask()
+        $slaTotalTasks = $this->companyTask($companyFilter)
             ->whereNotNull('due_date')
             ->whereBetween('created_at', [$from, $to])
             ->count();
 
         if ($slaTotalTasks > 0) {
-            $slaOnTime = $this->companyTask()
+            $slaOnTime = $this->companyTask($companyFilter)
                 ->where('status', 'done')
                 ->whereNotNull('due_date')
                 ->whereNotNull('actual_delivery_date')
@@ -137,7 +139,8 @@ class ReportController extends Controller
         // Ticket SLA compliance uses the assignment-time SLA snapshot. Active
         // tickets are counted as breached only after their SLA deadline passes.
         $complianceService = app(TicketComplianceService::class);
-        $complianceTickets = Ticket::whereBetween('created_at', [$from, $to])->get();
+        $complianceTickets = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
+            ->whereBetween('created_at', [$from, $to])->get();
         $complianceFollowed = $complianceTickets
             ->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'compliant')
             ->count();
@@ -146,7 +149,8 @@ class ReportController extends Controller
             ->count();
 
         // Real CSAT — average of submitted ratings within the period
-        $csatData = Ticket::whereNotNull('csat_rating')
+        $csatData = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
+            ->whereNotNull('csat_rating')
             ->whereNotNull('csat_submitted_at')
             ->whereBetween('csat_submitted_at', [$from, $to])
             ->selectRaw('AVG(csat_rating) as avg_rating, COUNT(*) as total')
@@ -161,7 +165,7 @@ class ReportController extends Controller
         }
 
         // Trend Data — tickets and tasks
-        $chartData   = $this->buildChartData($from, $to, $range);
+        $chartData   = $this->buildChartData($from, $to, $range, $companyFilter);
         $labels      = $chartData['labels'];
         $newTrend    = $chartData['inflow'];
         $closedTrend = $chartData['resolved'];
@@ -170,7 +174,8 @@ class ReportController extends Controller
 
         // Ticket Status Overview. Internal review is grouped into In Progress,
         // while Closed is grouped into Resolved as requested by the five-part chart.
-        $distributionRaw = Ticket::select('status', DB::raw('count(*) as count'))
+        $distributionRaw = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
+            ->select('status', DB::raw('count(*) as count'))
             ->whereBetween('created_at', [$from, $to])
             ->groupBy('status')
             ->pluck('count', 'status')
@@ -189,7 +194,7 @@ class ReportController extends Controller
 
         if ($isSuperAdmin) {
             // Helper: real stats for an array of user IDs, sourced from tasks
-            $buildStats = function (array $userIds) use ($from, $to): array {
+            $buildStats = function (array $userIds) use ($from, $to, $companyFilter): array {
                 if (empty($userIds)) {
                     return ['resolved' => 0, 'avg_response' => '—', 'load' => 0, 'pending_tickets' => 0];
                 }
@@ -198,6 +203,7 @@ class ReportController extends Controller
                 // withoutGlobalScopes() prevents the Task scope from re-filtering by Auth::user()
                 $doneTasks = Task::withoutGlobalScopes()
                     ->whereIn('assigned_to', $userIds)
+                    ->when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
                     ->where('status', 'done')
                     ->whereBetween('updated_at', [$from, $to])
                     ->get(['assigned_date', 'actual_delivery_date', 'created_at', 'updated_at']);
@@ -222,6 +228,7 @@ class ReportController extends Controller
                 // Load: tasks currently active (not yet done)
                 $openCount = Task::withoutGlobalScopes()
                     ->whereIn('assigned_to', $userIds)
+                    ->when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
                     ->whereIn('status', ['todo', 'doing'])
                     ->count();
                 $loadPct = min(100, $openCount * 5);
@@ -229,6 +236,7 @@ class ReportController extends Controller
                 // Pending tickets: tickets assigned to these users not yet resolved/closed
                 $pendingTickets = Ticket::withoutGlobalScope('company')
                     ->whereIn('assigned_developer_id', $userIds)
+                    ->when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
                     ->whereNotIn('status', ['resolved', 'closed'])
                     ->count();
 
@@ -287,11 +295,13 @@ class ReportController extends Controller
                 if ($roleLabel === 'QC') {
                     $pendingTickets = Ticket::withoutGlobalScope('company')
                         ->where('status', 'in_review')
+                        ->when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
                         ->whereBetween('updated_at', [$from, $to])
                         ->count();
 
                     $resolvedByQc = \App\Models\TicketComment::where('user_id', $u->id)
                         ->where('type', 'status_change')
+                        ->when($companyFilter, fn ($query) => $query->whereHas('ticket', fn ($ticketQuery) => $ticketQuery->withoutGlobalScope('company')->where('company_id', $companyFilter)))
                         ->whereRaw("LOWER(body) LIKE ?", ['%resolved%'])
                         ->whereBetween('created_at', [$from, $to])
                         ->count();
@@ -374,6 +384,7 @@ class ReportController extends Controller
             $page,
             ['path' => $request->url(), 'query' => $request->query(), 'pageName' => 'compliance_page']
         );
+        $complianceTickets->fragment('ticket-status-breakdown');
         $complianceTickets->getCollection()->each(function (Ticket $ticket) use ($complianceService) {
             $ticket->setAttribute('report_compliance', $complianceService->status($ticket));
             $ticket->setAttribute('report_first_response_minutes', $this->firstResponseMinutes($ticket));
@@ -479,10 +490,11 @@ class ReportController extends Controller
         return [$from, $to];
     }
 
-    private function buildChartData(Carbon $from, Carbon $to, string $range): array
+    private function buildChartData(Carbon $from, Carbon $to, string $range, ?int $companyId = null): array
     {
         // Ticket inflow
-        $inflowRaw = Ticket::select(
+        $inflowRaw = Ticket::when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->select(
                 DB::raw('DATE(created_at) as day'),
                 DB::raw('COUNT(*) as cnt')
             )
@@ -492,7 +504,8 @@ class ReportController extends Controller
             ->toArray();
 
         // Tickets resolved/closed
-        $resolvedRaw = Ticket::select(
+        $resolvedRaw = Ticket::when($companyId, fn ($query) => $query->where('company_id', $companyId))
+            ->select(
                 DB::raw('DATE(updated_at) as day'),
                 DB::raw('COUNT(*) as cnt')
             )
@@ -503,7 +516,7 @@ class ReportController extends Controller
             ->toArray();
 
         // Tasks created
-        $taskInflowRaw = $this->companyTask()
+        $taskInflowRaw = $this->companyTask($companyId)
             ->select(DB::raw('DATE(created_at) as day'), DB::raw('COUNT(*) as cnt'))
             ->whereBetween('created_at', [$from, $to])
             ->groupBy('day')
@@ -511,7 +524,7 @@ class ReportController extends Controller
             ->toArray();
 
         // Tasks done
-        $taskDoneRaw = $this->companyTask()
+        $taskDoneRaw = $this->companyTask($companyId)
             ->select(DB::raw('DATE(updated_at) as day'), DB::raw('COUNT(*) as cnt'))
             ->where('status', 'done')
             ->whereBetween('updated_at', [$from, $to])
@@ -578,9 +591,9 @@ class ReportController extends Controller
             fputcsv($h, ['Total Penalty Points', $tickets->sum(fn (Ticket $ticket) => $compliance->penalty($ticket))]);
             fputcsv($h, []);
             fputcsv($h, ['BREAKDOWN']);
-            $columns = ['Ticket ID', 'Name'];
+            $columns = ['Ticket ID', 'Title', 'Name'];
             if ($showCompany) $columns[] = 'Company';
-            $columns = array_merge($columns, ['Resolver', 'Status', 'Start Date', 'End Date', 'Response Time', 'Resolution Time', 'Compliance', 'Penalty Points']);
+            $columns = array_merge($columns, ['Status', 'Start Date', 'End Date', 'Response Time', 'Resolution Time', 'Compliance', 'Penalty Points']);
             fputcsv($h, $columns);
             foreach ($tickets as $t) {
                 $minutes = $compliance->resolutionMinutes($t);
@@ -590,11 +603,11 @@ class ReportController extends Controller
                 $status = $compliance->status($t);
                 $row = [
                     '#'.str_pad((string) $t->id, 4, '0', STR_PAD_LEFT),
+                    $t->title,
                     optional($t->user)->name ?? '—',
                 ];
                 if ($showCompany) $row[] = optional($t->company)->name ?? '—';
                 $row = array_merge($row, [
-                    optional($t->assignedDeveloper)->name ?? '—',
                     ucfirst(str_replace('_',' ',$t->status)),
                     optional($t->assigned_date)->format('Y-m-d H:i') ?? '—',
                     optional($t->resolved_at ?: $t->actual_delivery_date)->format('Y-m-d H:i') ?? '—',
@@ -628,9 +641,9 @@ class ReportController extends Controller
             $companyCell = $showCompany ? '<td>'.e(optional($t->company)->name ?? '-').'</td>' : '';
             $rows .= "<tr>
                 <td>#".str_pad((string) $t->id, 4, '0', STR_PAD_LEFT)."</td>
+                <td>".e($t->title)."</td>
                 <td>".e(optional($t->user)->name ?? '-')."</td>
                 {$companyCell}
-                <td>".e(optional($t->assignedDeveloper)->name ?? '-')."</td>
                 <td>".e(ucfirst(str_replace('_', ' ', $t->status)))."</td>
                 <td>".e(optional($t->assigned_date)->format('Y-m-d H:i') ?? '-')."</td>
                 <td>".e(optional($t->resolved_at ?: $t->actual_delivery_date)->format('Y-m-d H:i') ?? '-')."</td>
@@ -678,8 +691,8 @@ h1{font-size:20px;color:#102a56;margin:0 0 3px}
 .report th{background:#102a56;color:#fff;padding:6px 4px;font-size:6.5px;text-align:left;text-transform:uppercase}
 .report td{padding:6px 3px;border-bottom:1px solid #e5e7eb;font-size:6px;vertical-align:top;word-wrap:break-word}
 .report tbody tr:nth-child(even){background:#f8fafc}
-.with-company th:nth-child(1){width:6%}.with-company th:nth-child(2){width:8%}.with-company th:nth-child(3){width:10%}.with-company th:nth-child(4){width:9%}.with-company th:nth-child(5){width:9%}.with-company th:nth-child(6){width:12%}.with-company th:nth-child(7){width:12%}.with-company th:nth-child(8){width:8%}.with-company th:nth-child(9){width:8%}.with-company th:nth-child(10){width:11%}.with-company th:nth-child(11){width:7%}
-.without-company th:nth-child(1){width:7%}.without-company th:nth-child(2){width:11%}.without-company th:nth-child(3){width:10%}.without-company th:nth-child(4){width:10%}.without-company th:nth-child(5){width:14%}.without-company th:nth-child(6){width:14%}.without-company th:nth-child(7){width:9%}.without-company th:nth-child(8){width:9%}.without-company th:nth-child(9){width:10%}.without-company th:nth-child(10){width:6%}
+.with-company th:nth-child(1){width:6%}.with-company th:nth-child(2){width:17%}.with-company th:nth-child(3){width:7%}.with-company th:nth-child(4){width:9%}.with-company th:nth-child(5){width:8%}.with-company th:nth-child(6){width:11%}.with-company th:nth-child(7){width:11%}.with-company th:nth-child(8){width:7%}.with-company th:nth-child(9){width:7%}.with-company th:nth-child(10){width:10%}.with-company th:nth-child(11){width:7%}
+.without-company th:nth-child(1){width:7%}.without-company th:nth-child(2){width:20%}.without-company th:nth-child(3){width:8%}.without-company th:nth-child(4){width:9%}.without-company th:nth-child(5){width:13%}.without-company th:nth-child(6){width:13%}.without-company th:nth-child(7){width:8%}.without-company th:nth-child(8){width:8%}.without-company th:nth-child(9){width:9%}.without-company th:nth-child(10){width:5%}
 .badge{display:inline-block;padding:2px 4px;border-radius:8px;font-size:6px;font-weight:700;text-transform:uppercase}
 .ok{background:#dcfce7;color:#047857}.bad{background:#fee2e2;color:#b91c1c}.wait{background:#fef3c7;color:#b45309}.na{background:#e2e8f0;color:#475569}
 .points{font-weight:700}.empty{text-align:center;color:#64748b;padding:18px!important}
@@ -698,7 +711,7 @@ h1{font-size:20px;color:#102a56;margin:0 0 3px}
   <td><div class="stat-label">Penalty Points</div><div class="stat-value">{$penalties}</div></td>
 </tr></table>
 <div class="section-title">Ticket Breakdown</div>
-<table class="report {$tableClass}"><thead><tr><th>Ticket ID</th><th>User</th>{$companyHeader}<th>Resolver</th><th>Status</th><th>Start Date</th><th>End Date</th><th>Response Time</th><th>Resolution Time</th><th>Compliance</th><th>Points</th></tr></thead>
+<table class="report {$tableClass}"><thead><tr><th>Ticket ID</th><th>Title</th><th>User</th>{$companyHeader}<th>Status</th><th>Start Date</th><th>End Date</th><th>Response Time</th><th>Resolution Time</th><th>Compliance</th><th>Points</th></tr></thead>
 <tbody>{$rows}</tbody></table>
 <div class="footer">Fixtora Helpdesk &nbsp; | &nbsp; Page <span class="page"></span></div>
 </body></html>
