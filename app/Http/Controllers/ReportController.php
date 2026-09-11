@@ -96,7 +96,10 @@ class ReportController extends Controller
         $resolvedTickets = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
             ->whereIn('status', ['resolved', 'closed'])
             ->whereBetween('updated_at', [$from, $to])->get();
-        $ticketsResolved = $resolvedTickets->where('status', 'resolved')->count();
+        $ticketsResolved = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
+            ->whereIn('status', ['resolved', 'closed'])
+            ->whereBetween('created_at', [$from, $to])
+            ->count();
 
         $doneTasks = $this->companyTask($companyFilter)
             ->where('status', 'done')
@@ -172,20 +175,18 @@ class ReportController extends Controller
         $newTaskTrend  = $chartData['taskInflow'];
         $doneTaskTrend = $chartData['taskDone'];
 
-        // Ticket Status Overview. Internal review is grouped into In Progress,
-        // while Closed is grouped into Resolved as requested by the five-part chart.
-        $distributionRaw = Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
-            ->select('status', DB::raw('count(*) as count'))
+        // Ticket Status Overview. Uses the same created-at period as the
+        // summary tables so the overview counts match the rows below.
+        $statusCount = fn (array $statuses) => Ticket::when($companyFilter, fn ($query) => $query->where('company_id', $companyFilter))
+            ->whereIn('status', $statuses)
             ->whereBetween('created_at', [$from, $to])
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
+            ->count();
 
-        $openCount       = (int) ($distributionRaw['open'] ?? 0);
-        $inProgressCount = (int) ($distributionRaw['in_progress'] ?? 0) + (int) ($distributionRaw['in_review'] ?? 0);
-        $resolvedCount   = (int) ($distributionRaw['resolved'] ?? 0) + (int) ($distributionRaw['closed'] ?? 0);
-        $pendingUserResponseCount = (int) ($distributionRaw['pending_user_response'] ?? 0);
-        $escalatedCount = (int) ($distributionRaw['escalated'] ?? 0);
+        $openCount       = $statusCount(['open']);
+        $inProgressCount = $statusCount(['in_progress', 'in_review']);
+        $resolvedCount   = $statusCount(['resolved', 'closed']);
+        $pendingUserResponseCount = $statusCount(['pending_user_response']);
+        $escalatedCount = $statusCount(['escalated']);
 
         $distribution = [$openCount, $inProgressCount, $resolvedCount, $pendingUserResponseCount, $escalatedCount];
 
@@ -409,7 +410,7 @@ class ReportController extends Controller
                 'complianceNotFollowed' => $filteredTickets
                     ->filter(fn (Ticket $ticket) => $complianceService->status($ticket) === 'breached')->count(),
             ];
-            return $this->handleExport($request->input('export'), $from, $to, $stats, $filteredTickets);
+            return $this->handleExport($request->input('export'), $from, $to, $stats, $filteredTickets, $chartData);
         }
 
         return view('reports.index', compact(
@@ -558,11 +559,11 @@ class ReportController extends Controller
         return compact('labels', 'inflow', 'resolved', 'taskInflow', 'taskDone');
     }
 
-    private function handleExport(string $type, Carbon $from, Carbon $to, array $stats, $tickets)
+    private function handleExport(string $type, Carbon $from, Carbon $to, array $stats, $tickets, array $chartData)
     {
         return $type === 'excel'
             ? $this->exportCsv($tickets, $stats, $from, $to)
-            : $this->exportPdf($tickets, $stats, $from, $to);
+            : $this->exportPdf($tickets, $stats, $from, $to, $chartData);
     }
 
     private function exportCsv($tickets, array $stats, Carbon $from, Carbon $to)
@@ -624,10 +625,13 @@ class ReportController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    private function exportPdf($tickets, array $stats, Carbon $from, Carbon $to)
+    private function exportPdf($tickets, array $stats, Carbon $from, Carbon $to, array $chartData)
     {
         $compliance = app(TicketComplianceService::class);
         $showCompany = auth()->user()->isSuperAdmin();
+        $tickets = $tickets->sortBy('id')->values();
+        $lineChart = $this->buildPdfLineChart($chartData);
+        $statusPieChart = $this->buildPdfStatusPieChart($tickets);
         $rows = '';
         foreach ($tickets as $t) {
             $minutes = $compliance->resolutionMinutes($t);
@@ -686,6 +690,23 @@ h1{font-size:20px;color:#102a56;margin:0 0 3px}
 .stats.six td{width:16.66%;padding:8px 7px}
 .stat-label{font-size:6.8px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:4px}
 .stat-value{font-size:16px;font-weight:800;color:#102a56}
+.chart-grid{width:100%;border-collapse:separate;border-spacing:8px;margin:8px -8px 12px}
+.chart-grid td{vertical-align:top}
+.chart-panel{border:1px solid #dbe3ef;border-radius:6px;background:#f8fafc;padding:10px}
+.trend-panel{width:66%}
+.status-panel{width:34%}
+.chart-title{font-size:12px;font-weight:800;color:#102a56;margin:0 0 2px}
+.chart-sub{font-size:8.5px;color:#64748b;margin:0 0 8px}
+.chart-wrap{padding:0;margin:0}
+.chart-table{width:100%;border-collapse:collapse}
+.chart-table td{vertical-align:middle}
+.chart-svg-cell{width:145px;text-align:center}
+.chart-legend{font-size:8px;color:#334155}
+.legend-row{margin:4px 0}
+.legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.legend-count{font-weight:800;color:#102a56}
+.chart-empty{font-size:9px;color:#64748b;text-align:center;padding:18px}
+.trend-img{width:100%;height:auto}
 .report{width:100%;table-layout:fixed;border-collapse:collapse}
 .report thead{display:table-header-group}
 .report th{background:#102a56;color:#fff;padding:6px 4px;font-size:6.5px;text-align:left;text-transform:uppercase}
@@ -710,8 +731,20 @@ h1{font-size:20px;color:#102a56;margin:0 0 3px}
   <td><div class="stat-label">Compliance Not Followed</div><div class="stat-value">{$notFollowed}</div></td>
   <td><div class="stat-label">Penalty Points</div><div class="stat-value">{$penalties}</div></td>
 </tr></table>
+<table class="chart-grid"><tr>
+  <td class="chart-panel trend-panel">
+    <div class="chart-title">Ticket Volume Trends</div>
+    <div class="chart-sub">Ticket &amp; task volume over the selected period</div>
+    <div class="chart-wrap">{$lineChart}</div>
+  </td>
+  <td class="chart-panel status-panel">
+    <div class="chart-title">Ticket Status Overview</div>
+    <div class="chart-sub">Tickets created in this period by current status</div>
+    {$statusPieChart}
+  </td>
+</tr></table>
 <div class="section-title">Ticket Breakdown</div>
-<table class="report {$tableClass}"><thead><tr><th>Ticket ID</th><th>Title</th><th>User</th>{$companyHeader}<th>Status</th><th>Start Date</th><th>End Date</th><th>Response Time</th><th>Resolution Time</th><th>Compliance</th><th>Points</th></tr></thead>
+<table class="report {$tableClass}"><thead><tr><th>Ticket ID</th><th>Title</th><th>User</th>{$companyHeader}<th>Status</th><th>Start Date</th><th>End Date</th><th>First Time Response</th><th>Resolution Time</th><th>Compliance</th><th>Points</th></tr></thead>
 <tbody>{$rows}</tbody></table>
 <div class="footer">Fixtora Helpdesk &nbsp; | &nbsp; Page <span class="page"></span></div>
 </body></html>
@@ -724,5 +757,211 @@ HTML;
         
         // Fallback if dompdf isn't somehow available
         return response($html)->header('Content-Type', 'text/html; charset=utf-8');
+    }
+
+    private function buildPdfLineChart(array $chartData): string
+    {
+        $series = [
+            ['label' => 'New Tickets', 'data' => $chartData['inflow'] ?? [], 'color' => '#0f3f83', 'fill' => true, 'dash' => false],
+            ['label' => 'Closed Tickets', 'data' => $chartData['resolved'] ?? [], 'color' => '#94a3b8', 'fill' => false, 'dash' => true],
+            ['label' => 'New Tasks', 'data' => $chartData['taskInflow'] ?? [], 'color' => '#16a34a', 'fill' => true, 'dash' => false],
+            ['label' => 'Done Tasks', 'data' => $chartData['taskDone'] ?? [], 'color' => '#86efac', 'fill' => false, 'dash' => true],
+        ];
+        $labels = $chartData['labels'] ?? [];
+        $width = 1100;
+        $height = 280;
+        $left = 48;
+        $right = 18;
+        $top = 48;
+        $bottom = 42;
+        $plotWidth = $width - $left - $right;
+        $plotHeight = $height - $top - $bottom;
+        $maxValue = 1;
+
+        foreach ($series as $item) {
+            $maxValue = max($maxValue, ...array_map('intval', $item['data']));
+        }
+
+        $image = imagecreatetruecolor($width, $height);
+        imagesavealpha($image, true);
+        imagefill($image, 0, 0, imagecolorallocate($image, 248, 250, 252));
+        imageantialias($image, true);
+
+        $grid = imagecolorallocate($image, 238, 242, 247);
+        $axis = imagecolorallocate($image, 203, 213, 225);
+        $text = imagecolorallocate($image, 71, 85, 105);
+
+        $tickCount = min(4, max(1, $maxValue));
+        for ($i = 0; $i <= $tickCount; $i++) {
+            $y = (int) round($top + ($plotHeight / $tickCount) * $i);
+            imageline($image, $left, $y, $width - $right, $y, $grid);
+            $value = (string) (int) round($maxValue - (($maxValue / $tickCount) * $i));
+            imagestring($image, 2, 8, $y - 7, $value, $text);
+        }
+        imageline($image, $left, $top, $left, $top + $plotHeight, $axis);
+        imageline($image, $left, $top + $plotHeight, $width - $right, $top + $plotHeight, $axis);
+
+        $count = max(1, count($labels));
+        foreach ($labels as $index => $label) {
+            if ($index % max(1, (int) ceil($count / 8)) !== 0 && $index !== $count - 1) {
+                continue;
+            }
+            $x = (int) round($left + ($count === 1 ? 0 : ($plotWidth / ($count - 1)) * $index));
+            imagestring($image, 2, max($left, $x - 14), $top + $plotHeight + 10, (string) $label, $text);
+        }
+
+        foreach ($series as $item) {
+            if (count($item['data']) === 0) {
+                continue;
+            }
+            [$red, $green, $blue] = sscanf($item['color'], '#%02x%02x%02x');
+            $color = imagecolorallocate($image, $red, $green, $blue);
+            $fillColor = imagecolorallocatealpha($image, $red, $green, $blue, 112);
+            imagesetthickness($image, 3);
+            $points = [];
+            foreach (array_values($item['data']) as $index => $value) {
+                $x = (int) round($left + ($count === 1 ? 0 : ($plotWidth / ($count - 1)) * $index));
+                $y = (int) round($top + $plotHeight - (($plotHeight * (int) $value) / $maxValue));
+                $points[] = [$x, $y];
+            }
+
+            $curvePoints = $this->smoothPdfChartPoints($points);
+
+            if ($item['fill'] && count($curvePoints) > 1) {
+                $polygon = [];
+                foreach ($curvePoints as $point) {
+                    $polygon[] = $point[0];
+                    $polygon[] = $point[1];
+                }
+                $polygon[] = $curvePoints[count($curvePoints) - 1][0];
+                $polygon[] = $top + $plotHeight;
+                $polygon[] = $curvePoints[0][0];
+                $polygon[] = $top + $plotHeight;
+                imagefilledpolygon($image, $polygon, count($curvePoints) + 2, $fillColor);
+            }
+
+            $previous = null;
+            foreach ($curvePoints as $point) {
+                if ($previous) {
+                    $this->drawPdfChartLine($image, $previous[0], $previous[1], $point[0], $point[1], $color, $item['dash']);
+                }
+                $previous = $point;
+            }
+        }
+        imagesetthickness($image, 1);
+
+        foreach ($series as $index => $item) {
+            [$red, $green, $blue] = sscanf($item['color'], '#%02x%02x%02x');
+            $color = imagecolorallocate($image, $red, $green, $blue);
+            $legendX = 570 + ($index * 125);
+            $legendY = 14;
+            imagefilledellipse($image, $legendX, $legendY + 6, 8, 8, $color);
+            imagestring($image, 2, $legendX + 9, $legendY, $item['label'], $text);
+        }
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+        imagedestroy($image);
+
+        return '<img class="trend-img" src="data:image/png;base64,'.base64_encode($png).'" alt="Ticket volume trends">';
+    }
+
+    private function smoothPdfChartPoints(array $points): array
+    {
+        if (count($points) < 3) {
+            return $points;
+        }
+
+        $smoothed = [];
+        $steps = 12;
+
+        for ($i = 0; $i < count($points) - 1; $i++) {
+            $p0 = $points[max(0, $i - 1)];
+            $p1 = $points[$i];
+            $p2 = $points[$i + 1];
+            $p3 = $points[min(count($points) - 1, $i + 2)];
+
+            for ($step = 0; $step < $steps; $step++) {
+                $t = $step / $steps;
+                $t2 = $t * $t;
+                $t3 = $t2 * $t;
+                $x = 0.5 * ((2 * $p1[0]) + (-$p0[0] + $p2[0]) * $t + (2 * $p0[0] - 5 * $p1[0] + 4 * $p2[0] - $p3[0]) * $t2 + (-$p0[0] + 3 * $p1[0] - 3 * $p2[0] + $p3[0]) * $t3);
+                $y = 0.5 * ((2 * $p1[1]) + (-$p0[1] + $p2[1]) * $t + (2 * $p0[1] - 5 * $p1[1] + 4 * $p2[1] - $p3[1]) * $t2 + (-$p0[1] + 3 * $p1[1] - 3 * $p2[1] + $p3[1]) * $t3);
+                $smoothed[] = [(int) round($x), (int) round($y)];
+            }
+        }
+
+        $smoothed[] = end($points);
+
+        return $smoothed;
+    }
+
+    private function drawPdfChartLine($image, int $x1, int $y1, int $x2, int $y2, int $color, bool $dashed): void
+    {
+        if (!$dashed) {
+            imageline($image, $x1, $y1, $x2, $y2, $color);
+            return;
+        }
+
+        $length = max(1, hypot($x2 - $x1, $y2 - $y1));
+        $dash = 9;
+        $gap = 6;
+        for ($pos = 0; $pos < $length; $pos += $dash + $gap) {
+            $start = $pos / $length;
+            $end = min($pos + $dash, $length) / $length;
+            imageline(
+                $image,
+                (int) round($x1 + ($x2 - $x1) * $start),
+                (int) round($y1 + ($y2 - $y1) * $start),
+                (int) round($x1 + ($x2 - $x1) * $end),
+                (int) round($y1 + ($y2 - $y1) * $end),
+                $color
+            );
+        }
+    }
+
+    private function buildPdfStatusPieChart($tickets): string
+    {
+        $segments = [
+            ['label' => 'Open', 'count' => $tickets->where('status', 'open')->count(), 'color' => '#0f3f83'],
+            ['label' => 'In Progress', 'count' => $tickets->whereIn('status', ['in_progress', 'in_review'])->count(), 'color' => '#3b82f6'],
+            ['label' => 'Resolved', 'count' => $tickets->whereIn('status', ['resolved', 'closed'])->count(), 'color' => '#22c55e'],
+            ['label' => 'Pending User Response', 'count' => $tickets->where('status', 'pending_user_response')->count(), 'color' => '#f59e0b'],
+            ['label' => 'Escalated', 'count' => $tickets->where('status', 'escalated')->count(), 'color' => '#ef4444'],
+        ];
+
+        $total = array_sum(array_column($segments, 'count'));
+        if ($total === 0) {
+            return '<div class="chart-wrap"><div class="chart-empty">No tickets match the selected filters.</div></div>';
+        }
+
+        $image = imagecreatetruecolor(260, 260);
+        imagesavealpha($image, true);
+        imagefill($image, 0, 0, imagecolorallocatealpha($image, 248, 250, 252, 0));
+        imageantialias($image, true);
+
+        $angle = -90.0;
+        $legend = '';
+
+        foreach ($segments as $segment) {
+            $sweep = 360 * ($segment['count'] / $total);
+            if ($segment['count'] > 0) {
+                [$red, $green, $blue] = sscanf($segment['color'], '#%02x%02x%02x');
+                $color = imagecolorallocate($image, $red, $green, $blue);
+                imagefilledarc($image, 130, 130, 230, 230, (int) round($angle), (int) round($angle + $sweep), $color, IMG_ARC_PIE);
+            }
+            $angle += $sweep;
+            $legend .= '<div class="legend-row"><span class="legend-dot" style="background:'.$segment['color'].'"></span>'.e($segment['label']).' <span class="legend-count">'.$segment['count'].'</span></div>';
+        }
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+        imagedestroy($image);
+
+        $chartImage = '<img src="data:image/png;base64,'.base64_encode($png).'" width="130" height="130" alt="Ticket status pie chart">';
+
+        return '<div class="chart-wrap"><table class="chart-table"><tr><td class="chart-svg-cell">'.$chartImage.'</td><td><div class="chart-legend">'.$legend.'</div></td></tr></table></div>';
     }
 }
