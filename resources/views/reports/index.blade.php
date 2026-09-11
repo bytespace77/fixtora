@@ -245,7 +245,7 @@
         <div class="stat-card">
             <div class="stat-label">Tickets Resolved</div>
             <div class="stat-value">{{ $ticketsResolved }}</div>
-            <div class="stat-sub">Resolved in this period</div>
+            <div class="stat-sub">Created in this period and resolved/closed</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Compliance Followed</div>
@@ -280,7 +280,7 @@
 
         <div class="panel">
             <div class="panel-title">Ticket Status Overview</div>
-            <div class="panel-sub">Tickets by current status</div>
+                    <div class="panel-sub">Tickets created in this period by current status</div>
             <div class="doughnut-holder">
                 <canvas id="issueDistributionChart"></canvas>
             </div>
