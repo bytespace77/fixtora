@@ -768,6 +768,10 @@ HTML;
             ['label' => 'Done Tasks', 'data' => $chartData['taskDone'] ?? [], 'color' => '#86efac', 'fill' => false, 'dash' => true],
         ];
         $labels = $chartData['labels'] ?? [];
+        if (!$this->canRenderPdfChartImages()) {
+            return $this->buildPdfLineChartFallback($series);
+        }
+
         $width = 1100;
         $height = 280;
         $left = 48;
@@ -825,7 +829,7 @@ HTML;
                 $points[] = [$x, $y];
             }
 
-            $curvePoints = $this->smoothPdfChartPoints($points);
+            $curvePoints = $this->smoothPdfChartPoints($points, $top, $top + $plotHeight);
 
             if ($item['fill'] && count($curvePoints) > 1) {
                 $polygon = [];
@@ -867,7 +871,7 @@ HTML;
         return '<img class="trend-img" src="data:image/png;base64,'.base64_encode($png).'" alt="Ticket volume trends">';
     }
 
-    private function smoothPdfChartPoints(array $points): array
+    private function smoothPdfChartPoints(array $points, int $minY, int $maxY): array
     {
         if (count($points) < 3) {
             return $points;
@@ -888,7 +892,7 @@ HTML;
                 $t3 = $t2 * $t;
                 $x = 0.5 * ((2 * $p1[0]) + (-$p0[0] + $p2[0]) * $t + (2 * $p0[0] - 5 * $p1[0] + 4 * $p2[0] - $p3[0]) * $t2 + (-$p0[0] + 3 * $p1[0] - 3 * $p2[0] + $p3[0]) * $t3);
                 $y = 0.5 * ((2 * $p1[1]) + (-$p0[1] + $p2[1]) * $t + (2 * $p0[1] - 5 * $p1[1] + 4 * $p2[1] - $p3[1]) * $t2 + (-$p0[1] + 3 * $p1[1] - 3 * $p2[1] + $p3[1]) * $t3);
-                $smoothed[] = [(int) round($x), (int) round($y)];
+                $smoothed[] = [(int) round($x), max($minY, min($maxY, (int) round($y)))];
             }
         }
 
@@ -935,6 +939,9 @@ HTML;
         if ($total === 0) {
             return '<div class="chart-wrap"><div class="chart-empty">No tickets match the selected filters.</div></div>';
         }
+        if (!$this->canRenderPdfChartImages()) {
+            return $this->buildPdfStatusChartFallback($segments);
+        }
 
         $image = imagecreatetruecolor(260, 260);
         imagesavealpha($image, true);
@@ -963,5 +970,33 @@ HTML;
         $chartImage = '<img src="data:image/png;base64,'.base64_encode($png).'" width="130" height="130" alt="Ticket status pie chart">';
 
         return '<div class="chart-wrap"><table class="chart-table"><tr><td class="chart-svg-cell">'.$chartImage.'</td><td><div class="chart-legend">'.$legend.'</div></td></tr></table></div>';
+    }
+
+    private function canRenderPdfChartImages(): bool
+    {
+        return function_exists('imagecreatetruecolor')
+            && function_exists('imagepng')
+            && function_exists('imagefilledarc');
+    }
+
+    private function buildPdfLineChartFallback(array $series): string
+    {
+        $legend = '';
+        foreach ($series as $item) {
+            $total = array_sum(array_map('intval', $item['data']));
+            $legend .= '<div class="legend-row"><span class="legend-dot" style="background:'.$item['color'].'"></span>'.e($item['label']).' <span class="legend-count">'.$total.'</span></div>';
+        }
+
+        return '<div class="chart-legend">'.$legend.'</div>';
+    }
+
+    private function buildPdfStatusChartFallback(array $segments): string
+    {
+        $legend = '';
+        foreach ($segments as $segment) {
+            $legend .= '<div class="legend-row"><span class="legend-dot" style="background:'.$segment['color'].'"></span>'.e($segment['label']).' <span class="legend-count">'.$segment['count'].'</span></div>';
+        }
+
+        return '<div class="chart-wrap"><div class="chart-legend">'.$legend.'</div></div>';
     }
 }
