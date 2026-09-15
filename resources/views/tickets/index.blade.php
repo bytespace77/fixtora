@@ -655,7 +655,8 @@ function submitTicketForm() {
     body: fd,
     headers: {
       'X-CSRF-TOKEN': csrf,
-      'X-Requested-With': 'XMLHttpRequest'
+      'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json'
     }
   }).then(r => {
     if (r.redirected) {
@@ -663,8 +664,9 @@ function submitTicketForm() {
     } else if (r.ok) {
       window.location.reload();
     } else {
-      return r.text().then(text => {
-        showToast('Error: please check all fields', false);
+      return r.json().catch(() => null).then(data => {
+        const firstError = data?.errors ? Object.values(data.errors).flat()[0] : null;
+        showToast(firstError || data?.message || 'Error: please check all fields', false);
         btn.disabled = false;
         btn.textContent = currentMode === 'new' ? 'Create Ticket' : 'Save Changes';
       });

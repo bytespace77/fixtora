@@ -891,8 +891,17 @@ function submitCmtForm(){
   const btn=document.getElementById('cmtSendBtn');
   btn.disabled=true;btn.innerHTML='Sending…';
 
-  fetch(form.action,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}})
-    .then(r=>{if(r.redirected){window.location.href=r.url;}else{window.location.reload();}})
+  fetch(form.action,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}})
+    .then(r=>{
+      if(r.redirected){window.location.href=r.url;return;}
+      if(r.ok){window.location.reload();return;}
+      return r.json().catch(()=>null).then(data=>{
+        const firstError=data?.errors?Object.values(data.errors).flat()[0]:null;
+        btn.disabled=false;
+        btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send';
+        showToast(firstError||data?.message||'Failed to send',false);
+      });
+    })
     .catch(()=>{btn.disabled=false;btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send';showToast('Failed to send',false);});
 }
 
