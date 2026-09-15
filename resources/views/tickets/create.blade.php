@@ -202,7 +202,7 @@ textarea.form-input:focus{border:none;box-shadow:none}
         <div class="upload-zone" id="dropzone">
           <div class="upload-icon">📎</div>
           <div class="upload-title" id="dropzone-title">Drag and drop log files or screenshots here</div>
-          <div class="upload-sub">Maximum file size 25MB · JPG, PNG, LOG, JSON, ZIP</div>
+          <div class="upload-sub">Maximum 10 files · 25MB each · JPG, PNG, LOG, JSON, ZIP</div>
           <span class="upload-link">OR BROWSE FILES</span>
         </div>
       </label>
@@ -285,6 +285,11 @@ textarea.form-input:focus{border:none;box-shadow:none}
   const allowed = ['jpg','jpeg','png','log','json','zip'];
 
   const dz = document.getElementById('dropzone');
+  ['dragover', 'drop'].forEach(eventName => {
+    document.addEventListener(eventName, e => {
+      if (!e.target.closest('#dropzone')) e.preventDefault();
+    });
+  });
   dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor='#2563eb'; dz.style.background='var(--blue-bg)'; });
   dz.addEventListener('dragleave', () => { dz.style.borderColor=''; dz.style.background=''; });
   dz.addEventListener('drop', e => {
@@ -296,8 +301,8 @@ textarea.form-input:focus{border:none;box-shadow:none}
 
   function addFiles(incoming) {
     incoming.forEach(f => {
-      // avoid duplicates by name
-      if (!selectedFiles.find(x => x.name === f.name)) {
+      const fileKey = `${f.name}-${f.size}-${f.lastModified}`;
+      if (selectedFiles.length < 10 && !selectedFiles.find(x => `${x.name}-${x.size}-${x.lastModified}` === fileKey)) {
         selectedFiles.push(f);
       }
     });

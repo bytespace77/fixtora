@@ -441,7 +441,7 @@ textarea.form-control{resize:vertical;min-height:80px}
                  onclick="document.getElementById('cmtFileInput').click()">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               <span id="cmtDropLabel">Attach files — click or drag &amp; drop here</span>
-              <span class="cmt-drop-hint">JPG, PNG, LOG, JSON, ZIP · max 25MB</span>
+              <span class="cmt-drop-hint">Max 10 files · 25MB each</span>
             </div>
             @endif
             <div class="cmt-toolbar">
@@ -833,7 +833,10 @@ const cmtAllowed=['jpg','jpeg','png','log','json','zip'];
 const cmtMaxMB=25;
 
 function handleCmtFileSelect(incoming){
-  [...incoming].forEach(f=>{if(!cmtFiles.find(x=>x.name===f.name))cmtFiles.push(f);});
+  [...incoming].forEach(f=>{
+    const fileKey=`${f.name}-${f.size}-${f.lastModified}`;
+    if(cmtFiles.length<10&&!cmtFiles.find(x=>`${x.name}-${x.size}-${x.lastModified}`===fileKey))cmtFiles.push(f);
+  });
   // Reset input so same file can be re-added after removal
   document.getElementById('cmtFileInput').value='';
   renderCmtPreview();
@@ -894,6 +897,11 @@ function submitCmtForm(){
 }
 
 document.addEventListener('DOMContentLoaded',function(){
+  ['dragover','drop'].forEach(eventName=>{
+    document.addEventListener(eventName,e=>{
+      if(!e.target.closest('#cmtDropZone'))e.preventDefault();
+    });
+  });
   document.getElementById('cmtForm').addEventListener('submit',function(e){
     e.preventDefault();
     submitCmtForm();

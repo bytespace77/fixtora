@@ -372,7 +372,7 @@ textarea.form-control{resize:vertical;min-height:80px}
             <div id="modal_dropzone" style="border:2px dashed var(--border);border-radius:8px;padding:14px 16px;text-align:center;transition:all .15s;">
               <div style="font-size:18px;margin-bottom:4px;">📎</div>
               <div style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:2px;" id="modal_dz_title">Drag &amp; drop files or <span style="color:var(--blue)">browse</span></div>
-              <div style="font-size:11px;color:var(--muted);">JPG, PNG, LOG, JSON, ZIP · max 25MB each</div>
+              <div style="font-size:11px;color:var(--muted);">Maximum 10 files · JPG, PNG, LOG, JSON, ZIP · max 25MB each</div>
             </div>
           </label>
           <input type="file" id="modal_file_upload" name="attachments[]" multiple
@@ -683,7 +683,8 @@ const modalAllowed = ['jpg','jpeg','png','log','json','zip'];
 
 function handleModalFiles(incoming) {
   [...incoming].forEach(f => {
-    if (!modalFiles.find(x => x.name === f.name)) modalFiles.push(f);
+    const fileKey = `${f.name}-${f.size}-${f.lastModified}`;
+    if (modalFiles.length < 10 && !modalFiles.find(x => `${x.name}-${x.size}-${x.lastModified}` === fileKey)) modalFiles.push(f);
   });
   syncModalFiles();
 }
@@ -731,6 +732,11 @@ function syncModalFiles() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const mdz = document.getElementById('modal_dropzone');
+  ['dragover', 'drop'].forEach(eventName => {
+    document.addEventListener(eventName, e => {
+      if (!e.target.closest('#modal_dropzone')) e.preventDefault();
+    });
+  });
   mdz.addEventListener('dragover', e => { e.preventDefault(); mdz.style.borderColor='#2563eb'; mdz.style.background='var(--blue-bg)'; });
   mdz.addEventListener('dragleave', () => { mdz.style.borderColor=''; mdz.style.background=''; });
   mdz.addEventListener('drop', e => {
