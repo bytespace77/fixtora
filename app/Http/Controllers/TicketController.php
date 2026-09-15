@@ -160,10 +160,10 @@ class TicketController extends Controller
             'status'        => 'required|in:open,in_progress,in_review,pending_user_response,escalated,resolved,closed',
             'due_date'      => 'nullable|date',
             'attachments'   => 'nullable|array|max:10',
-            'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
+            'attachments.*' => 'file|max:25600|extensions:jpg,jpeg,png,log,json,zip',
         ];
 
-        $validated = $request->validate($rules);
+        $validated = $request->validate($rules, $this->attachmentValidationMessages());
 
         $validated['user_id'] = auth()->id();
         unset($validated['attachments']);
@@ -696,8 +696,8 @@ class TicketController extends Controller
         $request->validate([
             'body'          => 'required|string',
             'attachments'   => 'nullable|array|max:10',
-            'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
-        ]);
+            'attachments.*' => 'file|max:25600|extensions:jpg,jpeg,png,log,json,zip',
+        ], $this->attachmentValidationMessages());
 
         $comment = TicketComment::create([
             'ticket_id' => $ticket->id,
@@ -732,8 +732,8 @@ class TicketController extends Controller
 
         $request->validate([
             'attachments'   => 'required|array|max:10',
-            'attachments.*' => 'file|max:25600|mimes:jpg,jpeg,png,json,zip',
-        ]);
+            'attachments.*' => 'file|max:25600|extensions:jpg,jpeg,png,log,json,zip',
+        ], $this->attachmentValidationMessages());
 
         foreach ($request->file('attachments') as $file) {
             $path = $file->store("ticket-attachments/{$ticket->id}", 'public');
@@ -758,6 +758,16 @@ class TicketController extends Controller
         Storage::disk('public')->delete($attachment->stored_path);
         $attachment->delete();
         return redirect()->route('tickets.show', $ticket)->with('success', 'Attachment deleted!');
+    }
+
+    private function attachmentValidationMessages(): array
+    {
+        return [
+            'attachments.max' => 'You can upload up to 10 files only.',
+            'attachments.*.file' => 'Each attachment must be a valid file.',
+            'attachments.*.max' => 'Each attachment must not exceed 25MB.',
+            'attachments.*.extensions' => 'Attachments must be JPG, PNG, LOG, JSON, or ZIP files.',
+        ];
     }
 
     public function submitRating(Request $request, Ticket $ticket)
