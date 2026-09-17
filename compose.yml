@@ -1,0 +1,55 @@
+services:
+  app:
+    image: ${FIXTORA_IMAGE:-localhost/fixtora:latest}
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: fixtora-app
+    restart: unless-stopped
+    env_file:
+      - docker/compose.env
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - fixtora-storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.4
+    container_name: fixtora-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-fixtora-1}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Abc123**}
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "${DB_FORWARD_PORT:-3307}:3306"
+    volumes:
+      - fixtora-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: fixtora-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_PASSWORD:-Abc123**}
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "${PHPMYADMIN_PORT:-8081}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  fixtora-storage:
+  fixtora-mysql:
